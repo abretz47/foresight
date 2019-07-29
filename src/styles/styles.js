@@ -2,19 +2,21 @@ import React, {Component} from 'react';
 import {Alert, StyleSheet, Text, View, Button } from 'react-native';
 
 export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   template:{
     flex: 1,
-    backgroundColor: "green"
+    backgroundColor: "#2BBB32"
+  },
+  homeContainer:{
+    flex:1,
+    justifyContent: 'center'
+  },
+  touchableContainer:{
+    flex:1,
+    justifyContent: 'center'
   },
   container:{
     flex:1,
-    justifyContent: 'center'
+    //justifyContent: 'center'
   },
   buttonContainer: {
     margin: 30,
@@ -27,6 +29,10 @@ export const styles = StyleSheet.create({
   row:{
     flexDirection:"row",
     justifyContent:'center'
+  },
+  column:{
+    flexDirection:"column",
+    justifyContent:"center"
   },
   startBtn: {
     color:"black"
