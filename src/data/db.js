@@ -6,12 +6,12 @@ import 'firebase/firestore';
 // Initialize Firebase
 
 const firebaseConfig = {
-    apiKey: "AIzaSyBOL93KgNphI_eSi6Vc0ZA9yCQamcRDdCs",
-    authDomain: "foresight-58134.firebaseapp.com",
-    databaseURL: "https://foresight-58134.firebaseio.com",
-    projectId: "foresight-58134",
-    storageBucket: "foresight-58134.appspot.com",
-    appID: "1:661750039560:web:4d972908b10f5319",
+    apiKey: "",
+    authDomain: "",
+    databaseURL: "",
+    projectId: "",
+    storageBucket: "",
+    appID: "",
 };
 
 firebase.initializeApp(firebaseConfig);
