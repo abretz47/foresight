@@ -1,3 +1,4 @@
 node_modules/
 *.watchmanconfig
 *.yarn.lock
+*.DS_Store
