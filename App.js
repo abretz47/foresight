@@ -4,10 +4,11 @@ import {createStackNavigator, createAppContainer} from 'react-navigation';
 import * as Facebook from 'expo-facebook';
 
 import HomeScreen from './src/pages/HomeScreen';
+import ShotProfile from './src/pages/ShotProfile';
 import Record from './src/pages/Record';
 import RecordDetailsScreen from './src/pages/RecordDetailsScreen';
 import Default from './src/pages/Default';
-import DB from './src/data/db';
+import * as DB from './src/data/db';
 
 async function logIn() {
   try {
@@ -35,9 +36,9 @@ async function logIn() {
 }
 
 //logIn();
-
 const MainNavigator = createStackNavigator({
   Home: {screen: HomeScreen},
+  ShotProfile: {screen: ShotProfile},
   RecordDetails: {screen:RecordDetailsScreen},
   Record: {screen: Record},
   Default:{screen:Default}
@@ -45,6 +46,7 @@ const MainNavigator = createStackNavigator({
 const AppContainer = createAppContainer(MainNavigator);
 
 export default class App extends Component {
+
   render() {
     return <AppContainer />;
   }

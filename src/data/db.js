@@ -17,13 +17,63 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 
 var db = firebase.firestore();
-/*db.collection("test").doc("person").get().then((doc) => {
-    console.log(doc.data());
-})*/
-
-export function test(){
-        db.collection("records").doc("abretz").collection("7i").doc("GoA0uGrP5egGrIHNOFs5").get().then((doc) => {
-            console.log(doc.data());
+export function getShotProfile(_callback){
+    var data = [];
+    db.collection("users").doc("abretz").collection("Shot Profile").orderBy("distance", "desc").get()
+    .then(
+        function(querySnapshot) {
+            querySnapshot.forEach(function (doc){
+                // doc.data() is never undefined for query doc snapshots
+                data.push(doc.data());
+                data[data.length - 1].id = doc.id;
+            });
+            _callback(data);
+        });
+}
+export function saveShot(shot){
+    var collectionRef = db.collection("users").doc("abretz").collection("Shot Profile");
+    if(shot.id && shot.id != ""){
+        collectionRef.doc(shot.id).set({
+            name: shot.name,
+            distance: shot.targetDistance,
+            targetRadius: shot.targetRadius,
+            missRadius: shot.missRadius,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
         })
+        .then(function(){
+            console.log("successfully updated shot type for: ", shot.id);
+        })
+        .catch(function(e){
+            console.log("Error updating shot type for: ", shot.id, e)
+        })
+    }
+    else{
+        collectionRef.add({
+            name: shot.name,
+            distance: shot.targetDistance,
+            targetRadius: shot.targetRadius,
+            missRadius: shot.missRadius,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        })
+        .then(function(docRef){
+            console.log("successfully added shot type for: ", docRef.id);
+        })
+        .catch(function(e){
+            console.log("Error adding shot type: ", e)
+        })
+    }
+
+}
+export function deleteShot(id){
+    var collectionRef = db.collection("users").doc("abretz").collection("Shot Profile");
+    if(id && id != ""){
+       collectionRef.doc(id).delete()
+       .then(function(){
+           console.log("Successfully deleted doc id: ", id);
+       })
+       .catch(function(e){
+           console.log("Error deleting doc: ", id, e);
+       })
+    }
 }
 

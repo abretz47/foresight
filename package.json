@@ -11,7 +11,9 @@
     "expo-facebook": "^5.0.1",
     "firebase": "^6.2.4",
     "react": "16.8.3",
+    "react-devtools": "^3.6.3",
     "react-native": "https://github.com/expo/react-native/archive/sdk-33.0.0.tar.gz",
+    "react-native-modal": "^11.5.3",
     "react-navigation": "^3.11.0"
   },
   "devDependencies": {

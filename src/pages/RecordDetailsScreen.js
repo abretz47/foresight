@@ -3,12 +3,7 @@ import {Alert, StyleSheet, Text, View, Button, Picker } from 'react-native';
 import {createStackNavigator, createAppContainer} from 'react-navigation';
 
 import {styles} from '../styles/styles.js';
-import ClubPicker from '../components/ClubPicker.js';
-import ShotsPicker from '../components/ShotsPicker.js';
-import TargetPicker from '../components/TargetPicker.js';
-import TargetRadiusPicker from '../components/TargetRadiusPicker.js';
-import MissRadiusPicker from '../components/MissRadiusPicker.js';
-import {test} from '../data/db';
+import * as DB from '../data/db';
 
 export default class RecordDetailsScreen extends Component{
     static navigationOptions = {
@@ -16,20 +11,41 @@ export default class RecordDetailsScreen extends Component{
       };
     constructor(props){
         super(props);
-        this.state = {
-                        club:"7i",
-                        target: "150",
-                        targetRadius:"5",
-                        missRadius:"20"
-                    };
+        this.state = {selectedShot:this.props.defaultSelection, 
+          shots:[],
+          id:"",
+          shotName:"",
+          targetDistance:"",
+          targetRadius:"",
+          missRadius:""
+        };
     }
-    _setState = (item, value) =>{
-      if(item == "club"){
-        this.setState({club:value});
-      }
-      else if(item == "target"){
-        this.setState({target:value});
-      }
+    componentDidMount() {
+      const { navigation } = this.props;
+      this.focusListener = navigation.addListener('didFocus', () => {
+        // The screen is focused
+        this.getShotProfile();
+        });
+    }
+    componentWillUnmount() {
+      // Remove the event listener
+      this.focusListener.remove();
+    }
+    selectionChange = (index) => {
+      var selection = this.state.shots[index];
+      this.setState({id: selection.id,
+        shotName: selection.name,
+        targetDistance: selection.distance, 
+        targetRadius: selection.targetRadius, 
+        missRadius: selection.missRadius})
+  }
+    getShotProfile = () => {
+      DB.getShotProfile((data) => {
+        this.setState({shots:data,selectedShot:0}, () => {
+          this.selectionChange(0);
+        });
+        
+        });
     }
       render() {
         const {navigate} = this.props.navigation;
@@ -37,32 +53,53 @@ export default class RecordDetailsScreen extends Component{
           <View style={styles.template}>
             <View style={styles.container}>
               <View style={styles.row}>
-                  <View style={{padding:40}}>
-                    <ClubPicker defaultSelection={this.state.club} callBack={this._setState}></ClubPicker>
-                  </View>
-                  <View style={{padding:40}}>
-                    <TargetPicker defaultSelection={this.state.target} callBack={this._setState}></TargetPicker>
+                  <View style={styles.column}>
+                  <Text style={styles.label}>Select Shot Type</Text>
+                      <Picker 
+                          selectedValue={this.state.selectedShot}
+                          mode="dialog"
+                          onValueChange={(itemValue, itemIndex) => {
+                              this.setState({selectedShot: itemValue});
+                              this.selectionChange(itemValue,itemIndex);
+                          }
+                          }>
+                          {Object.keys(this.state.shots).map((key) => {
+                            return (<Picker.Item label={this.state.shots[key].name} value={key} key={key}/>) //if you have a bunch of keys value pair
+                          })}
+                      </Picker>
                   </View>
               </View>
-            </View>
-            <View style={styles.container}>
               <View style={styles.row}>
-                <View style={{padding:40}}>
-                  <TargetRadiusPicker defaultSelection={this.state.targetRadius} callBack={this._setState}></TargetRadiusPicker>
+                <View style={styles.column}>
+                  <Text style={styles.label}>Shot Name</Text>
+                  <Text>{this.state.shotName}</Text>
                 </View>
-                <View style={{padding:40}}>
-                  <MissRadiusPicker defaultSelection={this.state.missRadius} callBack={this._setState}></MissRadiusPicker>
+                <View style={styles.column}>
+                  <Text style={styles.label}>Target Distance</Text>
+                  <Text>{this.state.targetDistance}</Text>
+                </View>
+              </View>
+              <View style={styles.row}>
+                <View style={styles.column}>
+                  <Text style={styles.label}>Target Radius</Text>
+                  <Text>{this.state.targetRadius}</Text>
+                </View>
+                <View style={styles.column}>
+                  <Text style={styles.label}>Miss Radius</Text>
+                  <Text>{this.state.missRadius}</Text>
                 </View>
               </View>
             </View>
             <View style={styles.buttonRow}>
               <View style={styles.buttonContainer}>
-                <Button title="Go!" color="black" onPress={() => this.props.navigation.navigate('Record',{
-                    club: this.state.club,
-                    target: this.state.target,
-                    targetRadius: this.state.targetRadius,
-                    missRadius: this.state.missRadius
-                  })}></Button>
+                <Button title="Go!" color="black" onPress={() => {
+                    this.props.navigation.navigate('Record',{
+                      shotName: this.state.shotName,
+                      targetDistance: this.state.targetDistance,
+                      targetRadius: this.state.targetRadius,
+                      missRadius: this.state.missRadius
+                    });
+                  }}></Button>
               </View>
             </View>
           </View>

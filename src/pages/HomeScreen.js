@@ -16,19 +16,16 @@ export default class HomeScreen extends Component {
       <View style={styles.template}>
         <View style={styles.homeContainer}>
           <View style={styles.buttonRow}>
-            <View style={styles.buttonContainer}>
-                <Button title="Record Data" onPress={() => this.props.navigation.navigate('RecordDetails')} color="black"/>
-            </View>
-            <View style={styles.buttonContainer}>
-                <Button title="Play a Round" onPress={() => this.props.navigation.navigate('Default')} color="black"/>
+          <View style={styles.buttonContainer}>
+                <Button title="Shot Profile" onPress={() => this.props.navigation.navigate('ShotProfile')} color="black"/>
             </View>
           </View>
           <View style={styles.buttonRow}>
             <View style={styles.buttonContainer}>
-                <Button title="Analyze Data" onPress={() => this.props.navigation.navigate('Default')} color="black"/>
+                <Button title="Record Data" onPress={() => this.props.navigation.navigate('RecordDetails')} color="black"/>
             </View>
             <View style={styles.buttonContainer}>
-                <Button title="???" onPress={() => this.props.navigation.navigate('Default')} color="black"/>
+                <Button title="Analyze Data" onPress={() => this.props.navigation.navigate('Default')} color="black"/>
             </View>
           </View>
         </View>
