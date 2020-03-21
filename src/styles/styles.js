@@ -12,7 +12,7 @@ export const styles = StyleSheet.create({
   },
   touchableContainer:{
     flex:1,
-    justifyContent: 'center'
+    justifyContent: 'center',
   },
   container:{
     flex:1,
@@ -65,6 +65,11 @@ export const styles = StyleSheet.create({
     margin: 30,
     flex:1,
   },
+  buttonSuccess:{
+    flex: 1,
+    margin: 30,
+    backgroundColor: "#2BBB32"
+  },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -90,5 +95,14 @@ export const styles = StyleSheet.create({
   alignItems: 'center',
   borderRadius: 4,
   borderColor: 'rgba(0, 0, 0, 0.1)',
+},
+target :{
+  borderWidth:1,
+  borderColor:'rgba(0,0,0,0.2)',
+  backgroundColor:'red'
+},
+roundButton:{
+  backgroundColor: '#000000',
+  borderRadius: 200
 }
 });

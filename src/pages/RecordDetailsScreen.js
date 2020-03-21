@@ -7,10 +7,11 @@ import * as DB from '../data/db';
 
 export default class RecordDetailsScreen extends Component{
     static navigationOptions = {
-        title: 'Record Details',
+        title: 'Shot Selection',
       };
     constructor(props){
         super(props);
+        //const { navigation } = this.props;
         this.state = {selectedShot:this.props.defaultSelection, 
           shots:[],
           id:"",
@@ -93,11 +94,14 @@ export default class RecordDetailsScreen extends Component{
             <View style={styles.buttonRow}>
               <View style={styles.buttonContainer}>
                 <Button title="Go!" color="black" onPress={() => {
-                    this.props.navigation.navigate('Record',{
+                  var calledFrom = this.props.navigation.getParam("calledFrom", "Default");
+                    this.props.navigation.navigate(calledFrom,{
+                      id: this.state.id,
                       shotName: this.state.shotName,
                       targetDistance: this.state.targetDistance,
                       targetRadius: this.state.targetRadius,
-                      missRadius: this.state.missRadius
+                      missRadius: this.state.missRadius,
+                      calledFrom: calledFrom
                     });
                   }}></Button>
               </View>

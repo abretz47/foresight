@@ -76,4 +76,38 @@ export function deleteShot(id){
        })
     }
 }
+export function saveDataPoint(data){
+    if(data.id && data.id != ""){
+        var collectionRef = db.collection("users").doc("abretz").collection("Shot Profile").doc(data.id).collection("Data");
+        collectionRef.add({
+            shotX : data.shotX,
+            shotY : data.shotY,
+            clickedFrom: data.clickedFrom,
+            screenHeight : data.screenHeight,
+            screenWidth : data.screenWidth,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        })
+        .then((docRef) => {console.log("Successfully added data: ", docRef.id)})
+        .catch((e) => {console.log("Error adding doc: ", e)})
+    }
+    else{
+        console.error("error: no shot id!");
+    }
+}
+export function getShotData(id, _callback){
+    var data = [];
+    if(id && id != ""){
+        db.collection("users").doc("abretz").collection("Shot Profile").doc(id).collection("Data").get()
+        .then(
+            function(querySnapshot) {
+                querySnapshot.forEach(function (doc){
+                    // doc.data() is never undefined for query doc snapshots
+                    data.push(doc.data());
+                    data[data.length - 1].id = doc.id;
+                });
+                _callback(data);
+            });;
+
+    }
+}
 

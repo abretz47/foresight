@@ -35,11 +35,12 @@ async function logIn() {
   }
 }
 
-//logIn();
+logIn();
 const MainNavigator = createStackNavigator({
   Home: {screen: HomeScreen},
   ShotProfile: {screen: ShotProfile},
   RecordDetails: {screen:RecordDetailsScreen},
+  Analyze: {screen:Record},
   Record: {screen: Record},
   Default:{screen:Default}
 });

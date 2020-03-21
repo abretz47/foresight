@@ -22,10 +22,10 @@ export default class HomeScreen extends Component {
           </View>
           <View style={styles.buttonRow}>
             <View style={styles.buttonContainer}>
-                <Button title="Record Data" onPress={() => this.props.navigation.navigate('RecordDetails')} color="black"/>
+                <Button title="Record Data" onPress={() => this.props.navigation.navigate('RecordDetails', {calledFrom:"Record"})} color="black"/>
             </View>
             <View style={styles.buttonContainer}>
-                <Button title="Analyze Data" onPress={() => this.props.navigation.navigate('Default')} color="black"/>
+                <Button title="Analyze Data" onPress={() => this.props.navigation.navigate('RecordDetails', {calledFrom: "Analyze"})} color="black"/>
             </View>
           </View>
         </View>
