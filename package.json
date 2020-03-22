@@ -13,6 +13,7 @@
     "react": "16.9.0",
     "react-devtools": "^3.6.3",
     "react-native": "https://github.com/expo/react-native/archive/sdk-36.0.1.tar.gz",
+    "react-native-gesture-handler": "^1.6.1",
     "react-native-modal": "^11.5.3",
     "react-navigation": "^3.11.0"
   },
