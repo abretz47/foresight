@@ -18,7 +18,7 @@ async function logIn() {
       expires,
       permissions,
       declinedPermissions,
-    } = await Facebook.logInWithReadPermissionsAsync('2668752273380739', {
+    } = await Facebook.logInWithReadPermissionsAsync('', {
       permissions: ['public_profile'],
       behavior: 'browser'
     });
