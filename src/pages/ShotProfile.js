@@ -33,7 +33,7 @@ class ShotProfile extends Component{
         this.focusListener.remove();
       }
       getShotProfile = () => {
-        DB.getShotProfile((data) => {
+        DB.getShotProfile(this.props.navigation.getParam("user","abretz"),(data) => {
           this.setState({shots:data,selectedShot:0});
           });
       }
@@ -62,12 +62,12 @@ class ShotProfile extends Component{
           targetRadius : this.state.targetRadius,
           missRadius : this.state.missRadius
         }
-        DB.saveShot(shot);
+        DB.saveShot(this.props.navigation.getParam("user","abretz"),shot);
         this.getShotProfile();
         this.selectionChange("New Shot",0);
       }
       deleteShot = () => {
-        DB.deleteShot(this.state.id);
+        DB.deleteShot(this.props.navigation.getParam("user","abretz"),this.state.id);
         this.getShotProfile();
         this.selectionChange("New Shot",0);
       }

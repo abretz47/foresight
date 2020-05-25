@@ -92,7 +92,7 @@ export default class Record extends Component{
     }
   }
   loadData = (id) => {
-    DB.getShotData(id,(data) => {
+    DB.getShotData(this.props.navigation.getParam("user","abretz"),id,(data) => {
       this.setState({data:data})
     })    
   }
@@ -182,7 +182,7 @@ export default class Record extends Component{
                     </View>
                     <View style={styles.buttonSuccess}>
                       <Button title="Ok!" color="black" onPress={() => {
-                        DB.saveDataPoint({
+                        DB.saveDataPoint(this.props.navigation.getParam("user","abretz"),{
                           id : this.state.shotId,
                           shotX : this.state.shotX,
                           shotY : this.state.shotY,

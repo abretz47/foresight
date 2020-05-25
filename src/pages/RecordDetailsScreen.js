@@ -41,7 +41,7 @@ export default class RecordDetailsScreen extends Component{
         missRadius: selection.missRadius})
   }
     getShotProfile = () => {
-      DB.getShotProfile((data) => {
+      DB.getShotProfile(this.props.navigation.getParam("user"),(data) => {
         this.setState({shots:data,selectedShot:0}, () => {
           this.selectionChange(0);
         });
@@ -94,8 +94,9 @@ export default class RecordDetailsScreen extends Component{
             <View style={styles.buttonRow}>
               <View style={styles.buttonContainer}>
                 <Button title="Go!" color="black" onPress={() => {
-                  var calledFrom = this.props.navigation.getParam("calledFrom", "Default");
+                  var calledFrom = this.props.navigation.getParam("calledFrom", "Record");
                     this.props.navigation.navigate(calledFrom,{
+                      user: this.props.navigation.getParam("user","abretz"),
                       id: this.state.id,
                       shotName: this.state.shotName,
                       targetDistance: this.state.targetDistance,

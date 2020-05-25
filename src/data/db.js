@@ -2,6 +2,7 @@ import React, {Component} from 'react';
 import * as firebase from 'firebase';
 import 'firebase/firestore';
 
+
 import app from '../../app.json'
 
 // Initialize Firebase
@@ -18,9 +19,9 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 
 var db = firebase.firestore();
-export function getShotProfile(_callback){
+export function getShotProfile(user,_callback){
     var data = [];
-    db.collection("users").doc("abretz").collection("Shot Profile").orderBy("distance", "desc").get()
+    db.collection("users").doc(user).collection("Shot Profile").orderBy("distance", "desc").get()
     .then(
         function(querySnapshot) {
             querySnapshot.forEach(function (doc){
@@ -28,11 +29,16 @@ export function getShotProfile(_callback){
                 data.push(doc.data());
                 data[data.length - 1].id = doc.id;
             });
-            _callback(data);
+            //if any data returned, callback
+            if(data.length)
+            {
+                _callback(data);
+            }
+                
         });
 }
-export function saveShot(shot){
-    var collectionRef = db.collection("users").doc("abretz").collection("Shot Profile");
+export function saveShot(user,shot){
+    var collectionRef = db.collection("users").doc(user).collection("Shot Profile");
     if(shot.id && shot.id != ""){
         collectionRef.doc(shot.id).set({
             name: shot.name,
@@ -65,8 +71,8 @@ export function saveShot(shot){
     }
 
 }
-export function deleteShot(id){
-    var collectionRef = db.collection("users").doc("abretz").collection("Shot Profile");
+export function deleteShot(user,id){
+    var collectionRef = db.collection("users").doc(user).collection("Shot Profile");
     if(id && id != ""){
        collectionRef.doc(id).delete()
        .then(function(){
@@ -77,9 +83,9 @@ export function deleteShot(id){
        })
     }
 }
-export function saveDataPoint(data){
+export function saveDataPoint(user,data){
     if(data.id && data.id != ""){
-        var collectionRef = db.collection("users").doc("abretz").collection("Shot Profile").doc(data.id).collection("Data");
+        var collectionRef = db.collection("users").doc(user).collection("Shot Profile").doc(data.id).collection("Data");
         collectionRef.add({
             shotX : data.shotX,
             shotY : data.shotY,
@@ -95,10 +101,10 @@ export function saveDataPoint(data){
         console.error("error: no shot id!");
     }
 }
-export function getShotData(id, _callback){
+export function getShotData(user,id, _callback){
     var data = [];
     if(id && id != ""){
-        db.collection("users").doc("abretz").collection("Shot Profile").doc(id).collection("Data").get()
+        db.collection("users").doc(user).collection("Shot Profile").doc(id).collection("Data").get()
         .then(
             function(querySnapshot) {
                 querySnapshot.forEach(function (doc){
@@ -106,7 +112,7 @@ export function getShotData(id, _callback){
                     data.push(doc.data());
                     data[data.length - 1].id = doc.id;
                 });
-                _callback(data);
+                if(data.length)_callback(data);
             });;
 
     }
