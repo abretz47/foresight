@@ -1,5 +1,6 @@
 import React, {Component} from 'react';
-import {Alert, StyleSheet, Text, View, Button, Picker, TextInput } from 'react-native';
+import {Alert, StyleSheet, Text, View, Button, Picker, TextInput,KeyboardAvoidingView } from 'react-native';
+import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view'
 import {createStackNavigator, createAppContainer} from 'react-navigation';
 import { withNavigation } from 'react-navigation';
 
@@ -33,7 +34,7 @@ class ShotProfile extends Component{
         this.focusListener.remove();
       }
       getShotProfile = () => {
-        DB.getShotProfile(this.props.navigation.getParam("user","abretz"),(data) => {
+        DB.getShotProfile(this.props.navigation.getParam("user",""),(data) => {
           this.setState({shots:data,selectedShot:0});
           });
       }
@@ -73,8 +74,14 @@ class ShotProfile extends Component{
       }
       render() {
           return (
+            <KeyboardAwareScrollView
+              style={styles.container}
+              resetScrollToCoords={{ x: 0, y: 0 }}
+              contentContainerStyle={styles.container}
+              scrollEnabled={true}
+            >
               <View style={styles.template}>
-                <View style={styles.container}>
+                 <View style={styles.container}>
                   <View style={styles.row}>
                     <View style={styles.column}>
                       <Text style={styles.label}>Select Shot</Text>
@@ -127,6 +134,7 @@ class ShotProfile extends Component{
                     </View>
                 </View>
               </View>
+            </KeyboardAwareScrollView>
           );
       }
   }

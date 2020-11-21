@@ -22,6 +22,7 @@ export const styles = StyleSheet.create({
     margin: 30,
     flex:1,
     backgroundColor: "white",
+    borderRadius: 15
   },  
   buttonRow: {
     flexDirection: "row"
@@ -30,7 +31,9 @@ export const styles = StyleSheet.create({
     flexDirection:"row",
     justifyContent:'center',
     paddingLeft : 40,
-    paddingRight: 40
+    paddingRight: 40,
+    marginLeft: 20,
+    marginRight: 20
   },
   column:{
     flexDirection:"column",
@@ -59,16 +62,19 @@ export const styles = StyleSheet.create({
     height: 50,
     fontSize: 18,
     fontWeight: "bold",
+    borderRadius: 15
   },
   buttonDanger:{
     backgroundColor: "#FF8166",
     margin: 30,
     flex:1,
+    borderRadius: 15
   },
   buttonSuccess:{
     flex: 1,
     margin: 30,
-    backgroundColor: "#2BBB32"
+    backgroundColor: "#2BBB32",
+    borderRadius: 15
   },
   modalContainer: {
     flex: 1,
