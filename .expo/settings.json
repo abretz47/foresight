@@ -4,5 +4,6 @@
   "dev": true,
   "minify": false,
   "urlRandomness": "hf-y5a",
-  "https": false
+  "https": false,
+  "scheme": null
 }
