@@ -64,8 +64,8 @@ export default class RecordDetailsScreen extends Component{
                               this.selectionChange(itemValue,itemIndex);
                           }
                           }>
-                          {Object.keys(this.state.shots).map((key) => {
-                            return (<Picker.Item label={this.state.shots[key].name} value={key} key={key}/>) //if you have a bunch of keys value pair
+                          {Object.keys(this.state.shots).map((key, index) => {
+                            return (<Picker.Item label={this.state.shots[key].name} value={index} key={key}/>) //if you have a bunch of keys value pair
                           })}
                       </Picker>
                   </View>
