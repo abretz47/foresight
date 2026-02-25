@@ -1,6 +1,5 @@
 import React, {Component} from 'react';
-import {TouchableOpacity,TouchableHighlight, Alert, StyleSheet, Text, View, Button, Dimensions, Image } from 'react-native';
-import {createStackNavigator, createAppContainer} from 'react-navigation';
+import {TouchableOpacity, Text, View, Button, Dimensions } from 'react-native';
 import Modal from 'react-native-modal';
 import { styles } from '../styles/styles';
 import * as DB from '../data/db';
@@ -8,15 +7,15 @@ import * as DB from '../data/db';
 export default class Record extends Component{
   constructor(props){
     super(props);
-    const { navigation } = this.props;
+    const { route } = this.props;
     this.state = {
       screenWidth: Math.round(Dimensions.get('window').width),
       screenHeight: Math.round(Dimensions.get('window').height),
-      shotName : navigation.getParam('shotName', "--"),
-      targetDistance: navigation.getParam('targetDistance',"--"),
-      targetRadius: navigation.getParam('targetRadius',"--"),
-      missRadius: navigation.getParam('missRadius',"--"),
-      targetRadiusPx: Math.round(Math.round(Dimensions.get('window').width) * (navigation.getParam('targetRadius',"--")/navigation.getParam('missRadius',"--")) * .7)/2,
+      shotName : route.params?.shotName ?? "--",
+      targetDistance: route.params?.targetDistance ?? "--",
+      targetRadius: route.params?.targetRadius ?? "--",
+      missRadius: route.params?.missRadius ?? "--",
+      targetRadiusPx: Math.round(Math.round(Dimensions.get('window').width) * ((route.params?.targetRadius ?? 1)/(route.params?.missRadius ?? 1)) * .7)/2,
       missRadiusPx: Math.round(Math.round(Dimensions.get('window').width) * .7)/2,
       modalVisible: false,
       clickedFrom : "",
@@ -25,21 +24,24 @@ export default class Record extends Component{
       shotX: "",
       shotY: "",
       data : [],
-      shotId : navigation.getParam('id', "--"),
-      calledFrom : navigation.getParam('calledFrom', "Default")
-    }
+      shotId : route.params?.id ?? "--",
+      calledFrom : route.params?.calledFrom ?? "Default"
+    };
   }
+
   componentDidMount() {
     const { navigation } = this.props;
-    this.focusListener = navigation.addListener('didFocus', () => {
-      // The screen is focused
+    this.focusListener = navigation.addListener('focus', () => {
       this.loadData(this.state.shotId);
-      });
+    });
   }
+
   componentWillUnmount() {
-    // Remove the event listener
-    this.focusListener.remove();
+    if (this.focusListener) {
+      this.focusListener();
+    }
   }
+
   targetStyle = () => {
     return {
       borderWidth:1,
@@ -48,8 +50,9 @@ export default class Record extends Component{
       width: this.state.targetRadiusPx * 2,
       height: this.state.targetRadiusPx * 2,
       borderRadius: this.state.targetRadiusPx
-    }
-  }  
+    };
+  }
+
   dataStyle = (left,top) => {
     return {
       borderWidth:1,
@@ -62,8 +65,9 @@ export default class Record extends Component{
       top: top,
       borderRadius: 5,
       zIndex: "1000"
-    }
-  }  
+    };
+  }
+
   missStyle = () => {
     return {
       borderWidth:1,
@@ -75,13 +79,15 @@ export default class Record extends Component{
       borderRadius: this.state.missRadiusPx,
       alignItems:'center',
       justifyContent:'center',
-    }
+    };
   }
+
   missButtonContainer = () =>{
     return {
       borderRadius: this.state.missRadiusPx
-    }
+    };
   }
+
   convertShotAccuracy = (number) => {
     var absVal = Math.abs(number);
     if(number <= 0){
@@ -91,11 +97,14 @@ export default class Record extends Component{
       return String(absVal) + " R";
     }
   }
+
   loadData = (id) => {
-    DB.getShotData(this.props.navigation.getParam("user","abretz"),id,(data) => {
-      this.setState({data:data})
-    })    
+    const user = this.props.route.params?.user ?? '';
+    DB.getShotData(user, id, (data) => {
+      this.setState({data:data});
+    });
   }
+
   render(){
       return(
         <View style={styles.template}>
@@ -182,7 +191,8 @@ export default class Record extends Component{
                     </View>
                     <View style={styles.buttonSuccess}>
                       <Button title="Ok!" color="black" onPress={() => {
-                        DB.saveDataPoint(this.props.navigation.getParam("user","abretz"),{
+                        const user = this.props.route.params?.user ?? '';
+                        DB.saveDataPoint(user, {
                           id : this.state.shotId,
                           shotX : this.state.shotX,
                           shotY : this.state.shotY,
@@ -190,8 +200,8 @@ export default class Record extends Component{
                           screenHeight : this.state.screenHeight,
                           screenWidth : this.state.screenWidth,
                         });
-                        this.setState({modalVisible:false});}} >
-                        </Button>
+                        this.setState({modalVisible:false});}}
+                      ></Button>
                     </View>
                   </View>
                 </View>

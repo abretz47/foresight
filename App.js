@@ -1,10 +1,10 @@
-import React, {Component} from 'react';
-import {View} from 'react-native';
-import {createStackNavigator, createAppContainer} from 'react-navigation';
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
 
-import { createStore, applyMiddleware } from 'redux';
-import { Provider, connect } from 'react-redux';
-import reducer from './reducer.js'
+import { createStore } from 'redux';
+import { Provider } from 'react-redux';
+import reducer from './reducer.js';
 
 import Login from './src/pages/Login';
 import HomeScreen from './src/pages/HomeScreen';
@@ -13,34 +13,24 @@ import Record from './src/pages/Record';
 import RecordDetailsScreen from './src/pages/RecordDetailsScreen';
 import Default from './src/pages/Default';
 
-
-//Issue with Firebase module -- Found here: https://stackoverflow.com/questions/60361519/cant-find-a-variable-atob
-import {decode, encode} from 'base-64'
-
-if (!global.btoa) {  global.btoa = encode }
-
-if (!global.atob) { global.atob = decode }
-//----------------------------------------------------------------------------------------------------------------
-
 const store = createStore(reducer);
+const Stack = createStackNavigator();
 
-const MainNavigator = createStackNavigator({
-  Login: {screen: Login},
-  Home: {screen: HomeScreen},
-  ShotProfile: {screen: ShotProfile},
-  RecordDetails: {screen:RecordDetailsScreen},
-  Analyze: {screen:Record},
-  Record: {screen: Record},
-  Default:{screen:Default}
-});
-const AppContainer = createAppContainer(MainNavigator);
-
-export default class App extends Component {
-
-  render() {
-    return(
-      <Provider store={store}>< AppContainer /></Provider>
-      
-    )
-  }
+export default function App() {
+  return (
+    <Provider store={store}>
+      <NavigationContainer>
+        <Stack.Navigator initialRouteName="Login">
+          <Stack.Screen name="Login" component={Login} options={{ title: 'Login' }} />
+          <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Welcome', headerLeft: () => null }} />
+          <Stack.Screen name="ShotProfile" component={ShotProfile} options={{ title: 'Shot Profile' }} />
+          <Stack.Screen name="RecordDetails" component={RecordDetailsScreen} options={{ title: 'Shot Selection' }} />
+          <Stack.Screen name="Analyze" component={Record} options={{ title: 'Analyze' }} />
+          <Stack.Screen name="Record" component={Record} options={{ title: 'Record' }} />
+          <Stack.Screen name="Default" component={Default} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </Provider>
+  );
 }
+
