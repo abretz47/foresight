@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { View, Button } from 'react-native';
+import { View, Button, Alert } from 'react-native';
 import { styles } from '../styles/styles';
 import { HomeNavigationProp, HomeRouteProp } from '../types/navigation';
 import * as DB from '../data/db';
@@ -29,7 +29,11 @@ export default class HomeScreen extends Component<Props> {
     });
     void promise.then(() => {
       if (!navigated) {
-        navigate('RecordDetails', { calledFrom, user });
+        Alert.alert(
+          'No Shot Profiles Found',
+          'Please create at least one shot profile before recording or analyzing data.',
+          [{ text: 'Go to Shot Profile', onPress: () => navigate('ShotProfile', { user }) }, { text: 'Cancel', style: 'cancel' }]
+        );
       }
     });
   };
