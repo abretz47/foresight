@@ -4,15 +4,16 @@ import { Picker } from '@react-native-picker/picker';
 import { styles } from '../styles/styles';
 import * as DB from '../data/db';
 import { ShotProfile } from '../data/db';
+import { RecordDetailsNavigationProp, RecordDetailsRouteProp } from '../types/navigation';
 
 interface Props {
-  navigation: any;
-  route: any;
-  defaultSelection?: any;
+  navigation: RecordDetailsNavigationProp;
+  route: RecordDetailsRouteProp;
+  defaultSelection?: number;
 }
 
 interface State {
-  selectedShot: any;
+  selectedShot: number;
   shots: ShotProfile[];
   id: string;
   shotName: string;
@@ -121,7 +122,7 @@ export default class RecordDetailsScreen extends Component<Props, State> {
               onPress={() => {
                 const calledFrom = this.props.route.params?.calledFrom ?? 'Record';
                 const user = this.props.route.params?.user ?? '';
-                navigate(calledFrom, {
+                navigate(calledFrom as 'Record' | 'Analyze', {
                   user,
                   id: this.state.id,
                   shotName: this.state.shotName,

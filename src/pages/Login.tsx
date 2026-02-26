@@ -3,10 +3,16 @@ import { Text, View, Button, TextInput } from 'react-native';
 import { connect } from 'react-redux';
 import { getUser } from '../../reducer';
 import { styles } from '../styles/styles';
+import { LoginNavigationProp } from '../types/navigation';
+
+interface User {
+  id: string;
+  name: string;
+}
 
 interface Props {
-  navigation: any;
-  user: any;
+  navigation: LoginNavigationProp;
+  user: User;
   getUser: () => void;
 }
 
@@ -56,7 +62,7 @@ class Login extends Component<Props, State> {
   }
 }
 
-const mapStateToProps = ({ user }: { user: any }) => ({ user });
+const mapStateToProps = ({ user }: { user: User }) => ({ user });
 const mapDispatchToProps = { getUser };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Login);

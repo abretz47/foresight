@@ -1,10 +1,11 @@
 import React, { Component } from 'react';
-import { Text, View, Button } from 'react-native';
+import { View, Button } from 'react-native';
 import { styles } from '../styles/styles';
+import { HomeNavigationProp, HomeRouteProp } from '../types/navigation';
 
 interface Props {
-  navigation: any;
-  route: any;
+  navigation: HomeNavigationProp;
+  route: HomeRouteProp;
 }
 
 export default class HomeScreen extends Component<Props> {

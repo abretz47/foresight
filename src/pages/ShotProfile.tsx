@@ -5,15 +5,16 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import * as DB from '../data/db';
 import { ShotProfile as ShotProfileData } from '../data/db';
 import { styles } from '../styles/styles';
+import { ShotProfileNavigationProp, ShotProfileRouteProp } from '../types/navigation';
 
 interface Props {
-  navigation: any;
-  route: any;
-  defaultSelection?: any;
+  navigation: ShotProfileNavigationProp;
+  route: ShotProfileRouteProp;
+  defaultSelection?: string | number;
 }
 
 interface State {
-  selectedShot: any;
+  selectedShot: string | number;
   shots: ShotProfileData[];
   id: string;
   shotName: string;
@@ -58,7 +59,7 @@ export default class ShotProfile extends Component<Props, State> {
     });
   };
 
-  selectionChange = (value: any, index: number) => {
+  selectionChange = (value: string | number, index: number) => {
     if (value !== 'New Shot') {
       const selection = this.state.shots[index - 1];
       this.setState({

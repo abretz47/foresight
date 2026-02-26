@@ -4,10 +4,11 @@ import Modal from 'react-native-modal';
 import { styles } from '../styles/styles';
 import * as DB from '../data/db';
 import { DataPoint } from '../data/db';
+import { RecordNavigationProp, RecordRouteProp } from '../types/navigation';
 
 interface Props {
-  navigation: any;
-  route: any;
+  navigation: RecordNavigationProp;
+  route: RecordRouteProp;
 }
 
 interface State {
@@ -46,7 +47,7 @@ export default class Record extends Component<Props, State> {
       targetRadiusPx:
         Math.round(
           Math.round(Dimensions.get('window').width) *
-            ((route.params?.targetRadius ?? 1) / (route.params?.missRadius ?? 1)) *
+            ((Number(route.params?.targetRadius) || 1) / (Number(route.params?.missRadius) || 1)) *
             0.7
         ) / 2,
       missRadiusPx: Math.round(Math.round(Dimensions.get('window').width) * 0.7) / 2,
