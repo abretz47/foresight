@@ -101,9 +101,8 @@ export default class Record extends Component<Props, State> {
   missStyle = () => ({
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.2)',
-    padding: this.state.missRadiusPx,
-    width: 0,
-    height: 0,
+    width: this.state.missRadiusPx * 2,
+    height: this.state.missRadiusPx * 2,
     backgroundColor: '#FFFFFF' as const,
     borderRadius: this.state.missRadiusPx,
     alignItems: 'center' as const,
@@ -176,6 +175,9 @@ export default class Record extends Component<Props, State> {
                   }
                 }}
               >
+                <Text style={styles.circleLabelTop}>
+                  {(Number(this.state.targetDistance) + Number(this.state.targetRadius)).toFixed(0)}
+                </Text>
                 <View>
                   {Object.keys(this.state.data).map((key) => {
                     const item = this.state.data[Number(key)];
@@ -226,7 +228,13 @@ export default class Record extends Component<Props, State> {
                       return null;
                     })}
                   </View>
+                  <Text style={styles.circleLabelInnerBottom}>
+                    {(Number(this.state.targetDistance) - Number(this.state.targetRadius)).toFixed(0)}
+                  </Text>
                 </TouchableOpacity>
+                <Text style={styles.circleLabelBottom}>
+                  {(Number(this.state.targetDistance) - Number(this.state.missRadius)).toFixed(0)}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
