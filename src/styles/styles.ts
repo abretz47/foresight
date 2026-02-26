@@ -109,14 +109,6 @@ export const styles = StyleSheet.create({
     backgroundColor: '#000000',
     borderRadius: 200,
   },
-  circleLabelTop: {
-    position: 'absolute',
-    top: 4,
-    left: 0,
-    right: 0,
-    textAlign: 'center',
-    fontSize: 11,
-  },
   circleLabelBottom: {
     position: 'absolute',
     bottom: 4,
@@ -124,6 +116,15 @@ export const styles = StyleSheet.create({
     right: 0,
     textAlign: 'center',
     fontSize: 11,
+  },
+  circleLabelInnerTop: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    right: 4,
+    textAlign: 'center',
+    fontSize: 11,
+    color: 'white',
   },
   circleLabelInnerBottom: {
     position: 'absolute',
