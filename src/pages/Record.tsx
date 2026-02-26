@@ -80,8 +80,8 @@ export default class Record extends Component<Props, State> {
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.2)',
     backgroundColor: 'red' as const,
-    width: this.state.targetRadiusPx * 2,
-    height: this.state.targetRadiusPx * 2,
+    width: (this.state.missRadiusPx / Number(this.state.missRadius)) * Number(this.state.targetRadius) * 2,
+    height: (this.state.missRadiusPx / Number(this.state.missRadius)) * Number(this.state.targetRadius) * 2,
     borderRadius: this.state.targetRadiusPx,
   });
 
@@ -101,9 +101,8 @@ export default class Record extends Component<Props, State> {
   missStyle = () => ({
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.2)',
-    padding: this.state.missRadiusPx,
-    width: 0,
-    height: 0,
+    width: this.state.missRadiusPx * 2,
+    height: this.state.missRadiusPx * 2,
     backgroundColor: '#FFFFFF' as const,
     borderRadius: this.state.missRadiusPx,
     alignItems: 'center' as const,
@@ -117,9 +116,9 @@ export default class Record extends Component<Props, State> {
   convertShotAccuracy = (number: string | number) => {
     const absVal = Math.abs(Number(number));
     if (Number(number) <= 0) {
-      return String(absVal) + ' L';
+      return String(absVal) + ' Left';
     } else {
-      return String(absVal) + ' R';
+      return String(absVal) + ' Right';
     }
   };
 
@@ -135,20 +134,7 @@ export default class Record extends Component<Props, State> {
       <View style={styles.template}>
         <View style={styles.row}>
           <View style={styles.column}>
-            <Text style={styles.smallLabel}>Shot</Text>
-            <Text>{this.state.shotName}</Text>
-          </View>
-          <View style={styles.column}>
-            <Text style={styles.smallLabel}>Distance</Text>
-            <Text>{this.state.targetDistance}</Text>
-          </View>
-          <View style={styles.column}>
-            <Text style={styles.smallLabel}>Target Radius</Text>
-            <Text>{this.state.targetRadius}</Text>
-          </View>
-          <View style={styles.column}>
-            <Text style={styles.smallLabel}>Miss Radius</Text>
-            <Text>{this.state.missRadius}</Text>
+            <Text style={styles.smallLabel}>{this.state.shotName} targeted at {this.state.targetDistance}</Text>
           </View>
         </View>
         <View style={styles.touchableContainer}>
@@ -176,6 +162,9 @@ export default class Record extends Component<Props, State> {
                   }
                 }}
               >
+                <Text style={styles.circleLabelTop}>
+                  {(Number(this.state.targetDistance) + Number(this.state.missRadius)).toFixed(0)}
+                </Text>
                 <View>
                   {Object.keys(this.state.data).map((key) => {
                     const item = this.state.data[Number(key)];
@@ -212,6 +201,9 @@ export default class Record extends Component<Props, State> {
                     }
                   }}
                 >
+                  <Text style={styles.circleLabelInnerTop}>
+                    {(Number(this.state.targetDistance) + Number(this.state.targetRadius)).toFixed(0)}
+                  </Text>
                   <View>
                     {Object.keys(this.state.data).map((key) => {
                       const item = this.state.data[Number(key)];
@@ -226,7 +218,35 @@ export default class Record extends Component<Props, State> {
                       return null;
                     })}
                   </View>
+                  <Text style={styles.circleLabelInnerBottom}>
+                    {(Number(this.state.targetDistance) - Number(this.state.targetRadius)).toFixed(0)}
+                  </Text>
                 </TouchableOpacity>
+                <Text
+                  style={{
+                    position: 'absolute',
+                    left: this.state.missRadiusPx + 50,
+                    top: this.state.missRadiusPx - 16,
+                    width: this.state.missRadiusPx,
+                    textAlign: 'center',
+                    fontSize: 11,
+                  }}
+                >
+                  {this.state.missRadius}
+                </Text>
+                <View
+                  style={{
+                    position: 'absolute',
+                    left: this.state.missRadiusPx,
+                    top: this.state.missRadiusPx,
+                    width: this.state.missRadiusPx,
+                    height: 1,
+                    backgroundColor: 'black',
+                  }}
+                />
+                <Text style={styles.circleLabelBottom}>
+                  {(Number(this.state.targetDistance) - Number(this.state.missRadius)).toFixed(0)}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
