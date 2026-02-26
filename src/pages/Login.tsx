@@ -1,11 +1,21 @@
 import React, { Component } from 'react';
 import { Text, View, Button, TextInput } from 'react-native';
 import { connect } from 'react-redux';
-import { getUser } from '../../reducer.js';
-import { styles } from '../styles/styles.js';
+import { getUser } from '../../reducer';
+import { styles } from '../styles/styles';
 
-class Login extends Component {
-  constructor(props) {
+interface Props {
+  navigation: any;
+  user: any;
+  getUser: () => void;
+}
+
+interface State {
+  username: string;
+}
+
+class Login extends Component<Props, State> {
+  constructor(props: Props) {
     super(props);
     this.state = { username: '' };
   }
@@ -46,9 +56,7 @@ class Login extends Component {
   }
 }
 
-const mapStateToProps = ({ user }) => ({ user });
+const mapStateToProps = ({ user }: { user: any }) => ({ user });
 const mapDispatchToProps = { getUser };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Login);
-
-

@@ -1,11 +1,9 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-
 import { createStore } from 'redux';
 import { Provider } from 'react-redux';
-import reducer from './reducer.js';
-
+import reducer from './reducer';
 import Login from './src/pages/Login';
 import HomeScreen from './src/pages/HomeScreen';
 import ShotProfile from './src/pages/ShotProfile';
@@ -33,4 +31,3 @@ export default function App() {
     </Provider>
   );
 }
-
