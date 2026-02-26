@@ -25,6 +25,16 @@ export const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: 'row',
   },
+  logoutButtonContainer: {
+    position: 'relative',
+    backgroundColor: 'red'
+  },
+  logoutButtonRow: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0
+  },
   row: {
     flexDirection: 'row',
     justifyContent: 'center',
