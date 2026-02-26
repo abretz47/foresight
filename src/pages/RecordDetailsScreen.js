@@ -1,5 +1,6 @@
 import React, {Component} from 'react';
-import {Text, View, Button, Picker } from 'react-native';
+import {Text, View, Button } from 'react-native';
+import {Picker} from '@react-native-picker/picker';
 
 import {styles} from '../styles/styles.js';
 import * as DB from '../data/db';

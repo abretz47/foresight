@@ -1,5 +1,6 @@
 import React, {Component} from 'react';
-import {Text, View, Button, Picker, TextInput} from 'react-native';
+import {Text, View, Button, TextInput} from 'react-native';
+import {Picker} from '@react-native-picker/picker';
 import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view';
 
 import * as DB from '../data/db';
