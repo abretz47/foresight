@@ -235,6 +235,28 @@ export default class Record extends Component<Props, State> {
                     {(Number(this.state.targetDistance) - Number(this.state.targetRadius)).toFixed(0)}
                   </Text>
                 </TouchableOpacity>
+                <Text
+                  style={{
+                    position: 'absolute',
+                    left: this.state.missRadiusPx,
+                    top: this.state.missRadiusPx - 16,
+                    width: this.state.missRadiusPx,
+                    textAlign: 'center',
+                    fontSize: 11,
+                  }}
+                >
+                  {this.state.missRadius}
+                </Text>
+                <View
+                  style={{
+                    position: 'absolute',
+                    left: this.state.missRadiusPx,
+                    top: this.state.missRadiusPx,
+                    width: this.state.missRadiusPx,
+                    height: 1,
+                    backgroundColor: 'black',
+                  }}
+                />
                 <Text style={styles.circleLabelBottom}>
                   {(Number(this.state.targetDistance) - Number(this.state.missRadius)).toFixed(0)}
                 </Text>
