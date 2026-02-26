@@ -175,6 +175,9 @@ export default class Record extends Component<Props, State> {
                   }
                 }}
               >
+                <Text style={styles.circleLabelTop}>
+                  {(Number(this.state.targetDistance) + Number(this.state.missRadius)).toFixed(0)}
+                </Text>
                 <View>
                   {Object.keys(this.state.data).map((key) => {
                     const item = this.state.data[Number(key)];
