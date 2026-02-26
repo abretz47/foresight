@@ -80,8 +80,8 @@ export default class Record extends Component<Props, State> {
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.2)',
     backgroundColor: 'red' as const,
-    width: this.state.targetRadiusPx * 2,
-    height: this.state.targetRadiusPx * 2,
+    width: (this.state.missRadiusPx / Number(this.state.missRadius)) * Number(this.state.targetRadius) * 2,
+    height: (this.state.missRadiusPx / Number(this.state.missRadius)) * Number(this.state.targetRadius) * 2,
     borderRadius: this.state.targetRadiusPx,
   });
 
@@ -116,9 +116,9 @@ export default class Record extends Component<Props, State> {
   convertShotAccuracy = (number: string | number) => {
     const absVal = Math.abs(Number(number));
     if (Number(number) <= 0) {
-      return String(absVal) + ' L';
+      return String(absVal) + ' Left';
     } else {
-      return String(absVal) + ' R';
+      return String(absVal) + ' Right';
     }
   };
 
@@ -134,20 +134,7 @@ export default class Record extends Component<Props, State> {
       <View style={styles.template}>
         <View style={styles.row}>
           <View style={styles.column}>
-            <Text style={styles.smallLabel}>Shot</Text>
-            <Text>{this.state.shotName}</Text>
-          </View>
-          <View style={styles.column}>
-            <Text style={styles.smallLabel}>Distance</Text>
-            <Text>{this.state.targetDistance}</Text>
-          </View>
-          <View style={styles.column}>
-            <Text style={styles.smallLabel}>Target Radius</Text>
-            <Text>{this.state.targetRadius}</Text>
-          </View>
-          <View style={styles.column}>
-            <Text style={styles.smallLabel}>Miss Radius</Text>
-            <Text>{this.state.missRadius}</Text>
+            <Text style={styles.smallLabel}>{this.state.shotName} targeted at {this.state.targetDistance}</Text>
           </View>
         </View>
         <View style={styles.touchableContainer}>
@@ -238,7 +225,7 @@ export default class Record extends Component<Props, State> {
                 <Text
                   style={{
                     position: 'absolute',
-                    left: this.state.missRadiusPx,
+                    left: this.state.missRadiusPx + 50,
                     top: this.state.missRadiusPx - 16,
                     width: this.state.missRadiusPx,
                     textAlign: 'center',
