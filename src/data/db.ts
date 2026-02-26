@@ -110,6 +110,14 @@ export async function saveDataPoint(user: string, data: { id: string; shotX: num
   }
 }
 
+export async function getUsers(): Promise<string[]> {
+  const allKeys = await AsyncStorage.getAllKeys();
+  const prefix = `${CLUBS_INDEX_KEY}_`;
+  return allKeys
+    .filter((key) => key.startsWith(prefix))
+    .map((key) => key.slice(prefix.length));
+}
+
 export async function getShotData(user: string, id: string, _callback: (data: DataPoint[]) => void): Promise<void> {
   if (id && id !== '') {
     const raw = await AsyncStorage.getItem(clubDataKey(id));
