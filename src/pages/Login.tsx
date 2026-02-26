@@ -33,7 +33,7 @@ class Login extends Component<Props, State> {
   }
 
   componentDidMount() {
-    getUsers().then((users) => this.setState({ allUsers: users }));
+    getUsers().then((users) => this.setState({ allUsers: users, username: users[0] ?? '' }));
   }
 
   handleLogin = () => {

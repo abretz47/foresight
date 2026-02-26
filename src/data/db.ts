@@ -113,9 +113,31 @@ export async function saveDataPoint(user: string, data: { id: string; shotX: num
 export async function getUsers(): Promise<string[]> {
   const allKeys = await AsyncStorage.getAllKeys();
   const prefix = `${CLUBS_INDEX_KEY}_`;
-  return allKeys
+  const users = allKeys
     .filter((key) => key.startsWith(prefix))
     .map((key) => key.slice(prefix.length));
+
+  const withTimestamps = await Promise.all(
+    users.map(async (user) => {
+      const ids = await getClubsIndex(user);
+      let maxTimestamp = '';
+      if (ids.length > 0) {
+        const pairs = await AsyncStorage.multiGet(ids.map(clubKey));
+        for (const [, raw] of pairs) {
+          if (raw) {
+            const club = JSON.parse(raw);
+            if (club.timestamp && club.timestamp > maxTimestamp) {
+              maxTimestamp = club.timestamp;
+            }
+          }
+        }
+      }
+      return { user, timestamp: maxTimestamp };
+    })
+  );
+
+  withTimestamps.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  return withTimestamps.map((u) => u.user);
 }
 
 export async function getShotData(user: string, id: string, _callback: (data: DataPoint[]) => void): Promise<void> {

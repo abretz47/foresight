@@ -28,6 +28,11 @@ export default class HomeScreen extends Component<Props> {
               <Button title="Analyze Data" onPress={() => navigate('RecordDetails', { calledFrom: 'Analyze', user })} color="black" />
             </View>
           </View>
+          <View style={styles.buttonRow}>
+            <View style={styles.buttonContainer}>
+              <Button title="Log Out" onPress={() => navigate('Login')} color="black" />
+            </View>
+          </View>
         </View>
       </View>
     );
