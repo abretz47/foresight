@@ -3,30 +3,29 @@
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
-    "ios": "expo start --ios",
-    "eject": "expo eject"
+    "ios": "expo start --ios"
   },
   "dependencies": {
-    "@react-native-community/cli": "^4.3.0",
-    "base-64": "^0.1.0",
-    "core-js": "^3.6.4",
-    "expo": "^36.0.0",
-    "expo-facebook": "~8.0.0",
-    "firebase": "^7.9.0",
-    "mem": "^6.0.1",
-    "react": "16.9.0",
-    "react-devtools": "^3.6.3",
-    "react-native": "https://github.com/expo/react-native/archive/sdk-36.0.1.tar.gz",
-    "react-native-gesture-handler": "~1.5.0",
-    "react-native-keyboard-aware-scroll-view": "^0.9.1",
-    "react-native-modal": "^11.5.3",
-    "react-native-screens": "^2.8.0",
-    "react-navigation": "^3.11.0",
-    "react-redux": "^7.2.0",
-    "redux": "^4.0.5"
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-masked-view/masked-view": "0.3.2",
+    "@react-native-picker/picker": "2.11.1",
+    "@react-navigation/native": "^6.1.17",
+    "@react-navigation/stack": "^6.4.1",
+    "expo": "~54.0.0",
+    "react": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-gesture-handler": "~2.28.0",
+    "react-native-keyboard-aware-scroll-view": "^0.9.5",
+    "react-native-modal": "^13.0.2",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0",
+    "react-redux": "^9.1.2",
+    "redux": "^5.0.1"
   },
   "devDependencies": {
-    "babel-preset-expo": "^8.0.0"
+    "@types/react": "~19.1.0",
+    "babel-preset-expo": "~54.0.10",
+    "typescript": "~5.4.5"
   },
   "private": true
 }
