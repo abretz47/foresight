@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { TouchableOpacity, Text, View, Button, Dimensions } from 'react-native';
+import { TouchableOpacity, Text, View, Button, Dimensions, Switch } from 'react-native';
 import Modal from 'react-native-modal';
 import { styles } from '../styles/styles';
 import * as DB from '../data/db';
@@ -130,12 +130,24 @@ export default class Record extends Component<Props, State> {
   };
 
   render() {
+    const { navigate } = this.props.navigation;
+    const user = this.props.route.params?.user ?? '';
     return (
       <View style={styles.template}>
         <View style={styles.row}>
           <View style={styles.column}>
             <Text style={styles.smallLabel}>{this.state.shotName} targeted at {this.state.targetDistance}</Text>
           </View>
+        </View>
+        <View style={styles.sliderRow}>
+          <Text style={styles.sliderLabel}>Record</Text>
+          <Switch
+            value={this.state.calledFrom === 'Analyze'}
+            onValueChange={(value) => this.setState({ calledFrom: value ? 'Analyze' : 'Record' })}
+            thumbColor="white"
+            trackColor={{ false: '#888', true: '#888' }}
+          />
+          <Text style={styles.sliderLabel}>Analyze</Text>
         </View>
         <View style={styles.touchableContainer}>
           <View style={styles.row}>
@@ -249,6 +261,20 @@ export default class Record extends Component<Props, State> {
                 </Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+        <View style={styles.buttonRow}>
+          <View style={styles.buttonContainer}>
+            <Button
+              title="Shot Details"
+              color="black"
+              onPress={() =>
+                navigate('RecordDetails', {
+                  calledFrom: this.state.calledFrom,
+                  user,
+                })
+              }
+            />
           </View>
         </View>
         <Modal isVisible={this.state.modalVisible}>

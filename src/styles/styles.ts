@@ -154,4 +154,15 @@ export const styles = StyleSheet.create({
     fontSize: 11,
     color: 'white',
   },
+  sliderRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  sliderLabel: {
+    fontWeight: 'bold',
+    marginHorizontal: 10,
+    fontSize: 14,
+  },
 });
