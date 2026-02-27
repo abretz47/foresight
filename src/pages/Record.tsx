@@ -212,7 +212,7 @@ export default class Record extends Component<Props, State> {
                     if (this.state.calledFrom === 'Analyze' && item.clickedFrom === 'miss') {
                       return (
                         <TouchableOpacity
-                          style={this.dataStyle(item.shotX - this.state.missRadiusPx, item.shotY - this.state.targetRadiusPx)}
+                          style={this.dataStyle(item.shotX - this.state.missRadiusPx, item.shotY - this.state.missRadiusPx)}
                           key={key}
                         />
                       );
