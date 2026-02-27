@@ -165,7 +165,14 @@ export default class Record extends Component<Props, State> {
           <Text style={styles.sliderLabel}>Record</Text>
           <Switch
             value={this.state.calledFrom === 'Analyze'}
-            onValueChange={(value) => this.setState({ calledFrom: value ? 'Analyze' : 'Record' })}
+            onValueChange={(value) => {
+              const calledFrom = value ? 'Analyze' : 'Record';
+              this.setState({ calledFrom });
+              if (value) {
+                const { shotId } = this.state;
+                this.loadData(shotId);
+              }
+            }}
             thumbColor="white"
             trackColor={{ false: '#888', true: '#888' }}
           />
