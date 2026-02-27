@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Text, View, Button, TextInput } from 'react-native';
+import { Text, View, Button, TextInput, Alert } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import * as DB from '../data/db';
@@ -83,9 +83,37 @@ export default class ShotProfile extends Component<Props, State> {
       targetRadius: this.state.targetRadius,
       missRadius: this.state.missRadius,
     };
-    DB.saveShot(user, shot);
-    this.getShotProfile();
-    this.selectionChange('New Shot', 0);
+    if (shot.id && shot.id !== '') {
+      DB.hasShotData(shot.id).then((hasData) => {
+        if (hasData) {
+          Alert.alert(
+            'Delete Recorded Data?',
+            'Saving changes to this shot profile will delete all recorded shot data for this shot. Do you want to continue?',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Save & Delete Data',
+                style: 'destructive',
+                onPress: async () => {
+                  await DB.deleteShotData(shot.id);
+                  await DB.saveShot(user, shot);
+                  this.getShotProfile();
+                  this.selectionChange('New Shot', 0);
+                },
+              },
+            ]
+          );
+        } else {
+          DB.saveShot(user, shot);
+          this.getShotProfile();
+          this.selectionChange('New Shot', 0);
+        }
+      });
+    } else {
+      DB.saveShot(user, shot);
+      this.getShotProfile();
+      this.selectionChange('New Shot', 0);
+    }
   };
 
   deleteShot = () => {

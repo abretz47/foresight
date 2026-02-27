@@ -10,6 +10,11 @@ interface Props {
 }
 
 export default class HomeScreen extends Component<Props> {
+  componentDidMount() {
+    const user = this.props.route.params?.user ?? 'local_user';
+    DB.initializeDefaultProfiles(user);
+  }
+
   navigateToRecord = (calledFrom: 'Record' | 'Analyze') => {
     const user = this.props.route.params?.user ?? 'local_user';
     const { navigate } = this.props.navigation;
