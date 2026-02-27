@@ -206,13 +206,13 @@ export default class Record extends Component<Props, State> {
                 <Text style={styles.circleLabelTop}>
                   {(Number(this.state.targetDistance) + Number(this.state.missRadius)).toFixed(0)}
                 </Text>
-                <View>
+                <View style={{ position: 'absolute', top: 0, left: 0 }}>
                   {Object.keys(this.state.data).map((key) => {
                     const item = this.state.data[Number(key)];
                     if (this.state.calledFrom === 'Analyze' && item.clickedFrom === 'miss') {
                       return (
                         <TouchableOpacity
-                          style={this.dataStyle(item.shotX - this.state.missRadiusPx, item.shotY - this.state.targetRadiusPx)}
+                          style={this.dataStyle(item.shotX - 5, item.shotY - 5)}
                           key={key}
                         />
                       );
@@ -245,13 +245,13 @@ export default class Record extends Component<Props, State> {
                   <Text style={styles.circleLabelInnerTop}>
                     {(Number(this.state.targetDistance) + Number(this.state.targetRadius)).toFixed(0)}
                   </Text>
-                  <View>
+                  <View style={{ position: 'absolute', top: 0, left: 0 }}>
                     {Object.keys(this.state.data).map((key) => {
                       const item = this.state.data[Number(key)];
                       if (this.state.calledFrom === 'Analyze' && item.clickedFrom === 'target') {
                         return (
                           <TouchableOpacity
-                            style={this.dataStyle(item.shotX, item.shotY)}
+                            style={this.dataStyle(item.shotX - 5, item.shotY - 5)}
                             key={key}
                           />
                         );

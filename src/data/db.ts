@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import defaultShotProfiles from './defaultShotProfiles';
 
 const CLUBS_INDEX_KEY = '@foresight/clubs_index';
 const clubKey = (id: string) => `@foresight/club_${id}`;
@@ -147,5 +148,38 @@ export async function getShotData(user: string, id: string, _callback: (data: Da
     if (data.length) {
       _callback(data);
     }
+  }
+}
+
+export async function deleteShotData(id: string): Promise<void> {
+  if (id && id !== '') {
+    await AsyncStorage.removeItem(clubDataKey(id));
+  }
+}
+
+export async function hasShotData(id: string): Promise<boolean> {
+  if (!id || id === '') return false;
+  const raw = await AsyncStorage.getItem(clubDataKey(id));
+  if (!raw) return false;
+  const data: DataPoint[] = JSON.parse(raw);
+  return data.length > 0;
+}
+
+export async function initializeDefaultProfiles(user: string): Promise<void> {
+  const ids = await getClubsIndex(user);
+  if (ids.length > 0) return;
+  for (const shot of defaultShotProfiles) {
+    const id = generateId();
+    const newClub = {
+      id,
+      name: shot.name,
+      distance: shot.distance,
+      targetRadius: shot.targetRadius,
+      missRadius: shot.missRadius,
+      timestamp: new Date().toISOString(),
+    };
+    await AsyncStorage.setItem(clubKey(id), JSON.stringify(newClub));
+    const currentIds = await getClubsIndex(user);
+    await setClubsIndex(user, [...currentIds, id]);
   }
 }
