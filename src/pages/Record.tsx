@@ -66,7 +66,29 @@ export default class Record extends Component<Props, State> {
   componentDidMount() {
     const { navigation } = this.props;
     this.focusListener = navigation.addListener('focus', () => {
-      this.loadData(this.state.shotId);
+      const { route } = this.props;
+      const shotId = route.params?.id ?? this.state.shotId;
+      const targetRadius = route.params?.targetRadius ?? this.state.targetRadius;
+      const missRadius = route.params?.missRadius ?? this.state.missRadius;
+      this.setState(
+        {
+          shotId,
+          shotName: route.params?.shotName ?? this.state.shotName,
+          targetDistance: route.params?.targetDistance ?? this.state.targetDistance,
+          targetRadius,
+          missRadius,
+          targetRadiusPx:
+            Math.round(
+              Math.round(Dimensions.get('window').width) *
+                ((Number(targetRadius) || 1) / (Number(missRadius) || 1)) *
+                0.7
+            ) / 2,
+          missRadiusPx: Math.round(Math.round(Dimensions.get('window').width) * 0.7) / 2,
+        },
+        () => {
+          this.loadData(shotId);
+        }
+      );
     });
   }
 
