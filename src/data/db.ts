@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import defaultShotProfileData from '../../default-shot-profile.yaml';
+import defaultShotProfiles from './defaultShotProfiles';
 
 const CLUBS_INDEX_KEY = '@foresight/clubs_index';
 const clubKey = (id: string) => `@foresight/club_${id}`;
@@ -168,7 +168,7 @@ export async function hasShotData(id: string): Promise<boolean> {
 export async function initializeDefaultProfiles(user: string): Promise<void> {
   const ids = await getClubsIndex(user);
   if (ids.length > 0) return;
-  for (const shot of defaultShotProfileData.shots) {
+  for (const shot of defaultShotProfiles) {
     const id = generateId();
     const newClub = {
       id,
