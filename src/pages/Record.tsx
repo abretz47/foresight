@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { TouchableOpacity, Text, View, Button, Dimensions } from 'react-native';
+import { TouchableOpacity, Text, View, Button, Dimensions, Switch } from 'react-native';
 import Modal from 'react-native-modal';
 import { styles } from '../styles/styles';
 import * as DB from '../data/db';
@@ -66,7 +66,29 @@ export default class Record extends Component<Props, State> {
   componentDidMount() {
     const { navigation } = this.props;
     this.focusListener = navigation.addListener('focus', () => {
-      this.loadData(this.state.shotId);
+      const { route } = this.props;
+      const shotId = route.params?.id ?? this.state.shotId;
+      const targetRadius = route.params?.targetRadius ?? this.state.targetRadius;
+      const missRadius = route.params?.missRadius ?? this.state.missRadius;
+      this.setState(
+        {
+          shotId,
+          shotName: route.params?.shotName ?? this.state.shotName,
+          targetDistance: route.params?.targetDistance ?? this.state.targetDistance,
+          targetRadius,
+          missRadius,
+          targetRadiusPx:
+            Math.round(
+              Math.round(Dimensions.get('window').width) *
+                ((Number(targetRadius) || 1) / (Number(missRadius) || 1)) *
+                0.7
+            ) / 2,
+          missRadiusPx: Math.round(Math.round(Dimensions.get('window').width) * 0.7) / 2,
+        },
+        () => {
+          this.loadData(shotId);
+        }
+      );
     });
   }
 
@@ -130,12 +152,31 @@ export default class Record extends Component<Props, State> {
   };
 
   render() {
+    const { navigate } = this.props.navigation;
+    const user = this.props.route.params?.user ?? '';
     return (
       <View style={styles.template}>
         <View style={styles.row}>
           <View style={styles.column}>
             <Text style={styles.smallLabel}>{this.state.shotName} targeted at {this.state.targetDistance}</Text>
           </View>
+        </View>
+        <View style={styles.sliderRow}>
+          <Text style={styles.sliderLabel}>Record</Text>
+          <Switch
+            value={this.state.calledFrom === 'Analyze'}
+            onValueChange={(value) => {
+              const calledFrom = value ? 'Analyze' : 'Record';
+              this.setState({ calledFrom });
+              if (value) {
+                const { shotId } = this.state;
+                this.loadData(shotId);
+              }
+            }}
+            thumbColor="white"
+            trackColor={{ false: '#888', true: '#888' }}
+          />
+          <Text style={styles.sliderLabel}>Analyze</Text>
         </View>
         <View style={styles.touchableContainer}>
           <View style={styles.row}>
@@ -249,6 +290,20 @@ export default class Record extends Component<Props, State> {
                 </Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+        <View style={styles.buttonRow}>
+          <View style={styles.buttonContainer}>
+            <Button
+              title="Change Shot"
+              color="black"
+              onPress={() =>
+                navigate('RecordDetails', {
+                  calledFrom: this.state.calledFrom,
+                  user,
+                })
+              }
+            />
           </View>
         </View>
         <Modal isVisible={this.state.modalVisible}>
