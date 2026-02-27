@@ -129,7 +129,7 @@ export default class RecordDetailsScreen extends Component<Props, State> {
                   targetDistance: this.state.targetDistance,
                   targetRadius: this.state.targetRadius,
                   missRadius: this.state.missRadius,
-                  calledFrom,
+                  calledFrom: 'Home',
                 });
               }}
             />

@@ -295,7 +295,7 @@ export default class Record extends Component<Props, State> {
         <View style={styles.buttonRow}>
           <View style={styles.buttonContainer}>
             <Button
-              title="Shot Details"
+              title="Change Shot"
               color="black"
               onPress={() =>
                 navigate('RecordDetails', {
