@@ -167,6 +167,133 @@ export async function hasShotData(id: string): Promise<boolean> {
   return data.length > 0;
 }
 
+function escapeCSVField(value: string | number | boolean | undefined): string {
+  const str = String(value ?? '');
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+function parseCSVLine(line: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"' && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        current += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ',') {
+        result.push(current);
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+  }
+  result.push(current);
+  return result;
+}
+
+export async function exportAllDataAsCSV(user: string): Promise<string> {
+  const ids = await getClubsIndex(user);
+  const rows: string[] = [
+    'type,profile_id,name,distance,targetRadius,missRadius,timestamp,shotX,shotY,clickedFrom,screenHeight,screenWidth,offTarget,data_timestamp',
+  ];
+  for (const id of ids) {
+    const raw = await AsyncStorage.getItem(clubKey(id));
+    if (raw) {
+      const club: ShotProfile = JSON.parse(raw);
+      rows.push(
+        [
+          'profile',
+          escapeCSVField(club.id),
+          escapeCSVField(club.name),
+          escapeCSVField(club.distance),
+          escapeCSVField(club.targetRadius),
+          escapeCSVField(club.missRadius),
+          escapeCSVField(club.timestamp),
+          '', '', '', '', '', '',
+        ].join(',')
+      );
+      const dataRaw = await AsyncStorage.getItem(clubDataKey(id));
+      const dataPoints: DataPoint[] = dataRaw ? JSON.parse(dataRaw) : [];
+      for (const point of dataPoints) {
+        rows.push(
+          [
+            'data',
+            escapeCSVField(id),
+            '', '', '', '', '',
+            escapeCSVField(point.shotX),
+            escapeCSVField(point.shotY),
+            escapeCSVField(point.clickedFrom),
+            escapeCSVField(point.screenHeight),
+            escapeCSVField(point.screenWidth),
+            escapeCSVField(point.offTarget ?? false),
+            escapeCSVField(point.timestamp),
+          ].join(',')
+        );
+      }
+    }
+  }
+  return rows.join('\n');
+}
+
+export async function importFromCSV(user: string, csvContent: string): Promise<void> {
+  const lines = csvContent.trim().split('\n').slice(1); // skip header
+  const profileMap: Record<string, string> = {};
+  for (const line of lines) {
+    const cols = parseCSVLine(line);
+    if (cols[0] === 'profile') {
+      const [, origId, name, distance, targetRadius, missRadius, timestamp] = cols;
+      const id = generateId();
+      const newClub = { id, name, distance, targetRadius, missRadius, timestamp: timestamp || new Date().toISOString() };
+      await AsyncStorage.setItem(clubKey(id), JSON.stringify(newClub));
+      const currentIds = await getClubsIndex(user);
+      await setClubsIndex(user, [...currentIds, id]);
+      profileMap[origId] = id;
+    }
+  }
+  const dataByProfile: Record<string, DataPoint[]> = {};
+  for (const line of lines) {
+    const cols = parseCSVLine(line);
+    if (cols[0] === 'data') {
+      const origId = cols[1];
+      const newId = profileMap[origId];
+      if (!newId) continue;
+      const shotX = Number(cols[7]);
+      const shotY = Number(cols[8]);
+      const screenHeight = Number(cols[10]);
+      const screenWidth = Number(cols[11]);
+      if (isNaN(shotX) || isNaN(shotY) || isNaN(screenHeight) || isNaN(screenWidth)) continue;
+      if (!dataByProfile[newId]) dataByProfile[newId] = [];
+      dataByProfile[newId].push({
+        id: generateId(),
+        shotX,
+        shotY,
+        clickedFrom: cols[9],
+        screenHeight,
+        screenWidth,
+        offTarget: cols[12] === 'true',
+        timestamp: cols[13] || new Date().toISOString(),
+      });
+    }
+  }
+  for (const [newId, points] of Object.entries(dataByProfile)) {
+    await AsyncStorage.setItem(clubDataKey(newId), JSON.stringify(points));
+  }
+}
+
 export async function initializeDefaultProfiles(user: string): Promise<void> {
   const ids = await getClubsIndex(user);
   if (ids.length > 0) return;
