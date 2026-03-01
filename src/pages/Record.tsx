@@ -31,6 +31,7 @@ interface State {
   calledFrom: string;
   containerWidth: number;
   containerHeight: number;
+  offTarget: boolean;
 }
 
 export default class Record extends Component<Props, State> {
@@ -64,6 +65,7 @@ export default class Record extends Component<Props, State> {
       calledFrom: route.params?.calledFrom ?? 'Default',
       containerWidth: 0,
       containerHeight: 0,
+      offTarget: false,
     };
   }
 
@@ -200,6 +202,7 @@ export default class Record extends Component<Props, State> {
               const dy = evt.nativeEvent.locationY - centerY;
               const distFromCenter = Math.sqrt(dx * dx + dy * dy);
               const clickedFrom = distFromCenter <= this.state.targetRadiusPx ? 'target' : 'miss';
+              const offTarget = distFromCenter > this.state.missRadiusPx;
               this.setState({
                 shotDistance: (
                   Number(this.state.targetDistance) -
@@ -211,6 +214,7 @@ export default class Record extends Component<Props, State> {
                 shotX: evt.nativeEvent.locationX,
                 shotY: evt.nativeEvent.locationY,
                 clickedFrom,
+                offTarget,
                 modalVisible: true,
               });
             }
@@ -221,28 +225,6 @@ export default class Record extends Component<Props, State> {
             <Text style={styles.circleLabelTop}>
               {(Number(this.state.targetDistance) + Number(this.state.missRadius)).toFixed(0)}
             </Text>
-            <Text
-              style={{
-                position: 'absolute',
-                left: this.state.missRadiusPx + 50,
-                top: this.state.missRadiusPx - 16,
-                width: this.state.missRadiusPx,
-                textAlign: 'center',
-                fontSize: 11,
-              }}
-            >
-              {this.state.missRadius}
-            </Text>
-            <View
-              style={{
-                position: 'absolute',
-                left: this.state.missRadiusPx,
-                top: this.state.missRadiusPx,
-                width: this.state.missRadiusPx,
-                height: 1,
-                backgroundColor: 'black',
-              }}
-            />
             <Text style={styles.circleLabelBottom}>
               {(Number(this.state.targetDistance) - Number(this.state.missRadius)).toFixed(0)}
             </Text>
@@ -256,6 +238,33 @@ export default class Record extends Component<Props, State> {
               {(Number(this.state.targetDistance) - Number(this.state.targetRadius)).toFixed(0)}
             </Text>
           </View>
+          {/* Horizontal line and label - above target circle on z-axis */}
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              left: this.state.containerWidth / 2,
+              top: this.state.containerHeight / 2,
+              width: this.state.missRadiusPx,
+              height: 1,
+              backgroundColor: 'black',
+              zIndex: 3,
+            }}
+          />
+          <Text
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              left: this.state.containerWidth / 2 + 50,
+              top: this.state.containerHeight / 2 - 16,
+              width: this.state.missRadiusPx,
+              textAlign: 'center',
+              fontSize: 11,
+              zIndex: 3,
+            }}
+          >
+            {this.state.missRadius}
+          </Text>
           {/* Data points - shown in Analyze mode, positioned relative to the container */}
           {this.state.calledFrom === 'Analyze' &&
             Object.keys(this.state.data).map((key) => {
@@ -310,6 +319,7 @@ export default class Record extends Component<Props, State> {
                       clickedFrom: this.state.clickedFrom,
                       screenHeight: this.state.screenHeight,
                       screenWidth: this.state.screenWidth,
+                      offTarget: this.state.offTarget,
                     });
                     this.setState({ modalVisible: false });
                   }}

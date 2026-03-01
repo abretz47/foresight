@@ -34,6 +34,7 @@ export interface DataPoint {
   clickedFrom: string;
   screenHeight: number;
   screenWidth: number;
+  offTarget?: boolean;
   timestamp?: string;
 }
 
@@ -91,7 +92,7 @@ export async function deleteShot(user: string, id: string): Promise<void> {
   }
 }
 
-export async function saveDataPoint(user: string, data: { id: string; shotX: number; shotY: number; clickedFrom: string; screenHeight: number; screenWidth: number }): Promise<void> {
+export async function saveDataPoint(user: string, data: { id: string; shotX: number; shotY: number; clickedFrom: string; screenHeight: number; screenWidth: number; offTarget: boolean }): Promise<void> {
   if (data.id && data.id !== '') {
     const raw = await AsyncStorage.getItem(clubDataKey(data.id));
     const shots: DataPoint[] = raw ? JSON.parse(raw) : [];
@@ -102,6 +103,7 @@ export async function saveDataPoint(user: string, data: { id: string; shotX: num
       clickedFrom: data.clickedFrom,
       screenHeight: data.screenHeight,
       screenWidth: data.screenWidth,
+      offTarget: data.offTarget,
       timestamp: new Date().toISOString(),
     };
     shots.push(point);
