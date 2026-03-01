@@ -29,6 +29,8 @@ interface State {
   data: DataPoint[];
   shotId: string;
   calledFrom: string;
+  containerWidth: number;
+  containerHeight: number;
 }
 
 export default class Record extends Component<Props, State> {
@@ -60,6 +62,8 @@ export default class Record extends Component<Props, State> {
       data: [],
       shotId: route.params?.id ?? '--',
       calledFrom: route.params?.calledFrom ?? 'Default',
+      containerWidth: 0,
+      containerHeight: 0,
     };
   }
 
@@ -99,12 +103,16 @@ export default class Record extends Component<Props, State> {
   }
 
   targetStyle = () => ({
+    position: 'absolute' as const,
+    left: (this.state.containerWidth - this.state.targetRadiusPx * 2) / 2,
+    top: (this.state.containerHeight - this.state.targetRadiusPx * 2) / 2,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.2)',
     backgroundColor: 'red' as const,
-    width: (this.state.missRadiusPx / Number(this.state.missRadius)) * Number(this.state.targetRadius) * 2,
-    height: (this.state.missRadiusPx / Number(this.state.missRadius)) * Number(this.state.targetRadius) * 2,
+    width: this.state.targetRadiusPx * 2,
+    height: this.state.targetRadiusPx * 2,
     borderRadius: this.state.targetRadiusPx,
+    zIndex: 2,
   });
 
   dataStyle = (left: number, top: number) => ({
@@ -121,18 +129,16 @@ export default class Record extends Component<Props, State> {
   });
 
   missStyle = () => ({
+    position: 'absolute' as const,
+    left: (this.state.containerWidth - this.state.missRadiusPx * 2) / 2,
+    top: (this.state.containerHeight - this.state.missRadiusPx * 2) / 2,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.2)',
     width: this.state.missRadiusPx * 2,
     height: this.state.missRadiusPx * 2,
     backgroundColor: '#FFFFFF' as const,
     borderRadius: this.state.missRadiusPx,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-  });
-
-  missButtonContainer = () => ({
-    borderRadius: this.state.missRadiusPx,
+    zIndex: 1,
   });
 
   convertShotAccuracy = (number: string | number) => {
@@ -178,120 +184,85 @@ export default class Record extends Component<Props, State> {
           />
           <Text style={styles.sliderLabel}>Analyze</Text>
         </View>
-        <View style={styles.touchableContainer}>
-          <View style={styles.row}>
-            <View style={this.missButtonContainer()}>
-              <TouchableOpacity
-                style={this.missStyle()}
-                onPress={(evt) => {
-                  if (this.state.calledFrom === 'Record') {
-                    this.setState({
-                      shotDistance: (
-                        Number(this.state.targetDistance) -
-                        ((evt.nativeEvent.locationY - this.state.missRadiusPx) * Number(this.state.missRadius)) /
-                          this.state.missRadiusPx
-                      ).toFixed(0),
-                      shotAccuracy: (
-                        ((evt.nativeEvent.locationX - this.state.missRadiusPx) * Number(this.state.missRadius)) /
-                        this.state.missRadiusPx
-                      ).toFixed(0),
-                      shotX: evt.nativeEvent.locationX,
-                      shotY: evt.nativeEvent.locationY,
-                      clickedFrom: 'miss',
-                      modalVisible: true,
-                    });
-                  }
-                }}
-              >
-                <Text style={styles.circleLabelTop}>
-                  {(Number(this.state.targetDistance) + Number(this.state.missRadius)).toFixed(0)}
-                </Text>
-                <View style={{ position: 'absolute', top: 0, left: 0 }}>
-                  {Object.keys(this.state.data).map((key) => {
-                    const item = this.state.data[Number(key)];
-                    if (this.state.calledFrom === 'Analyze' && item.clickedFrom === 'miss') {
-                      return (
-                        <TouchableOpacity
-                          style={this.dataStyle(item.shotX - 5, item.shotY - 5)}
-                          key={key}
-                        />
-                      );
-                    }
-                    return null;
-                  })}
-                </View>
-                <TouchableOpacity
-                  style={this.targetStyle()}
-                  onPress={(evt) => {
-                    if (this.state.calledFrom === 'Record') {
-                      this.setState({
-                        shotDistance: (
-                          Number(this.state.targetDistance) -
-                          ((evt.nativeEvent.locationY - this.state.targetRadiusPx) * Number(this.state.targetRadius)) /
-                            this.state.targetRadiusPx
-                        ).toFixed(0),
-                        shotAccuracy: (
-                          ((evt.nativeEvent.locationX - this.state.targetRadiusPx) * Number(this.state.targetRadius)) /
-                          this.state.targetRadiusPx
-                        ).toFixed(0),
-                        shotX: evt.nativeEvent.locationX,
-                        shotY: evt.nativeEvent.locationY,
-                        clickedFrom: 'target',
-                        modalVisible: true,
-                      });
-                    }
-                  }}
-                >
-                  <Text style={styles.circleLabelInnerTop}>
-                    {(Number(this.state.targetDistance) + Number(this.state.targetRadius)).toFixed(0)}
-                  </Text>
-                  <View style={{ position: 'absolute', top: 0, left: 0 }}>
-                    {Object.keys(this.state.data).map((key) => {
-                      const item = this.state.data[Number(key)];
-                      if (this.state.calledFrom === 'Analyze' && item.clickedFrom === 'target') {
-                        return (
-                          <TouchableOpacity
-                            style={this.dataStyle(item.shotX - 5, item.shotY - 5)}
-                            key={key}
-                          />
-                        );
-                      }
-                      return null;
-                    })}
-                  </View>
-                  <Text style={styles.circleLabelInnerBottom}>
-                    {(Number(this.state.targetDistance) - Number(this.state.targetRadius)).toFixed(0)}
-                  </Text>
-                </TouchableOpacity>
-                <Text
-                  style={{
-                    position: 'absolute',
-                    left: this.state.missRadiusPx + 50,
-                    top: this.state.missRadiusPx - 16,
-                    width: this.state.missRadiusPx,
-                    textAlign: 'center',
-                    fontSize: 11,
-                  }}
-                >
-                  {this.state.missRadius}
-                </Text>
-                <View
-                  style={{
-                    position: 'absolute',
-                    left: this.state.missRadiusPx,
-                    top: this.state.missRadiusPx,
-                    width: this.state.missRadiusPx,
-                    height: 1,
-                    backgroundColor: 'black',
-                  }}
-                />
-                <Text style={styles.circleLabelBottom}>
-                  {(Number(this.state.targetDistance) - Number(this.state.missRadius)).toFixed(0)}
-                </Text>
-              </TouchableOpacity>
-            </View>
+        <TouchableOpacity
+          style={styles.touchableContainer}
+          onLayout={(e) => {
+            const { width, height } = e.nativeEvent.layout;
+            if (width !== this.state.containerWidth || height !== this.state.containerHeight) {
+              this.setState({ containerWidth: width, containerHeight: height });
+            }
+          }}
+          onPress={(evt) => {
+            if (this.state.calledFrom === 'Record') {
+              const centerX = this.state.containerWidth / 2;
+              const centerY = this.state.containerHeight / 2;
+              const dx = evt.nativeEvent.locationX - centerX;
+              const dy = evt.nativeEvent.locationY - centerY;
+              const distFromCenter = Math.sqrt(dx * dx + dy * dy);
+              const clickedFrom = distFromCenter <= this.state.targetRadiusPx ? 'target' : 'miss';
+              this.setState({
+                shotDistance: (
+                  Number(this.state.targetDistance) -
+                  (dy * Number(this.state.missRadius)) / this.state.missRadiusPx
+                ).toFixed(0),
+                shotAccuracy: (
+                  (dx * Number(this.state.missRadius)) / this.state.missRadiusPx
+                ).toFixed(0),
+                shotX: evt.nativeEvent.locationX,
+                shotY: evt.nativeEvent.locationY,
+                clickedFrom,
+                modalVisible: true,
+              });
+            }
+          }}
+        >
+          {/* Miss circle - back-most element */}
+          <View style={this.missStyle()} pointerEvents="none">
+            <Text style={styles.circleLabelTop}>
+              {(Number(this.state.targetDistance) + Number(this.state.missRadius)).toFixed(0)}
+            </Text>
+            <Text
+              style={{
+                position: 'absolute',
+                left: this.state.missRadiusPx + 50,
+                top: this.state.missRadiusPx - 16,
+                width: this.state.missRadiusPx,
+                textAlign: 'center',
+                fontSize: 11,
+              }}
+            >
+              {this.state.missRadius}
+            </Text>
+            <View
+              style={{
+                position: 'absolute',
+                left: this.state.missRadiusPx,
+                top: this.state.missRadiusPx,
+                width: this.state.missRadiusPx,
+                height: 1,
+                backgroundColor: 'black',
+              }}
+            />
+            <Text style={styles.circleLabelBottom}>
+              {(Number(this.state.targetDistance) - Number(this.state.missRadius)).toFixed(0)}
+            </Text>
           </View>
-        </View>
+          {/* Target circle - between miss circle and touchable container */}
+          <View style={this.targetStyle()} pointerEvents="none">
+            <Text style={styles.circleLabelInnerTop}>
+              {(Number(this.state.targetDistance) + Number(this.state.targetRadius)).toFixed(0)}
+            </Text>
+            <Text style={styles.circleLabelInnerBottom}>
+              {(Number(this.state.targetDistance) - Number(this.state.targetRadius)).toFixed(0)}
+            </Text>
+          </View>
+          {/* Data points - shown in Analyze mode, positioned relative to the container */}
+          {this.state.calledFrom === 'Analyze' &&
+            Object.keys(this.state.data).map((key) => {
+              const item = this.state.data[Number(key)];
+              return <View style={this.dataStyle(item.shotX - 5, item.shotY - 5)} key={key} />;
+            })}
+        </TouchableOpacity>
         <View style={styles.buttonRow}>
           <View style={styles.buttonContainer}>
             <Button
