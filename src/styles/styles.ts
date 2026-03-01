@@ -165,4 +165,24 @@ export const styles = StyleSheet.create({
     marginHorizontal: 10,
     fontSize: 14,
   },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  statCell: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statLabel: {
+    fontWeight: 'bold',
+    fontSize: 11,
+    textAlign: 'center',
+  },
+  statValue: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
 });

@@ -272,6 +272,33 @@ export default class Record extends Component<Props, State> {
               return <View style={this.dataStyle(item.shotX - 5, item.shotY - 5)} key={key} />;
             })}
         </TouchableOpacity>
+        {this.state.calledFrom === 'Analyze' && this.state.data.length > 0 && (() => {
+          const { data, containerWidth } = this.state;
+          const total = data.length;
+          const centerX = containerWidth / 2;
+          const leftShots = data.filter((s) => s.shotX < centerX);
+          const rightShots = data.filter((s) => s.shotX >= centerX);
+          const onTargetShots = data.filter((s) => s.offTarget === false);
+          const leftPct = Math.round((leftShots.length / total) * 100);
+          const rightPct = Math.round((rightShots.length / total) * 100);
+          const onTargetPct = Math.round((onTargetShots.length / total) * 100);
+          return (
+            <View style={styles.statsRow}>
+              <View style={styles.statCell}>
+                <Text style={styles.statLabel}>Average Left</Text>
+                <Text style={styles.statValue}>{leftPct}%</Text>
+              </View>
+              <View style={styles.statCell}>
+                <Text style={styles.statLabel}>Average Distance</Text>
+                <Text style={styles.statValue}>{onTargetPct}%</Text>
+              </View>
+              <View style={styles.statCell}>
+                <Text style={styles.statLabel}>Average Right</Text>
+                <Text style={styles.statValue}>{rightPct}%</Text>
+              </View>
+            </View>
+          );
+        })()}
         <View style={styles.buttonRow}>
           <View style={styles.buttonContainer}>
             <Button
