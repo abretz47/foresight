@@ -193,11 +193,12 @@ export default class Record extends Component<Props, State> {
           const centerY = containerHeight / 2;
           const missR = Number(missRadius);
           const targetDist = Number(targetDistance);
-          const leftShots = data.filter((s) => s.shotX < centerX);
-          const rightShots = data.filter((s) => s.shotX >= centerX);
           const onTargetShots = data.filter((s) => s.offTarget === false);
-          const leftPct = Math.round((leftShots.length / total) * 100);
-          const rightPct = Math.round((rightShots.length / total) * 100);
+          const leftShots = onTargetShots.filter((s) => s.shotX < centerX);
+          const rightShots = onTargetShots.filter((s) => s.shotX >= centerX);
+          const onTargetTotal = onTargetShots.length;
+          const leftPct = onTargetTotal > 0 ? Math.round((leftShots.length / onTargetTotal) * 100) : 0;
+          const rightPct = onTargetTotal > 0 ? Math.round((rightShots.length / onTargetTotal) * 100) : 0;
           const onTargetPct = Math.round((onTargetShots.length / total) * 100);
           const avgLeft = leftShots.length > 0
             ? (leftShots.reduce((sum, s) => sum + Math.abs((s.shotX - centerX) * missR / missRadiusPx), 0) / leftShots.length).toFixed(1)
