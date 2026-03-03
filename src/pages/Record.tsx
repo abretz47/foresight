@@ -186,6 +186,49 @@ export default class Record extends Component<Props, State> {
           />
           <Text style={styles.sliderLabel}>Analyze</Text>
         </View>
+        {this.state.calledFrom === 'Analyze' && this.state.data.length > 0 && (() => {
+          const { data, containerWidth, containerHeight, missRadiusPx, missRadius, targetDistance } = this.state;
+          const total = data.length;
+          const centerX = containerWidth / 2;
+          const centerY = containerHeight / 2;
+          const missR = Number(missRadius);
+          const targetDist = Number(targetDistance);
+          const onTargetShots = data.filter((s) => s.offTarget === false);
+          const leftShots = onTargetShots.filter((s) => s.shotX < centerX);
+          const rightShots = onTargetShots.filter((s) => s.shotX >= centerX);
+          const onTargetTotal = onTargetShots.length;
+          const leftPct = onTargetTotal > 0 ? Math.round((leftShots.length / onTargetTotal) * 100) : 0;
+          const rightPct = onTargetTotal > 0 ? Math.round((rightShots.length / onTargetTotal) * 100) : 0;
+          const onTargetPct = Math.round((onTargetShots.length / total) * 100);
+          const avgLeft = leftShots.length > 0
+            ? (leftShots.reduce((sum, s) => sum + Math.abs((s.shotX - centerX) * missR / missRadiusPx), 0) / leftShots.length).toFixed(1)
+            : '--';
+          const avgRight = rightShots.length > 0
+            ? (rightShots.reduce((sum, s) => sum + ((s.shotX - centerX) * missR / missRadiusPx), 0) / rightShots.length).toFixed(1)
+            : '--';
+          const avgDistance = onTargetShots.length > 0
+            ? (onTargetShots.reduce((sum, s) => sum + (targetDist - (s.shotY - centerY) * missR / missRadiusPx), 0) / onTargetShots.length).toFixed(1)
+            : '--';
+          return (
+            <View style={styles.statsRow}>
+              <View style={styles.statCell}>
+                <Text style={styles.statLabel}>Average Left</Text>
+                <Text style={styles.statValue}>{leftPct}%</Text>
+                <Text style={styles.statValue}>{avgLeft}</Text>
+              </View>
+              <View style={styles.statCell}>
+                <Text style={styles.statLabel}>Average Distance</Text>
+                <Text style={styles.statValue}>{onTargetPct}%</Text>
+                <Text style={styles.statValue}>{avgDistance}</Text>
+              </View>
+              <View style={styles.statCell}>
+                <Text style={styles.statLabel}>Average Right</Text>
+                <Text style={styles.statValue}>{rightPct}%</Text>
+                <Text style={styles.statValue}>{avgRight}</Text>
+              </View>
+            </View>
+          );
+        })()}
         <TouchableOpacity
           style={styles.touchableContainer}
           onLayout={(e) => {
