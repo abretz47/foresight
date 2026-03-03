@@ -18,7 +18,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.abretz.foresight",
+      "bundleIdentifier": "com.bretza.foresight",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
