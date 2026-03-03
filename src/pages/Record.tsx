@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { TouchableOpacity, Text, View, Button, Dimensions, Switch } from 'react-native';
+import { TouchableOpacity, Text, View, Dimensions, Switch } from 'react-native';
 import Modal from 'react-native-modal';
 import { styles } from '../styles/styles';
 import * as DB from '../data/db';
@@ -31,11 +31,16 @@ interface State {
   calledFrom: string;
   containerWidth: number;
   containerHeight: number;
+  containerPageX: number;
+  containerPageY: number;
   offTarget: boolean;
 }
 
+const CIRCLE_SIZE_RATIO = 0.7;
+
 export default class Record extends Component<Props, State> {
   private focusListener: (() => void) | null = null;
+  private containerRef = React.createRef<View>();
 
   constructor(props: Props) {
     super(props);
@@ -51,9 +56,9 @@ export default class Record extends Component<Props, State> {
         Math.round(
           Math.round(Dimensions.get('window').width) *
             ((Number(route.params?.targetRadius) || 1) / (Number(route.params?.missRadius) || 1)) *
-            0.7
+            CIRCLE_SIZE_RATIO
         ) / 2,
-      missRadiusPx: Math.round(Math.round(Dimensions.get('window').width) * 0.7) / 2,
+      missRadiusPx: Math.round(Math.round(Dimensions.get('window').width) * CIRCLE_SIZE_RATIO) / 2,
       modalVisible: false,
       clickedFrom: '',
       shotDistance: '',
@@ -65,6 +70,8 @@ export default class Record extends Component<Props, State> {
       calledFrom: route.params?.calledFrom ?? 'Default',
       containerWidth: 0,
       containerHeight: 0,
+      containerPageX: 0,
+      containerPageY: 0,
       offTarget: false,
     };
   }
@@ -87,9 +94,9 @@ export default class Record extends Component<Props, State> {
             Math.round(
               Math.round(Dimensions.get('window').width) *
                 ((Number(targetRadius) || 1) / (Number(missRadius) || 1)) *
-                0.7
+                CIRCLE_SIZE_RATIO
             ) / 2,
-          missRadiusPx: Math.round(Math.round(Dimensions.get('window').width) * 0.7) / 2,
+          missRadiusPx: Math.round(Math.round(Dimensions.get('window').width) * CIRCLE_SIZE_RATIO) / 2,
         },
         () => {
           this.loadData(shotId);
@@ -230,19 +237,49 @@ export default class Record extends Component<Props, State> {
           );
         })()}
         <TouchableOpacity
+          ref={this.containerRef}
           style={styles.touchableContainer}
           onLayout={(e) => {
             const { width, height } = e.nativeEvent.layout;
             if (width !== this.state.containerWidth || height !== this.state.containerHeight) {
-              this.setState({ containerWidth: width, containerHeight: height });
+              const { targetRadius, missRadius } = this.state;
+              const newMissRadiusPx = Math.round(width * CIRCLE_SIZE_RATIO) / 2;
+              const newTargetRadiusPx =
+                Math.round(
+                  width * ((Number(targetRadius) || 1) / (Number(missRadius) || 1)) * CIRCLE_SIZE_RATIO
+                ) / 2;
+              this.setState(
+                {
+                  containerWidth: width,
+                  containerHeight: height,
+                  missRadiusPx: newMissRadiusPx,
+                  targetRadiusPx: newTargetRadiusPx,
+                },
+                () => {
+                  // Track page-relative position for web click coordinate fallback
+                  if (this.containerRef.current) {
+                    this.containerRef.current.measureInWindow((pageX, pageY) => {
+                      this.setState({ containerPageX: pageX, containerPageY: pageY });
+                    });
+                  }
+                }
+              );
             }
           }}
           onPress={(evt) => {
             if (this.state.calledFrom === 'Record') {
               const centerX = this.state.containerWidth / 2;
               const centerY = this.state.containerHeight / 2;
-              const dx = evt.nativeEvent.locationX - centerX;
-              const dy = evt.nativeEvent.locationY - centerY;
+              let locationX = evt.nativeEvent.locationX;
+              let locationY = evt.nativeEvent.locationY;
+              // Web fallback: locationX/Y may be NaN on web; compute from page coordinates
+              if (isNaN(locationX) || isNaN(locationY)) {
+                const webEvent = evt.nativeEvent as any;
+                locationX = (webEvent.pageX ?? webEvent.clientX ?? 0) - this.state.containerPageX;
+                locationY = (webEvent.pageY ?? webEvent.clientY ?? 0) - this.state.containerPageY;
+              }
+              const dx = locationX - centerX;
+              const dy = locationY - centerY;
               const distFromCenter = Math.sqrt(dx * dx + dy * dy);
               const clickedFrom = distFromCenter <= this.state.targetRadiusPx ? 'target' : 'miss';
               const offTarget = distFromCenter > this.state.missRadiusPx;
@@ -254,8 +291,8 @@ export default class Record extends Component<Props, State> {
                 shotAccuracy: (
                   (dx * Number(this.state.missRadius)) / this.state.missRadiusPx
                 ).toFixed(0),
-                shotX: evt.nativeEvent.locationX,
-                shotY: evt.nativeEvent.locationY,
+                shotX: locationX,
+                shotY: locationY,
                 clickedFrom,
                 offTarget,
                 modalVisible: true,
@@ -316,18 +353,17 @@ export default class Record extends Component<Props, State> {
             })}
         </TouchableOpacity>
         <View style={styles.buttonRow}>
-          <View style={styles.buttonContainer}>
-            <Button
-              title="Change Shot"
-              color="black"
-              onPress={() =>
-                navigate('RecordDetails', {
-                  calledFrom: this.state.calledFrom,
-                  user,
-                })
-              }
-            />
-          </View>
+          <TouchableOpacity
+            style={styles.buttonContainer}
+            onPress={() =>
+              navigate('RecordDetails', {
+                calledFrom: this.state.calledFrom,
+                user,
+              })
+            }
+          >
+            <Text style={styles.buttonLabel}>Change Shot</Text>
+          </TouchableOpacity>
         </View>
         <Modal isVisible={this.state.modalVisible}>
           <View style={styles.modalContent}>
@@ -342,32 +378,30 @@ export default class Record extends Component<Props, State> {
               </View>
             </View>
             <View style={styles.buttonRow}>
-              <View style={styles.buttonDanger}>
-                <Button
-                  color="black"
-                  title="Cancel"
-                  onPress={() => this.setState({ modalVisible: false })}
-                />
-              </View>
-              <View style={styles.buttonSuccess}>
-                <Button
-                  title="Ok!"
-                  color="black"
-                  onPress={() => {
-                    const user = this.props.route.params?.user ?? '';
-                    DB.saveDataPoint(user, {
-                      id: this.state.shotId,
-                      shotX: Number(this.state.shotX),
-                      shotY: Number(this.state.shotY),
-                      clickedFrom: this.state.clickedFrom,
-                      screenHeight: this.state.screenHeight,
-                      screenWidth: this.state.screenWidth,
-                      offTarget: this.state.offTarget,
-                    });
-                    this.setState({ modalVisible: false });
-                  }}
-                />
-              </View>
+              <TouchableOpacity
+                style={styles.buttonDanger}
+                onPress={() => this.setState({ modalVisible: false })}
+              >
+                <Text style={styles.buttonLabel}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.buttonSuccess}
+                onPress={() => {
+                  const user = this.props.route.params?.user ?? '';
+                  DB.saveDataPoint(user, {
+                    id: this.state.shotId,
+                    shotX: Number(this.state.shotX),
+                    shotY: Number(this.state.shotY),
+                    clickedFrom: this.state.clickedFrom,
+                    screenHeight: this.state.screenHeight,
+                    screenWidth: this.state.screenWidth,
+                    offTarget: this.state.offTarget,
+                  });
+                  this.setState({ modalVisible: false });
+                }}
+              >
+                <Text style={styles.buttonLabel}>Ok!</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </Modal>

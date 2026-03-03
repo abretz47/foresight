@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Text, View, Button, TextInput, Alert } from 'react-native';
+import { Text, View, TextInput, Alert, TouchableOpacity } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import * as DB from '../data/db';
@@ -188,12 +188,12 @@ export default class ShotProfile extends Component<Props, State> {
               </View>
             </View>
             <View style={styles.buttonRow}>
-              <View style={styles.buttonDanger}>
-                <Button title="Delete" color="black" onPress={() => this.deleteShot()} />
-              </View>
-              <View style={styles.buttonContainer}>
-                <Button title="Save" color="black" onPress={() => this.saveShot()} />
-              </View>
+              <TouchableOpacity style={styles.buttonDanger} onPress={() => this.deleteShot()}>
+                <Text style={styles.buttonLabel}>Delete</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.buttonContainer} onPress={() => this.saveShot()}>
+                <Text style={styles.buttonLabel}>Save</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>

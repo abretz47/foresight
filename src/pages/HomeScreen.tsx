@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { View, Button, Alert } from 'react-native';
+import { View, Text, Alert, TouchableOpacity } from 'react-native';
 import { styles } from '../styles/styles';
 import { HomeNavigationProp, HomeRouteProp } from '../types/navigation';
 import * as DB from '../data/db';
@@ -50,22 +50,22 @@ export default class HomeScreen extends Component<Props> {
       <View style={styles.template}>
         <View style={styles.homeContainer}>
           <View style={styles.buttonRow}>
-            <View style={styles.buttonContainer}>
-              <Button title="Shot Profile" onPress={() => navigate('ShotProfile', { user })} color="black" />
-            </View>
+            <TouchableOpacity style={styles.buttonContainer} onPress={() => navigate('ShotProfile', { user })}>
+              <Text style={styles.buttonLabel}>Shot Profile</Text>
+            </TouchableOpacity>
           </View>
           <View style={styles.buttonRow}>
-            <View style={styles.buttonContainer}>
-              <Button title="Record Data" onPress={() => this.navigateToRecord('Record')} color="black" />
-            </View>
-            <View style={styles.buttonContainer}>
-              <Button title="Analyze Data" onPress={() => this.navigateToRecord('Analyze')} color="black" />
-            </View>
+            <TouchableOpacity style={styles.buttonContainer} onPress={() => this.navigateToRecord('Record')}>
+              <Text style={styles.buttonLabel}>Record Data</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.buttonContainer} onPress={() => this.navigateToRecord('Analyze')}>
+              <Text style={styles.buttonLabel}>Analyze Data</Text>
+            </TouchableOpacity>
           </View>
           <View style={styles.logoutButtonRow}>
-            <View style={styles.logoutButtonContainer}>
-              <Button title="Log Out" onPress={() => navigate('Login')} color="black" />
-            </View>
+            <TouchableOpacity style={styles.logoutButtonContainer} onPress={() => navigate('Login')}>
+              <Text style={styles.buttonLabel}>Log Out</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
