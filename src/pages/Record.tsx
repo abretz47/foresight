@@ -84,8 +84,8 @@ export default class Record extends Component<Props, State> {
       const shotId = route.params?.id ?? this.state.shotId;
       const targetRadius = route.params?.targetRadius ?? this.state.targetRadius;
       const missRadius = route.params?.missRadius ?? this.state.missRadius;
-      const { containerWidth, containerHeight } = this.state;
-      const missDiameter = Math.min(containerWidth * CIRCLE_SIZE_RATIO, containerHeight * MAX_CIRCLE_HEIGHT_RATIO);
+      const { containerHeight } = this.state;
+      const missDiameter = Math.min(Dimensions.get('window').width * CIRCLE_SIZE_RATIO, containerHeight * MAX_CIRCLE_HEIGHT_RATIO);
       this.setState(
         {
           shotId,
@@ -248,7 +248,7 @@ export default class Record extends Component<Props, State> {
             const { width, height } = e.nativeEvent.layout;
             if (width !== this.state.containerWidth || height !== this.state.containerHeight) {
               const { targetRadius, missRadius } = this.state;
-              const missDiameter = Math.min(width * CIRCLE_SIZE_RATIO, height * MAX_CIRCLE_HEIGHT_RATIO);
+              const missDiameter = Math.min(Dimensions.get('window').width * CIRCLE_SIZE_RATIO, height * MAX_CIRCLE_HEIGHT_RATIO);
               const newMissRadiusPx = Math.round(missDiameter) / 2;
               const newTargetRadiusPx =
                 Math.round(
