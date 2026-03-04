@@ -1,9 +1,10 @@
 import React, { Component } from 'react';
 import { TouchableOpacity, Text, View, Dimensions, Switch } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import Modal from 'react-native-modal';
 import { styles } from '../styles/styles';
 import * as DB from '../data/db';
-import { DataPoint } from '../data/db';
+import { DataPoint, ShotProfile } from '../data/db';
 import { RecordNavigationProp, RecordRouteProp } from '../types/navigation';
 
 interface Props {
@@ -27,6 +28,8 @@ interface State {
   shotX: number | string;
   shotY: number | string;
   data: DataPoint[];
+  shots: ShotProfile[];
+  selectedShot: number;
   shotId: string;
   calledFrom: string;
   containerWidth: number;
@@ -67,6 +70,8 @@ export default class Record extends Component<Props, State> {
       shotX: '',
       shotY: '',
       data: [],
+      shots: [],
+      selectedShot: 0,
       shotId: route.params?.id ?? '--',
       calledFrom: route.params?.calledFrom ?? 'Default',
       containerWidth: 0,
@@ -99,6 +104,7 @@ export default class Record extends Component<Props, State> {
         },
         () => {
           this.loadData(shotId);
+          this.loadShots();
         }
       );
     });
@@ -165,9 +171,40 @@ export default class Record extends Component<Props, State> {
     });
   };
 
-  render() {
-    const { navigate } = this.props.navigation;
+  loadShots = () => {
     const user = this.props.route.params?.user ?? '';
+    DB.getShotProfile(user, (shots) => {
+      const { shotId } = this.state;
+      const selectedShot = Math.max(0, shots.findIndex((s) => s.id === shotId));
+      this.setState({ shots, selectedShot });
+    });
+  };
+
+  selectionChange = (index: number) => {
+    const selection = this.state.shots[index];
+    if (!selection) return;
+    const { containerWidth, containerHeight } = this.state;
+    const missDiameter = Math.min(containerWidth * CIRCLE_SIZE_RATIO, containerHeight * MAX_CIRCLE_HEIGHT_RATIO);
+    const targetRadius = selection.targetRadius;
+    const missRadius = selection.missRadius;
+    this.setState(
+      {
+        selectedShot: index,
+        shotId: selection.id,
+        shotName: selection.name,
+        targetDistance: selection.distance,
+        targetRadius,
+        missRadius,
+        targetRadiusPx: Math.round(missDiameter * ((Number(targetRadius) || 1) / (Number(missRadius) || 1))) / 2,
+        missRadiusPx: Math.round(missDiameter) / 2,
+      },
+      () => {
+        this.loadData(selection.id);
+      }
+    );
+  };
+
+  render() {
     return (
       <View style={styles.template}>
         <View style={styles.row}>
@@ -353,17 +390,17 @@ export default class Record extends Component<Props, State> {
             })}
         </TouchableOpacity>
         <View style={styles.buttonRow}>
-          <TouchableOpacity
-            style={styles.buttonContainer}
-            onPress={() =>
-              navigate('RecordDetails', {
-                calledFrom: this.state.calledFrom,
-                user,
-              })
-            }
+          <Picker
+            selectedValue={this.state.selectedShot}
+            style={{ flex: 1, color: 'black' }}
+            onValueChange={(itemValue) => {
+              this.selectionChange(Number(itemValue));
+            }}
           >
-            <Text style={styles.buttonLabel}>Change Shot</Text>
-          </TouchableOpacity>
+            {this.state.shots.map((shot, index) => (
+              <Picker.Item label={shot.name} value={index} key={shot.id} />
+            ))}
+          </Picker>
         </View>
         <Modal isVisible={this.state.modalVisible}>
           <View style={styles.modalContent}>
