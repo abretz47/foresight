@@ -1,5 +1,8 @@
 import React, { Component } from 'react';
-import { View, Text, Alert, TouchableOpacity, Modal, TextInput, Share, StyleSheet, ScrollView, Platform } from 'react-native';
+import { View, Text, Alert, TouchableOpacity, Modal, TextInput, StyleSheet, ScrollView, Platform } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { styles } from '../styles/styles';
 import { HomeNavigationProp, HomeRouteProp } from '../types/navigation';
 import * as DB from '../data/db';
@@ -65,7 +68,7 @@ export default class HomeScreen extends Component<Props, State> {
   handleExportCSV = () => {
     const user = this.props.route.params?.user ?? 'local_user';
     this.setState({ menuVisible: false });
-    void DB.exportAllDataAsCSV(user).then((csv) => {
+    void DB.exportAllDataAsCSV(user).then(async (csv) => {
       if (Platform.OS === 'web') {
         // On web, trigger a file download via a temporary anchor element
         const blob = new Blob([csv], { type: 'text/csv' });
@@ -78,7 +81,18 @@ export default class HomeScreen extends Component<Props, State> {
         (document as Document).body.removeChild(a);
         URL.revokeObjectURL(url);
       } else {
-        void Share.share({ message: csv, title: 'foresight_session.csv' });
+        // On iOS/Android, write to a temp file and open the system share sheet
+        if (!FileSystem.cacheDirectory) {
+          Alert.alert('Export Failed', 'Cache directory is unavailable on this device.');
+          return;
+        }
+        const fileUri = FileSystem.cacheDirectory + 'foresight_session.csv';
+        await FileSystem.writeAsStringAsync(fileUri, csv, { encoding: FileSystem.EncodingType.UTF8 });
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'text/csv',
+          UTI: 'public.comma-separated-values-text',
+          dialogTitle: 'Export Session CSV',
+        });
       }
     }).catch(() => {
       Alert.alert('Export Failed', 'Could not export session data. Please try again.');
@@ -86,9 +100,10 @@ export default class HomeScreen extends Component<Props, State> {
   };
 
   handleImportSession = () => {
-    this.setState({ menuVisible: false, importModalVisible: true, importText: '' });
+    this.setState({ menuVisible: false });
     if (Platform.OS === 'web') {
       // On web, open a file picker to read the CSV file
+      this.setState({ importModalVisible: true, importText: '' });
       const input = (document as Document).createElement('input') as HTMLInputElement;
       input.type = 'file';
       input.accept = '.csv';
@@ -105,6 +120,19 @@ export default class HomeScreen extends Component<Props, State> {
         reader.readAsText(file);
       };
       input.click();
+    } else {
+      // On iOS/Android, open the system document picker
+      void DocumentPicker.getDocumentAsync({
+        type: ['text/csv', 'text/comma-separated-values', 'public.comma-separated-values-text'],
+        copyToCacheDirectory: true,
+      }).then(async (result) => {
+        if (result.canceled || !result.assets || result.assets.length === 0) return;
+        const asset = result.assets[0];
+        const text = await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.UTF8 });
+        this.setState({ importModalVisible: true, importText: text });
+      }).catch(() => {
+        Alert.alert('Import Failed', 'Could not read the selected file. Please try again.');
+      });
     }
   };
 
@@ -157,7 +185,7 @@ export default class HomeScreen extends Component<Props, State> {
             <View style={localStyles.importModal}>
               <Text style={localStyles.importTitle}>Import Session CSV</Text>
               <Text style={localStyles.importSubtitle}>
-                {Platform.OS === 'web' ? 'File loaded — press Import, or paste CSV below:' : 'Paste CSV content below:'}
+                {Platform.OS === 'web' ? 'File loaded — press Import, or paste CSV below:' : 'Review the file content below and press Import:'}
               </Text>
               <ScrollView style={localStyles.importScrollView}>
                 <TextInput
