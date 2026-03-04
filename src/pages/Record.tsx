@@ -197,6 +197,7 @@ export default class Record extends Component<Props, State> {
         missRadius,
         targetRadiusPx: Math.round(missDiameter * ((Number(targetRadius) || 1) / (Number(missRadius) || 1))) / 2,
         missRadiusPx: Math.round(missDiameter) / 2,
+        data: [],
       },
       () => {
         this.loadData(selection.id);
@@ -389,7 +390,7 @@ export default class Record extends Component<Props, State> {
               return <View style={this.dataStyle(item.shotX - 5, item.shotY - 5)} key={key} />;
             })}
         </TouchableOpacity>
-        <View style={{ position: 'absolute', bottom: 100, left: 0, width: '25%' }}>
+        <View style={{ position: 'absolute', bottom: 100, right: '10%', width: '25%' }}>
           <Picker
             selectedValue={this.state.selectedShot}
             style={{ color: 'black' }}
