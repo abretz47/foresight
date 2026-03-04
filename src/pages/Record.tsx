@@ -92,11 +92,11 @@ export default class Record extends Component<Props, State> {
           missRadius,
           targetRadiusPx:
             Math.round(
-              Math.round(Dimensions.get('window').width) *
+              this.state.containerWidth *
                 ((Number(targetRadius) || 1) / (Number(missRadius) || 1)) *
                 CIRCLE_SIZE_RATIO
             ) / 2,
-          missRadiusPx: Math.round(Math.round(Dimensions.get('window').width) * CIRCLE_SIZE_RATIO) / 2,
+          missRadiusPx: Math.round(this.state.containerWidth * CIRCLE_SIZE_RATIO) / 2,
         },
         () => {
           this.loadData(shotId);
