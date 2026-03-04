@@ -237,13 +237,7 @@ export default class Record extends Component<Props, State> {
         })()}
         <TouchableOpacity
           ref={this.containerRef}
-          style={[
-            styles.touchableContainer,
-            this.state.missRadiusPx > 0 && {
-              maxWidth: this.state.missRadiusPx * 2 * 1.3,
-              alignSelf: 'center',
-            },
-          ]}
+          style={styles.touchableContainer}
           onLayout={(e) => {
             const { width, height } = e.nativeEvent.layout;
             if (width !== this.state.containerWidth || height !== this.state.containerHeight) {
@@ -383,7 +377,7 @@ export default class Record extends Component<Props, State> {
                 <Text>{this.convertShotAccuracy(this.state.shotAccuracy)}</Text>
               </View>
             </View>
-            <View style={[styles.buttonRow, { alignSelf: 'stretch' }]}>
+            <View style={styles.buttonRow}>
               <TouchableOpacity
                 style={styles.buttonDanger}
                 onPress={() => this.setState({ modalVisible: false })}
