@@ -167,6 +167,25 @@ export async function hasShotData(id: string): Promise<boolean> {
   return data.length > 0;
 }
 
+export async function initializeDefaultProfiles(user: string): Promise<void> {
+  const ids = await getClubsIndex(user);
+  if (ids.length > 0) return;
+  for (const shot of defaultShotProfiles) {
+    const id = generateId();
+    const newClub = {
+      id,
+      name: shot.name,
+      distance: shot.distance,
+      targetRadius: shot.targetRadius,
+      missRadius: shot.missRadius,
+      timestamp: new Date().toISOString(),
+    };
+    await AsyncStorage.setItem(clubKey(id), JSON.stringify(newClub));
+    const currentIds = await getClubsIndex(user);
+    await setClubsIndex(user, [...currentIds, id]);
+  }
+}
+
 function escapeCSVField(value: string | number | boolean | undefined): string {
   const str = String(value ?? '');
   if (str.includes(',') || str.includes('"') || str.includes('\n')) {
@@ -291,24 +310,5 @@ export async function importFromCSV(user: string, csvContent: string): Promise<v
   }
   for (const [newId, points] of Object.entries(dataByProfile)) {
     await AsyncStorage.setItem(clubDataKey(newId), JSON.stringify(points));
-  }
-}
-
-export async function initializeDefaultProfiles(user: string): Promise<void> {
-  const ids = await getClubsIndex(user);
-  if (ids.length > 0) return;
-  for (const shot of defaultShotProfiles) {
-    const id = generateId();
-    const newClub = {
-      id,
-      name: shot.name,
-      distance: shot.distance,
-      targetRadius: shot.targetRadius,
-      missRadius: shot.missRadius,
-      timestamp: new Date().toISOString(),
-    };
-    await AsyncStorage.setItem(clubKey(id), JSON.stringify(newClub));
-    const currentIds = await getClubsIndex(user);
-    await setClubsIndex(user, [...currentIds, id]);
   }
 }

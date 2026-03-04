@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Text, View, Button, TextInput, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import { Text, View, TextInput, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { connect } from 'react-redux';
 import { getUser } from '../../reducer';
 import { styles } from '../styles/styles';
@@ -102,9 +102,9 @@ class Login extends Component<Props, State> {
             </View>
           </View>
           <View style={styles.buttonRow}>
-            <View style={styles.buttonContainer}>
-              <Button title="Continue" onPress={this.handleLogin} color="black" />
-            </View>
+            <TouchableOpacity style={styles.buttonContainer} onPress={this.handleLogin}>
+              <Text style={styles.buttonLabel}>Continue</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>

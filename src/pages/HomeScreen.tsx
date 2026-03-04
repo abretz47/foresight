@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { View, Button, Alert, TouchableOpacity, Text, Modal, TextInput, Share, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, Alert, TouchableOpacity, Modal, TextInput, Share, StyleSheet, ScrollView, Platform } from 'react-native';
 import { styles } from '../styles/styles';
 import { HomeNavigationProp, HomeRouteProp } from '../types/navigation';
 import * as DB from '../data/db';
@@ -66,7 +66,20 @@ export default class HomeScreen extends Component<Props, State> {
     const user = this.props.route.params?.user ?? 'local_user';
     this.setState({ menuVisible: false });
     void DB.exportAllDataAsCSV(user).then((csv) => {
-      void Share.share({ message: csv, title: 'foresight_session.csv' });
+      if (Platform.OS === 'web') {
+        // On web, trigger a file download via a temporary anchor element
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = (document as Document).createElement('a');
+        a.href = url;
+        a.download = 'foresight_session.csv';
+        (document as Document).body.appendChild(a);
+        a.click();
+        (document as Document).body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } else {
+        void Share.share({ message: csv, title: 'foresight_session.csv' });
+      }
     }).catch(() => {
       Alert.alert('Export Failed', 'Could not export session data. Please try again.');
     });
@@ -74,13 +87,32 @@ export default class HomeScreen extends Component<Props, State> {
 
   handleImportSession = () => {
     this.setState({ menuVisible: false, importModalVisible: true, importText: '' });
+    if (Platform.OS === 'web') {
+      // On web, open a file picker to read the CSV file
+      const input = (document as Document).createElement('input') as HTMLInputElement;
+      input.type = 'file';
+      input.accept = '.csv';
+      input.onchange = (e: Event) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          const text = evt.target?.result as string;
+          if (text) {
+            this.setState({ importText: text });
+          }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    }
   };
 
   handleImportConfirm = () => {
     const user = this.props.route.params?.user ?? 'local_user';
     const { importText } = this.state;
     if (!importText.trim()) {
-      Alert.alert('Empty Input', 'Please paste CSV content to import.');
+      Alert.alert('Empty Input', 'Please paste CSV content or select a file to import.');
       return;
     }
     void DB.importFromCSV(user, importText).then(() => {
@@ -124,7 +156,9 @@ export default class HomeScreen extends Component<Props, State> {
           <View style={localStyles.importOverlay}>
             <View style={localStyles.importModal}>
               <Text style={localStyles.importTitle}>Import Session CSV</Text>
-              <Text style={localStyles.importSubtitle}>Paste CSV content below:</Text>
+              <Text style={localStyles.importSubtitle}>
+                {Platform.OS === 'web' ? 'File loaded — press Import, or paste CSV below:' : 'Paste CSV content below:'}
+              </Text>
               <ScrollView style={localStyles.importScrollView}>
                 <TextInput
                   style={localStyles.importTextInput}
@@ -137,12 +171,12 @@ export default class HomeScreen extends Component<Props, State> {
                 />
               </ScrollView>
               <View style={styles.buttonRow}>
-                <View style={[styles.buttonDanger, { margin: 8 }]}>
-                  <Button color="black" title="Cancel" onPress={() => this.setState({ importModalVisible: false })} />
-                </View>
-                <View style={[styles.buttonSuccess, { margin: 8 }]}>
-                  <Button color="black" title="Import" onPress={this.handleImportConfirm} />
-                </View>
+                <TouchableOpacity style={[styles.buttonDanger, { margin: 8 }]} onPress={() => this.setState({ importModalVisible: false })}>
+                  <Text style={styles.buttonLabel}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.buttonSuccess, { margin: 8 }]} onPress={this.handleImportConfirm}>
+                  <Text style={styles.buttonLabel}>Import</Text>
+                </TouchableOpacity>
               </View>
             </View>
           </View>
@@ -150,22 +184,22 @@ export default class HomeScreen extends Component<Props, State> {
 
         <View style={styles.homeContainer}>
           <View style={styles.buttonRow}>
-            <View style={styles.buttonContainer}>
-              <Button title="Shot Profile" onPress={() => navigate('ShotProfile', { user })} color="black" />
-            </View>
+            <TouchableOpacity style={styles.buttonContainer} onPress={() => navigate('ShotProfile', { user })}>
+              <Text style={styles.buttonLabel}>Shot Profile</Text>
+            </TouchableOpacity>
           </View>
           <View style={styles.buttonRow}>
-            <View style={styles.buttonContainer}>
-              <Button title="Record Data" onPress={() => this.navigateToRecord('Record')} color="black" />
-            </View>
-            <View style={styles.buttonContainer}>
-              <Button title="Analyze Data" onPress={() => this.navigateToRecord('Analyze')} color="black" />
-            </View>
+            <TouchableOpacity style={styles.buttonContainer} onPress={() => this.navigateToRecord('Record')}>
+              <Text style={styles.buttonLabel}>Record Data</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.buttonContainer} onPress={() => this.navigateToRecord('Analyze')}>
+              <Text style={styles.buttonLabel}>Analyze Data</Text>
+            </TouchableOpacity>
           </View>
           <View style={styles.logoutButtonRow}>
-            <View style={styles.logoutButtonContainer}>
-              <Button title="Log Out" onPress={() => navigate('Login')} color="black" />
-            </View>
+            <TouchableOpacity style={styles.logoutButtonContainer} onPress={() => navigate('Login')}>
+              <Text style={styles.buttonLabel}>Log Out</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>

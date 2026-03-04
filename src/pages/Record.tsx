@@ -1,9 +1,10 @@
 import React, { Component } from 'react';
-import { TouchableOpacity, Text, View, Button, Dimensions, Switch } from 'react-native';
+import { TouchableOpacity, Text, View, Dimensions, Switch } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import Modal from 'react-native-modal';
 import { styles } from '../styles/styles';
 import * as DB from '../data/db';
-import { DataPoint } from '../data/db';
+import { DataPoint, ShotProfile } from '../data/db';
 import { RecordNavigationProp, RecordRouteProp } from '../types/navigation';
 
 interface Props {
@@ -27,15 +28,23 @@ interface State {
   shotX: number | string;
   shotY: number | string;
   data: DataPoint[];
+  shots: ShotProfile[];
+  selectedShot: number;
   shotId: string;
   calledFrom: string;
   containerWidth: number;
   containerHeight: number;
+  containerPageX: number;
+  containerPageY: number;
   offTarget: boolean;
 }
 
+const CIRCLE_SIZE_RATIO = 0.7;
+const MAX_CIRCLE_HEIGHT_RATIO = 0.5;
+
 export default class Record extends Component<Props, State> {
   private focusListener: (() => void) | null = null;
+  private containerRef = React.createRef<View>();
 
   constructor(props: Props) {
     super(props);
@@ -51,9 +60,9 @@ export default class Record extends Component<Props, State> {
         Math.round(
           Math.round(Dimensions.get('window').width) *
             ((Number(route.params?.targetRadius) || 1) / (Number(route.params?.missRadius) || 1)) *
-            0.7
+            CIRCLE_SIZE_RATIO
         ) / 2,
-      missRadiusPx: Math.round(Math.round(Dimensions.get('window').width) * 0.7) / 2,
+      missRadiusPx: Math.round(Math.round(Dimensions.get('window').width) * CIRCLE_SIZE_RATIO) / 2,
       modalVisible: false,
       clickedFrom: '',
       shotDistance: '',
@@ -61,10 +70,14 @@ export default class Record extends Component<Props, State> {
       shotX: '',
       shotY: '',
       data: [],
+      shots: [],
+      selectedShot: 0,
       shotId: route.params?.id ?? '--',
       calledFrom: route.params?.calledFrom ?? 'Default',
       containerWidth: 0,
       containerHeight: 0,
+      containerPageX: 0,
+      containerPageY: 0,
       offTarget: false,
     };
   }
@@ -76,6 +89,8 @@ export default class Record extends Component<Props, State> {
       const shotId = route.params?.id ?? this.state.shotId;
       const targetRadius = route.params?.targetRadius ?? this.state.targetRadius;
       const missRadius = route.params?.missRadius ?? this.state.missRadius;
+      const { containerWidth, containerHeight } = this.state;
+      const missDiameter = Math.min(containerWidth * CIRCLE_SIZE_RATIO, containerHeight * MAX_CIRCLE_HEIGHT_RATIO);
       this.setState(
         {
           shotId,
@@ -84,15 +99,12 @@ export default class Record extends Component<Props, State> {
           targetRadius,
           missRadius,
           targetRadiusPx:
-            Math.round(
-              Math.round(Dimensions.get('window').width) *
-                ((Number(targetRadius) || 1) / (Number(missRadius) || 1)) *
-                0.7
-            ) / 2,
-          missRadiusPx: Math.round(Math.round(Dimensions.get('window').width) * 0.7) / 2,
+            Math.round(missDiameter * ((Number(targetRadius) || 1) / (Number(missRadius) || 1))) / 2,
+          missRadiusPx: Math.round(missDiameter) / 2,
         },
         () => {
           this.loadData(shotId);
+          this.loadShots();
         }
       );
     });
@@ -159,9 +171,41 @@ export default class Record extends Component<Props, State> {
     });
   };
 
-  render() {
-    const { navigate } = this.props.navigation;
+  loadShots = () => {
     const user = this.props.route.params?.user ?? '';
+    DB.getShotProfile(user, (shots) => {
+      const { shotId } = this.state;
+      const selectedShot = Math.max(0, shots.findIndex((s) => s.id === shotId));
+      this.setState({ shots, selectedShot });
+    });
+  };
+
+  selectionChange = (index: number) => {
+    const selection = this.state.shots[index];
+    if (!selection) return;
+    const { containerWidth, containerHeight } = this.state;
+    const missDiameter = Math.min(containerWidth * CIRCLE_SIZE_RATIO, containerHeight * MAX_CIRCLE_HEIGHT_RATIO);
+    const targetRadius = selection.targetRadius;
+    const missRadius = selection.missRadius;
+    this.setState(
+      {
+        selectedShot: index,
+        shotId: selection.id,
+        shotName: selection.name,
+        targetDistance: selection.distance,
+        targetRadius,
+        missRadius,
+        targetRadiusPx: Math.round(missDiameter * ((Number(targetRadius) || 1) / (Number(missRadius) || 1))) / 2,
+        missRadiusPx: Math.round(missDiameter) / 2,
+        data: [],
+      },
+      () => {
+        this.loadData(selection.id);
+      }
+    );
+  };
+
+  render() {
     return (
       <View style={styles.template}>
         <View style={styles.row}>
@@ -186,20 +230,94 @@ export default class Record extends Component<Props, State> {
           />
           <Text style={styles.sliderLabel}>Analyze</Text>
         </View>
+        {this.state.calledFrom === 'Analyze' && this.state.data.length > 0 && (() => {
+          const { data, containerWidth, containerHeight, missRadiusPx, missRadius, targetDistance } = this.state;
+          const total = data.length;
+          const centerX = containerWidth / 2;
+          const centerY = containerHeight / 2;
+          const missR = Number(missRadius);
+          const targetDist = Number(targetDistance);
+          const onTargetShots = data.filter((s) => s.offTarget === false);
+          const leftShots = onTargetShots.filter((s) => s.shotX < centerX);
+          const rightShots = onTargetShots.filter((s) => s.shotX >= centerX);
+          const onTargetTotal = onTargetShots.length;
+          const leftPct = onTargetTotal > 0 ? Math.round((leftShots.length / onTargetTotal) * 100) : 0;
+          const rightPct = onTargetTotal > 0 ? Math.round((rightShots.length / onTargetTotal) * 100) : 0;
+          const onTargetPct = Math.round((onTargetShots.length / total) * 100);
+          const avgLeft = leftShots.length > 0
+            ? (leftShots.reduce((sum, s) => sum + Math.abs((s.shotX - centerX) * missR / missRadiusPx), 0) / leftShots.length).toFixed(1)
+            : '--';
+          const avgRight = rightShots.length > 0
+            ? (rightShots.reduce((sum, s) => sum + ((s.shotX - centerX) * missR / missRadiusPx), 0) / rightShots.length).toFixed(1)
+            : '--';
+          const avgDistance = onTargetShots.length > 0
+            ? (onTargetShots.reduce((sum, s) => sum + (targetDist - (s.shotY - centerY) * missR / missRadiusPx), 0) / onTargetShots.length).toFixed(1)
+            : '--';
+          return (
+            <View style={styles.statsRow}>
+              <View style={styles.statCell}>
+                <Text style={styles.statLabel}>Average Left</Text>
+                <Text style={styles.statValue}>{leftPct}%</Text>
+                <Text style={styles.statValue}>{avgLeft}</Text>
+              </View>
+              <View style={styles.statCell}>
+                <Text style={styles.statLabel}>Average Distance</Text>
+                <Text style={styles.statValue}>{onTargetPct}%</Text>
+                <Text style={styles.statValue}>{avgDistance}</Text>
+              </View>
+              <View style={styles.statCell}>
+                <Text style={styles.statLabel}>Average Right</Text>
+                <Text style={styles.statValue}>{rightPct}%</Text>
+                <Text style={styles.statValue}>{avgRight}</Text>
+              </View>
+            </View>
+          );
+        })()}
         <TouchableOpacity
+          ref={this.containerRef}
           style={styles.touchableContainer}
           onLayout={(e) => {
             const { width, height } = e.nativeEvent.layout;
             if (width !== this.state.containerWidth || height !== this.state.containerHeight) {
-              this.setState({ containerWidth: width, containerHeight: height });
+              const { targetRadius, missRadius } = this.state;
+              const missDiameter = Math.min(width * CIRCLE_SIZE_RATIO, height * MAX_CIRCLE_HEIGHT_RATIO);
+              const newMissRadiusPx = Math.round(missDiameter) / 2;
+              const newTargetRadiusPx =
+                Math.round(
+                  missDiameter * ((Number(targetRadius) || 1) / (Number(missRadius) || 1))
+                ) / 2;
+              this.setState(
+                {
+                  containerWidth: width,
+                  containerHeight: height,
+                  missRadiusPx: newMissRadiusPx,
+                  targetRadiusPx: newTargetRadiusPx,
+                },
+                () => {
+                  // Track page-relative position for web click coordinate fallback
+                  if (this.containerRef.current) {
+                    this.containerRef.current.measureInWindow((pageX, pageY) => {
+                      this.setState({ containerPageX: pageX, containerPageY: pageY });
+                    });
+                  }
+                }
+              );
             }
           }}
           onPress={(evt) => {
             if (this.state.calledFrom === 'Record') {
               const centerX = this.state.containerWidth / 2;
               const centerY = this.state.containerHeight / 2;
-              const dx = evt.nativeEvent.locationX - centerX;
-              const dy = evt.nativeEvent.locationY - centerY;
+              let locationX = evt.nativeEvent.locationX;
+              let locationY = evt.nativeEvent.locationY;
+              // Web fallback: locationX/Y may be NaN on web; compute from page coordinates
+              if (isNaN(locationX) || isNaN(locationY)) {
+                const webEvent = evt.nativeEvent as any;
+                locationX = (webEvent.pageX ?? webEvent.clientX ?? 0) - this.state.containerPageX;
+                locationY = (webEvent.pageY ?? webEvent.clientY ?? 0) - this.state.containerPageY;
+              }
+              const dx = locationX - centerX;
+              const dy = locationY - centerY;
               const distFromCenter = Math.sqrt(dx * dx + dy * dy);
               const clickedFrom = distFromCenter <= this.state.targetRadiusPx ? 'target' : 'miss';
               const offTarget = distFromCenter > this.state.missRadiusPx;
@@ -211,8 +329,8 @@ export default class Record extends Component<Props, State> {
                 shotAccuracy: (
                   (dx * Number(this.state.missRadius)) / this.state.missRadiusPx
                 ).toFixed(0),
-                shotX: evt.nativeEvent.locationX,
-                shotY: evt.nativeEvent.locationY,
+                shotX: locationX,
+                shotY: locationY,
                 clickedFrom,
                 offTarget,
                 modalVisible: true,
@@ -272,19 +390,18 @@ export default class Record extends Component<Props, State> {
               return <View style={this.dataStyle(item.shotX - 5, item.shotY - 5)} key={key} />;
             })}
         </TouchableOpacity>
-        <View style={styles.buttonRow}>
-          <View style={styles.buttonContainer}>
-            <Button
-              title="Change Shot"
-              color="black"
-              onPress={() =>
-                navigate('RecordDetails', {
-                  calledFrom: this.state.calledFrom,
-                  user,
-                })
-              }
-            />
-          </View>
+        <View style={{ position: 'absolute', bottom: 100, right: '10%', width: '25%' }}>
+          <Picker
+            selectedValue={this.state.selectedShot}
+            style={{ color: 'black' }}
+            onValueChange={(itemValue) => {
+              this.selectionChange(Number(itemValue));
+            }}
+          >
+            {this.state.shots.map((shot, index) => (
+              <Picker.Item label={shot.name} value={index} key={shot.id} />
+            ))}
+          </Picker>
         </View>
         <Modal isVisible={this.state.modalVisible}>
           <View style={styles.modalContent}>
@@ -299,32 +416,30 @@ export default class Record extends Component<Props, State> {
               </View>
             </View>
             <View style={styles.buttonRow}>
-              <View style={styles.buttonDanger}>
-                <Button
-                  color="black"
-                  title="Cancel"
-                  onPress={() => this.setState({ modalVisible: false })}
-                />
-              </View>
-              <View style={styles.buttonSuccess}>
-                <Button
-                  title="Ok!"
-                  color="black"
-                  onPress={() => {
-                    const user = this.props.route.params?.user ?? '';
-                    DB.saveDataPoint(user, {
-                      id: this.state.shotId,
-                      shotX: Number(this.state.shotX),
-                      shotY: Number(this.state.shotY),
-                      clickedFrom: this.state.clickedFrom,
-                      screenHeight: this.state.screenHeight,
-                      screenWidth: this.state.screenWidth,
-                      offTarget: this.state.offTarget,
-                    });
-                    this.setState({ modalVisible: false });
-                  }}
-                />
-              </View>
+              <TouchableOpacity
+                style={styles.buttonDanger}
+                onPress={() => this.setState({ modalVisible: false })}
+              >
+                <Text style={styles.buttonLabel}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.buttonSuccess}
+                onPress={() => {
+                  const user = this.props.route.params?.user ?? '';
+                  DB.saveDataPoint(user, {
+                    id: this.state.shotId,
+                    shotX: Number(this.state.shotX),
+                    shotY: Number(this.state.shotY),
+                    clickedFrom: this.state.clickedFrom,
+                    screenHeight: this.state.screenHeight,
+                    screenWidth: this.state.screenWidth,
+                    offTarget: this.state.offTarget,
+                  });
+                  this.setState({ modalVisible: false });
+                }}
+              >
+                <Text style={styles.buttonLabel}>Ok!</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </Modal>
