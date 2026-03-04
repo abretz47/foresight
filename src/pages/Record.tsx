@@ -389,10 +389,10 @@ export default class Record extends Component<Props, State> {
               return <View style={this.dataStyle(item.shotX - 5, item.shotY - 5)} key={key} />;
             })}
         </TouchableOpacity>
-        <View style={styles.buttonRow}>
+        <View style={{ position: 'absolute', bottom: 100, left: 0, right: '25%' }}>
           <Picker
             selectedValue={this.state.selectedShot}
-            style={{ flex: 1, color: 'black' }}
+            style={{ color: 'black' }}
             onValueChange={(itemValue) => {
               this.selectionChange(Number(itemValue));
             }}
