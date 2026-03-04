@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Text, View, Button } from 'react-native';
+import { Text, View, TouchableOpacity } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { styles } from '../styles/styles';
 import * as DB from '../data/db';
@@ -115,25 +115,24 @@ export default class RecordDetailsScreen extends Component<Props, State> {
           </View>
         </View>
         <View style={styles.buttonRow}>
-          <View style={styles.buttonContainer}>
-            <Button
-              title="Go!"
-              color="black"
-              onPress={() => {
-                const calledFrom = this.props.route.params?.calledFrom ?? 'Record';
-                const user = this.props.route.params?.user ?? '';
-                navigate(calledFrom as 'Record' | 'Analyze', {
-                  user,
-                  id: this.state.id,
-                  shotName: this.state.shotName,
-                  targetDistance: this.state.targetDistance,
-                  targetRadius: this.state.targetRadius,
-                  missRadius: this.state.missRadius,
-                  calledFrom: 'Home',
-                });
-              }}
-            />
-          </View>
+          <TouchableOpacity
+            style={styles.buttonContainer}
+            onPress={() => {
+              const calledFrom = this.props.route.params?.calledFrom ?? 'Record';
+              const user = this.props.route.params?.user ?? '';
+              navigate(calledFrom as 'Record' | 'Analyze', {
+                user,
+                id: this.state.id,
+                shotName: this.state.shotName,
+                targetDistance: this.state.targetDistance,
+                targetRadius: this.state.targetRadius,
+                missRadius: this.state.missRadius,
+                calledFrom: 'Home',
+              });
+            }}
+          >
+            <Text style={styles.buttonLabel}>Go!</Text>
+          </TouchableOpacity>
         </View>
       </View>
     );

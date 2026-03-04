@@ -21,13 +21,19 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'white',
     borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 12,
   },
   buttonRow: {
     flexDirection: 'row',
   },
   logoutButtonContainer: {
     position: 'relative',
-    backgroundColor: 'red'
+    backgroundColor: 'red',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 12,
   },
   logoutButtonRow: {
     position: 'absolute',
@@ -77,12 +83,18 @@ export const styles = StyleSheet.create({
     margin: 30,
     flex: 1,
     borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 12,
   },
   buttonSuccess: {
     flex: 1,
     margin: 30,
     backgroundColor: '#2BBB32',
     borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 12,
   },
   modalContainer: {
     flex: 1,
@@ -184,5 +196,10 @@ export const styles = StyleSheet.create({
   statValue: {
     fontSize: 14,
     textAlign: 'center',
+  },
+  buttonLabel: {
+    fontWeight: 'bold',
+    fontSize: 16,
+    color: 'black',
   },
 });
