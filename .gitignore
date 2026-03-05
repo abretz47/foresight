@@ -1,7 +1,10 @@
 node_modules/
 *.watchmanconfig
 *.yarn.lock
-*.DS_Store
+.DS_Store
 
 .expo/
 *-android-*.json
+ios/
+*.ipa
+.DS_Store
