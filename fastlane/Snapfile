@@ -2,7 +2,6 @@
 devices([
   "iPhone 16 Pro Max",
   "iPhone 16",
-  "iPhone SE (3rd generation)",
   "iPad Pro 13-inch (M4)"
 ])
 
@@ -11,10 +10,10 @@ languages([
 ])
 
 # The name of the scheme inside the Xcode project
-scheme("foresight")
+scheme("Foresight")
 
 # The path to the Xcode workspace
-workspace("./ios/foresight.xcworkspace")
+workspace("./ios/Foresight.xcworkspace")
 
 # Where to store the screenshots
 output_directory("./fastlane/screenshots/ios")

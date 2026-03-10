@@ -47,8 +47,8 @@ platform :ios do
     install_ios_tests
 
     capture_ios_screenshots(
-      scheme: "foresight",
-      workspace: File.expand_path("../ios/foresight.xcworkspace", __dir__),
+      scheme: "Foresight",
+      workspace: File.expand_path("../ios/Foresight.xcworkspace", __dir__),
       output_directory: File.expand_path("screenshots/ios", __dir__),
       clear_previous_screenshots: true,
       override_status_bar: true,
