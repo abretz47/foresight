@@ -1,0 +1,96 @@
+default_platform(:ios)
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Helpers
+# ──────────────────────────────────────────────────────────────────────────────
+
+ANDROID_TEST_SRC = File.expand_path("snapshot_tests/android", __dir__)
+ANDROID_TEST_DST = File.expand_path(
+  "../android/app/src/androidTest/java/com/abretz/foresight",
+  __dir__
+)
+
+# Always run expo prebuild so that the withUITests config plugin registers the
+# ForesightUITests target in the Xcode project.  --no-install skips pod/npm
+# install so the lane stays fast.
+def ensure_native_project(platform)
+  allowed = [:ios, :android]
+  unless allowed.include?(platform)
+    UI.user_error!("ensure_native_project: unexpected platform '#{platform}'. Must be :ios or :android.")
+  end
+
+  platform_str = platform.to_s
+  UI.message("Running expo prebuild --platform #{platform_str} --no-install ...")
+  sh("cd #{File.expand_path('..', __dir__)} && npx expo prebuild --platform #{platform_str} --no-install")
+end
+
+def install_android_tests
+  FileUtils.mkdir_p(ANDROID_TEST_DST)
+  FileUtils.cp_r(Dir["#{ANDROID_TEST_SRC}/*"], ANDROID_TEST_DST)
+  UI.success("Android screenshot tests copied to #{ANDROID_TEST_DST}")
+end
+
+# ──────────────────────────────────────────────────────────────────────────────
+# iOS
+# ──────────────────────────────────────────────────────────────────────────────
+
+platform :ios do
+  desc "Capture iOS App Store screenshots using fastlane snapshot"
+  lane :screenshots do
+    # prebuild runs the withUITests config plugin, which copies the Swift test
+    # sources and registers the ForesightUITests target in the .xcodeproj.
+    ensure_native_project(:ios)
+
+    capture_ios_screenshots(
+      scheme: "Foresight",
+      workspace: File.expand_path("../ios/Foresight.xcworkspace", __dir__),
+      output_directory: File.expand_path("screenshots/ios", __dir__),
+      clear_previous_screenshots: true,
+      override_status_bar: true,
+      launch_arguments: ["-UITestMode YES"]
+    )
+
+    UI.success("iOS screenshots saved to fastlane/screenshots/ios/")
+  end
+end
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Android
+# ──────────────────────────────────────────────────────────────────────────────
+
+platform :android do
+  desc "Capture Android Play Store screenshots using fastlane screengrab"
+  lane :screenshots do
+    ensure_native_project(:android)
+    install_android_tests
+
+    # Build the APKs needed by screengrab
+    sh("cd #{File.expand_path('..', __dir__)} && ./android/gradlew -p android assembleRelease assembleAndroidTest")
+
+    capture_android_screenshots(
+      locales: ["en-US"],
+      clear_previous_screenshots: true,
+      output_directory: File.expand_path("screenshots/android", __dir__),
+      app_apk_path: File.expand_path(
+        "../android/app/build/outputs/apk/release/app-release.apk", __dir__
+      ),
+      tests_apk_path: File.expand_path(
+        "../android/app/build/outputs/apk/androidTest/release/app-release-androidTest.apk",
+        __dir__
+      ),
+      use_tests_in_classes: ["com.abretz.foresight.ScreenshotTest"]
+    )
+
+    UI.success("Android screenshots saved to fastlane/screenshots/android/")
+  end
+end
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Cross-platform convenience lane (run from repo root)
+# ──────────────────────────────────────────────────────────────────────────────
+
+desc "Capture screenshots for all platforms. Run before `eas submit`."
+lane :screenshots do
+  Fastlane::LaneManager.cruise_lane(:ios, :screenshots)
+  Fastlane::LaneManager.cruise_lane(:android, :screenshots)
+end

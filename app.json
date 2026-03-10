@@ -30,6 +30,9 @@
       },
       "package": "com.abretz.foresight"
     },
+    "plugins": [
+      "./plugins/withUITests"
+    ],
     "extra": {
       "eas": {
         "projectId": "e05d1515-b69d-4d72-80e8-95313d604a2c"

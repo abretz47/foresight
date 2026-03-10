@@ -1,0 +1,31 @@
+# Devices to capture screenshots on
+devices([
+  "iPhone 16 Pro Max",
+  "iPhone 16",
+  "iPad Pro 13-inch (M4)"
+])
+
+languages([
+  "en-US"
+])
+
+# The name of the scheme inside the Xcode project
+scheme("Foresight")
+
+# The path to the Xcode workspace
+workspace("./ios/Foresight.xcworkspace")
+
+# Where to store the screenshots
+output_directory("./fastlane/screenshots/ios")
+
+# Remove previously generated screenshots
+clear_previous_screenshots(true)
+
+# Set the simulator type
+# headless(false)
+
+# Arguments to pass to the app on launch
+launch_arguments(["-UITestMode YES"])
+
+# Only run the UI tests in the screenshot target
+only_testing("ForesightUITests")

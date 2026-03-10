@@ -5,7 +5,18 @@ node_modules/
 
 .expo/
 *-android-*.json
-ios/
+/ios/
+/android/
 *.ipa
 *.aab
 .DS_Store
+
+# Fastlane generated output
+fastlane/screenshots/
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/test_output/
+
+# Bundler
+.bundle/
+vendor/bundle/
