@@ -1,0 +1,9 @@
+# Note: the iOS identifier (com.bretza.foresight) and Android package name
+# (com.abretz.foresight) intentionally differ – they match the values
+# already defined in app.json and should not be changed here.
+app_identifier("com.bretza.foresight") # iOS bundle identifier
+apple_id(ENV["APPLE_ID"])              # Your Apple ID email
+team_id(ENV["APPLE_TEAM_ID"])          # Developer Portal Team ID
+
+# Android
+package_name("com.abretz.foresight")
