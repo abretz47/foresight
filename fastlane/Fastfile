@@ -4,30 +4,24 @@ default_platform(:ios)
 # Helpers
 # ──────────────────────────────────────────────────────────────────────────────
 
-IOS_TEST_SRC = File.expand_path("snapshot_tests/ios", __dir__)
-IOS_TEST_DST = File.expand_path("../ios/ForesightUITests", __dir__)
-
 ANDROID_TEST_SRC = File.expand_path("snapshot_tests/android", __dir__)
 ANDROID_TEST_DST = File.expand_path(
   "../android/app/src/androidTest/java/com/abretz/foresight",
   __dir__
 )
 
-# Run expo prebuild for the given platform when the native directory is absent.
+# Always run expo prebuild so that the withUITests config plugin registers the
+# ForesightUITests target in the Xcode project.  --no-install skips pod/npm
+# install so the lane stays fast.
 def ensure_native_project(platform)
-  dir = platform == :ios ? "../ios" : "../android"
-  native_dir = File.expand_path(dir, __dir__)
-  unless Dir.exist?(native_dir)
-    UI.message("Native #{platform} project not found – running expo prebuild...")
-    sh("cd #{File.expand_path('..', __dir__)} && npx expo prebuild --platform #{platform} --no-install")
+  allowed = [:ios, :android]
+  unless allowed.include?(platform)
+    UI.user_error!("ensure_native_project: unexpected platform '#{platform}'. Must be :ios or :android.")
   end
-end
 
-# Copy snapshot / screengrab test sources into the generated native project.
-def install_ios_tests
-  FileUtils.mkdir_p(IOS_TEST_DST)
-  FileUtils.cp_r(Dir["#{IOS_TEST_SRC}/*"], IOS_TEST_DST)
-  UI.success("iOS screenshot tests copied to #{IOS_TEST_DST}")
+  platform_str = platform.to_s
+  UI.message("Running expo prebuild --platform #{platform_str} --no-install ...")
+  sh("cd #{File.expand_path('..', __dir__)} && npx expo prebuild --platform #{platform_str} --no-install")
 end
 
 def install_android_tests
@@ -43,8 +37,9 @@ end
 platform :ios do
   desc "Capture iOS App Store screenshots using fastlane snapshot"
   lane :screenshots do
+    # prebuild runs the withUITests config plugin, which copies the Swift test
+    # sources and registers the ForesightUITests target in the .xcodeproj.
     ensure_native_project(:ios)
-    install_ios_tests
 
     capture_ios_screenshots(
       scheme: "Foresight",
