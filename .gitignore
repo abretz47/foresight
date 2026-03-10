@@ -5,8 +5,8 @@ node_modules/
 
 .expo/
 *-android-*.json
-ios/
-android/
+/ios/
+/android/
 *.ipa
 *.aab
 .DS_Store
