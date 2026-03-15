@@ -2,6 +2,7 @@ node_modules/
 *.watchmanconfig
 *.yarn.lock
 .DS_Store
+package-lock.json
 
 .expo/
 *-android-*.json

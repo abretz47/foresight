@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
-import { TouchableOpacity, Text, View, Dimensions, Switch, StyleSheet } from 'react-native';
+import { TouchableOpacity, Text, View, Dimensions, Switch, Animated, PanResponder, StyleSheet } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import Modal from 'react-native-modal';
 import { styles, COLORS } from '../styles/styles';
@@ -37,14 +38,42 @@ interface State {
   containerPageX: number;
   containerPageY: number;
   offTarget: boolean;
+  pickerVisible: boolean;
 }
 
 const CIRCLE_SIZE_RATIO = 0.7;
 const MAX_CIRCLE_HEIGHT_RATIO = 0.5;
+const PICKER_BUTTON_INITIAL_BOTTOM = 20;
+const PICKER_BUTTON_INITIAL_RIGHT = 12;
+const PICKER_WIDTH = 260;
 
 export default class Record extends Component<Props, State> {
   private focusListener: (() => void) | null = null;
   private containerRef = React.createRef<View>();
+  private pickerButtonRef = React.createRef<View>();
+  private panValue = new Animated.ValueXY({ x: 0, y: 0 });
+  private panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderGrant: () => {
+      this.panValue.setOffset({
+        x: (this.panValue.x as any)._value,
+        y: (this.panValue.y as any)._value,
+      });
+      this.panValue.setValue({ x: 0, y: 0 });
+    },
+    onPanResponderMove: Animated.event(
+      [null, { dx: this.panValue.x, dy: this.panValue.y }],
+      { useNativeDriver: false }
+    ),
+    onPanResponderRelease: (evt, gestureState) => {
+      this.panValue.flattenOffset();
+      // Tap (not drag): toggle picker
+      if (Math.abs(gestureState.dx) < 5 && Math.abs(gestureState.dy) < 5) {
+        this.setState((prev) => ({ pickerVisible: !prev.pickerVisible }));
+      }
+    },
+  });
 
   constructor(props: Props) {
     super(props);
@@ -79,6 +108,7 @@ export default class Record extends Component<Props, State> {
       containerPageX: 0,
       containerPageY: 0,
       offTarget: false,
+      pickerVisible: false,
     };
   }
 
@@ -403,20 +433,74 @@ export default class Record extends Component<Props, State> {
             })}
         </TouchableOpacity>
 
-        {/* Shot picker (bottom right) */}
-        <View style={recordStyles.pickerContainer}>
-          <Picker
-            selectedValue={this.state.selectedShot}
-            style={recordStyles.picker}
-            onValueChange={(itemValue) => {
-              this.selectionChange(Number(itemValue));
+        {/* Floating draggable picker button */}
+        <Animated.View
+          style={{
+            position: 'absolute',
+            bottom: PICKER_BUTTON_INITIAL_BOTTOM,
+            right: PICKER_BUTTON_INITIAL_RIGHT,
+            zIndex: 100,
+            alignItems: 'flex-end',
+            transform: this.panValue.getTranslateTransform(),
+          }}
+        >
+          {/* Picker shown above button when open */}
+          {this.state.pickerVisible && (
+            <View
+              style={{
+                width: PICKER_WIDTH,
+                backgroundColor: COLORS.surfaceAlt,
+                borderRadius: 12,
+                marginBottom: 6,
+                elevation: 10,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.3,
+                shadowRadius: 4,
+              }}
+            >
+              <Picker
+                selectedValue={this.state.selectedShot}
+                style={{ color: COLORS.textPrimary }}
+                onValueChange={(itemValue) => {
+                  this.selectionChange(Number(itemValue));
+                }}
+              >
+                {this.state.shots.map((shot, index) => (
+                  <Picker.Item label={shot.distance + ' – ' + shot.name} value={index} key={shot.id} />
+                ))}
+              </Picker>
+            </View>
+          )}
+          {/* Draggable handle / toggle button — panHandlers scoped here only so
+              the Picker overlay above receives its own native touch events on iOS/Web */}
+          <View
+            ref={this.pickerButtonRef}
+            style={{
+              backgroundColor: this.state.pickerVisible ? COLORS.primary : COLORS.primaryLight,
+              borderRadius: 10,
+              paddingHorizontal: 12,
+              paddingVertical: 9,
+              elevation: 5,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.3,
+              shadowRadius: 4,
+              minWidth: 80,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
             }}
+            {...this.panResponder.panHandlers}
           >
-            {this.state.shots.map((shot, index) => (
-              <Picker.Item label={shot.distance + ' – ' + shot.name} value={index} key={shot.id} />
-            ))}
-          </Picker>
-        </View>
+            <MaterialCommunityIcons name="drag" size={18} color="rgba(255,255,255,0.7)" />
+            <Text style={{ color: COLORS.textLight, fontWeight: '700', fontSize: 12, flexShrink: 1 }}>
+              {this.state.shots[this.state.selectedShot]
+                ? this.state.shots[this.state.selectedShot].distance + ' – ' + this.state.shots[this.state.selectedShot].name
+                : 'Select Shot'}
+            </Text>
+          </View>
+        </Animated.View>
 
         {/* Shot confirmation modal */}
         <Modal isVisible={this.state.modalVisible}>
@@ -486,19 +570,6 @@ const recordStyles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 13,
     color: COLORS.accentLight,
-  },
-  pickerContainer: {
-    position: 'absolute',
-    bottom: 10,
-    right: 0,
-    width: '55%',
-    maxHeight: '20%',
-    backgroundColor: 'rgba(15,46,30,0.9)',
-    borderTopLeftRadius: 12,
-    borderBottomLeftRadius: 12,
-  },
-  picker: {
-    color: COLORS.textLight,
   },
   modalTitle: {
     fontSize: 20,
