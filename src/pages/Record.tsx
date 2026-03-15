@@ -449,7 +449,6 @@ export default class Record extends Component<Props, State> {
             alignItems: 'flex-end',
             transform: this.panValue.getTranslateTransform(),
           }}
-          {...this.panResponder.panHandlers}
         >
           {/* Picker shown above button when open */}
           {this.state.pickerVisible && (
@@ -479,7 +478,8 @@ export default class Record extends Component<Props, State> {
               </Picker>
             </View>
           )}
-          {/* Draggable handle / toggle button */}
+          {/* Draggable handle / toggle button — panHandlers scoped here only so
+              the Picker overlay above receives its own native touch events on iOS/Web */}
           <View
             ref={this.pickerButtonRef}
             style={{
@@ -495,6 +495,7 @@ export default class Record extends Component<Props, State> {
               minWidth: 80,
               alignItems: 'center',
             }}
+            {...this.panResponder.panHandlers}
           >
             <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>
               {this.state.shots[this.state.selectedShot]
