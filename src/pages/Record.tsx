@@ -1,8 +1,8 @@
 import React, { Component } from 'react';
-import { TouchableOpacity, Text, View, Dimensions, Switch } from 'react-native';
+import { TouchableOpacity, Text, View, Dimensions, Switch, StyleSheet } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import Modal from 'react-native-modal';
-import { styles } from '../styles/styles';
+import { styles, COLORS } from '../styles/styles';
 import * as DB from '../data/db';
 import { DataPoint, ShotProfile } from '../data/db';
 import { RecordNavigationProp, RecordRouteProp } from '../types/navigation';
@@ -208,11 +208,17 @@ export default class Record extends Component<Props, State> {
   render() {
     return (
       <View style={styles.template}>
-        <View style={styles.row}>
-          <View style={styles.column}>
-            <Text style={styles.smallLabel}>{this.state.shotName} targeted at {this.state.targetDistance}</Text>
-          </View>
+        {/* Shot info bar */}
+        <View style={recordStyles.infoBar}>
+          <Text style={recordStyles.shotInfoText}>
+            {this.state.shotName}
+          </Text>
+          <Text style={recordStyles.shotDistanceText}>
+            Target: {this.state.targetDistance} yds
+          </Text>
         </View>
+
+        {/* Record / Analyze toggle */}
         <View style={styles.sliderRow}>
           <Text style={styles.sliderLabel}>Record</Text>
           <Switch
@@ -225,11 +231,13 @@ export default class Record extends Component<Props, State> {
                 this.loadData(shotId);
               }
             }}
-            thumbColor="white"
-            trackColor={{ false: '#888', true: '#888' }}
+            thumbColor={COLORS.accent}
+            trackColor={{ false: COLORS.textSecondary, true: COLORS.primaryLight }}
           />
           <Text style={styles.sliderLabel}>Analyze</Text>
         </View>
+
+        {/* Stats bar (Analyze mode) */}
         {this.state.calledFrom === 'Analyze' && this.state.data.length > 0 && (() => {
           const { data, containerWidth, containerHeight, missRadiusPx, missRadius, targetDistance } = this.state;
           const total = data.length;
@@ -256,23 +264,25 @@ export default class Record extends Component<Props, State> {
           return (
             <View style={styles.statsRow}>
               <View style={styles.statCell}>
-                <Text style={styles.statLabel}>Average Left</Text>
+                <Text style={styles.statLabel}>Left</Text>
                 <Text style={styles.statValue}>{leftPct}%</Text>
                 <Text style={styles.statValue}>{avgLeft}</Text>
               </View>
               <View style={styles.statCell}>
-                <Text style={styles.statLabel}>Average Distance</Text>
+                <Text style={styles.statLabel}>On Target</Text>
                 <Text style={styles.statValue}>{onTargetPct}%</Text>
                 <Text style={styles.statValue}>{avgDistance}</Text>
               </View>
               <View style={styles.statCell}>
-                <Text style={styles.statLabel}>Average Right</Text>
+                <Text style={styles.statLabel}>Right</Text>
                 <Text style={styles.statValue}>{rightPct}%</Text>
                 <Text style={styles.statValue}>{avgRight}</Text>
               </View>
             </View>
           );
         })()}
+
+        {/* Main touch area */}
         <TouchableOpacity
           ref={this.containerRef}
           style={styles.touchableContainer}
@@ -338,7 +348,7 @@ export default class Record extends Component<Props, State> {
             }
           }}
         >
-          {/* Miss circle - back-most element */}
+          {/* Miss circle */}
           <View style={this.missStyle()} pointerEvents="none">
             <Text style={styles.circleLabelTop}>
               {(Number(this.state.targetDistance) + Number(this.state.missRadius)).toFixed(0)}
@@ -347,7 +357,7 @@ export default class Record extends Component<Props, State> {
               {(Number(this.state.targetDistance) - Number(this.state.missRadius)).toFixed(0)}
             </Text>
           </View>
-          {/* Target circle - between miss circle and touchable container */}
+          {/* Target circle */}
           <View style={this.targetStyle()} pointerEvents="none">
             <Text style={styles.circleLabelInnerTop}>
               {(Number(this.state.targetDistance) + Number(this.state.targetRadius)).toFixed(0)}
@@ -356,7 +366,7 @@ export default class Record extends Component<Props, State> {
               {(Number(this.state.targetDistance) - Number(this.state.targetRadius)).toFixed(0)}
             </Text>
           </View>
-          {/* Horizontal line and label - above target circle on z-axis */}
+          {/* Radius indicator line */}
           <View
             pointerEvents="none"
             style={{
@@ -364,8 +374,8 @@ export default class Record extends Component<Props, State> {
               left: this.state.containerWidth / 2,
               top: this.state.containerHeight / 2,
               width: this.state.missRadiusPx,
-              height: 1,
-              backgroundColor: 'black',
+              height: 1.5,
+              backgroundColor: COLORS.textSecondary,
               zIndex: 3,
             }}
           />
@@ -379,40 +389,50 @@ export default class Record extends Component<Props, State> {
               textAlign: 'center',
               fontSize: 11,
               zIndex: 3,
+              color: COLORS.textSecondary,
+              fontWeight: '600',
             }}
           >
-            {this.state.missRadius}
+            {this.state.missRadius} yds
           </Text>
-          {/* Data points - shown in Analyze mode, positioned relative to the container */}
+          {/* Data points (Analyze mode) */}
           {this.state.calledFrom === 'Analyze' &&
             Object.keys(this.state.data).map((key) => {
               const item = this.state.data[Number(key)];
               return <View style={this.dataStyle(item.shotX - 5, item.shotY - 5)} key={key} />;
             })}
         </TouchableOpacity>
-        <View style={{ position: 'absolute', bottom: 10, right: '0%', width: '50%', maxHeight: '20%' }}>
+
+        {/* Shot picker (bottom right) */}
+        <View style={recordStyles.pickerContainer}>
           <Picker
             selectedValue={this.state.selectedShot}
-            style={{ color: 'black' }}
+            style={recordStyles.picker}
             onValueChange={(itemValue) => {
               this.selectionChange(Number(itemValue));
             }}
           >
             {this.state.shots.map((shot, index) => (
-              <Picker.Item label={shot.distance + " - " + shot.name} value={index} key={shot.id} />
+              <Picker.Item label={shot.distance + ' – ' + shot.name} value={index} key={shot.id} />
             ))}
           </Picker>
         </View>
+
+        {/* Shot confirmation modal */}
         <Modal isVisible={this.state.modalVisible}>
           <View style={styles.modalContent}>
-            <View style={styles.row}>
-              <View style={styles.column}>
-                <Text style={styles.smallLabel}>Distance</Text>
-                <Text>{this.state.shotDistance}</Text>
+            <Text style={recordStyles.modalTitle}>Confirm Shot</Text>
+            <View style={recordStyles.modalStats}>
+              <View style={recordStyles.modalStatCell}>
+                <Text style={recordStyles.modalStatLabel}>Distance</Text>
+                <Text style={recordStyles.modalStatValue}>{this.state.shotDistance} yds</Text>
               </View>
-              <View style={styles.column}>
-                <Text style={styles.smallLabel}>Accuracy</Text>
-                <Text>{this.convertShotAccuracy(this.state.shotAccuracy)}</Text>
+              <View style={recordStyles.modalDivider} />
+              <View style={recordStyles.modalStatCell}>
+                <Text style={recordStyles.modalStatLabel}>Accuracy</Text>
+                <Text style={recordStyles.modalStatValue}>
+                  {this.convertShotAccuracy(this.state.shotAccuracy)}
+                </Text>
               </View>
             </View>
             <View style={styles.buttonRow}>
@@ -420,7 +440,7 @@ export default class Record extends Component<Props, State> {
                 style={styles.buttonDanger}
                 onPress={() => this.setState({ modalVisible: false })}
               >
-                <Text style={styles.buttonLabel}>Cancel</Text>
+                <Text style={styles.buttonLabelLight}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.buttonSuccess}
@@ -438,7 +458,7 @@ export default class Record extends Component<Props, State> {
                   this.setState({ modalVisible: false });
                 }}
               >
-                <Text style={styles.buttonLabel}>Ok!</Text>
+                <Text style={styles.buttonLabelLight}>Save ✓</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -447,3 +467,72 @@ export default class Record extends Component<Props, State> {
     );
   }
 }
+
+const recordStyles = StyleSheet.create({
+  infoBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: COLORS.primary,
+  },
+  shotInfoText: {
+    fontWeight: '700',
+    fontSize: 15,
+    color: COLORS.textLight,
+  },
+  shotDistanceText: {
+    fontWeight: '600',
+    fontSize: 13,
+    color: COLORS.accentLight,
+  },
+  pickerContainer: {
+    position: 'absolute',
+    bottom: 10,
+    right: 0,
+    width: '55%',
+    maxHeight: '20%',
+    backgroundColor: 'rgba(15,46,30,0.9)',
+    borderTopLeftRadius: 12,
+    borderBottomLeftRadius: 12,
+  },
+  picker: {
+    color: COLORS.textLight,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+    marginBottom: 16,
+  },
+  modalStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    width: '100%',
+  },
+  modalStatCell: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  modalDivider: {
+    width: 1,
+    height: 50,
+    backgroundColor: COLORS.border,
+  },
+  modalStatLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  modalStatValue: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+});

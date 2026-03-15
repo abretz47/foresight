@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { Text, View, TextInput, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { connect } from 'react-redux';
 import { getUser } from '../../reducer';
-import { styles } from '../styles/styles';
+import { styles, COLORS } from '../styles/styles';
 import { LoginNavigationProp } from '../types/navigation';
 import { getUsers } from '../data/db';
 
@@ -67,18 +67,36 @@ class Login extends Component<Props, State> {
 
     return (
       <View style={styles.template}>
-        <View style={styles.homeContainer}>
-          <View style={styles.row}>
-            <View style={[styles.column, comboStyles.comboWrapper]}>
+        {/* Branding header */}
+        <View style={loginStyles.brandHeader}>
+          <View style={loginStyles.logoCircle}>
+            <Text style={loginStyles.logoText}>⛳</Text>
+          </View>
+          <Text style={loginStyles.appTitle}>Foresight</Text>
+          <Text style={loginStyles.appSubtitle}>Golf Range Tracker</Text>
+        </View>
+
+        {/* Login card */}
+        <View style={loginStyles.cardWrapper}>
+          <View style={styles.card}>
+            <Text style={loginStyles.cardTitle}>Welcome Back</Text>
+            <Text style={loginStyles.cardHint}>Enter your name to continue</Text>
+
+            <View style={[comboStyles.comboWrapper]}>
               <Text style={styles.label}>Your Name</Text>
               <TextInput
                 style={styles.textInput}
                 value={username}
                 onChangeText={this.handleChangeText}
                 onFocus={() => this.setState({ showSuggestions: true })}
-                onBlur={() => setTimeout(() => this.setState({ showSuggestions: false }), SUGGESTION_HIDE_DELAY)}
-                onLayout={(e) => this.setState({ inputHeight: e.nativeEvent.layout.height + e.nativeEvent.layout.y })}
+                onBlur={() =>
+                  setTimeout(() => this.setState({ showSuggestions: false }), SUGGESTION_HIDE_DELAY)
+                }
+                onLayout={(e) =>
+                  this.setState({ inputHeight: e.nativeEvent.layout.height + e.nativeEvent.layout.y })
+                }
                 placeholder="Enter your name"
+                placeholderTextColor={COLORS.textMuted}
                 autoCapitalize="none"
               />
               {suggestions.length > 0 && (
@@ -100,10 +118,9 @@ class Login extends Component<Props, State> {
                 </View>
               )}
             </View>
-          </View>
-          <View style={styles.buttonRow}>
-            <TouchableOpacity style={styles.buttonContainer} onPress={this.handleLogin}>
-              <Text style={styles.buttonLabel}>Continue</Text>
+
+            <TouchableOpacity style={loginStyles.continueBtn} onPress={this.handleLogin}>
+              <Text style={loginStyles.continueBtnLabel}>Continue  →</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -112,38 +129,110 @@ class Login extends Component<Props, State> {
   }
 }
 
+const loginStyles = StyleSheet.create({
+  brandHeader: {
+    alignItems: 'center',
+    paddingTop: 72,
+    paddingBottom: 32,
+  },
+  logoCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: COLORS.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  logoText: {
+    fontSize: 36,
+  },
+  appTitle: {
+    fontSize: 34,
+    fontWeight: '800',
+    color: COLORS.textLight,
+    letterSpacing: 1,
+  },
+  appSubtitle: {
+    fontSize: 14,
+    color: COLORS.accentLight,
+    fontWeight: '600',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginTop: 4,
+  },
+  cardWrapper: {
+    flex: 1,
+  },
+  cardTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+    marginBottom: 4,
+  },
+  cardHint: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginBottom: 20,
+  },
+  continueBtn: {
+    marginTop: 20,
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: 'center',
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  continueBtnLabel: {
+    color: COLORS.textLight,
+    fontWeight: '700',
+    fontSize: 17,
+    letterSpacing: 0.5,
+  },
+});
+
 const comboStyles = StyleSheet.create({
   comboWrapper: {
-    flex: 1,
     zIndex: 10,
   },
   dropdown: {
     position: 'absolute',
-    left: 20,
-    right: 20,
-    backgroundColor: '#fff',
-    borderColor: '#000',
-    borderWidth: 1,
-    borderRadius: 8,
+    left: 0,
+    right: 0,
+    backgroundColor: COLORS.surface,
+    borderColor: COLORS.border,
+    borderWidth: 1.5,
+    borderRadius: 12,
     zIndex: 20,
     maxHeight: 200,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
   },
   list: {
-    borderRadius: 8,
+    borderRadius: 12,
   },
   item: {
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderBottomColor: '#eee',
+    borderBottomColor: COLORS.border,
     borderBottomWidth: 1,
   },
   itemText: {
-    fontSize: 18,
+    fontSize: 16,
+    color: COLORS.textPrimary,
+    fontWeight: '500',
   },
 });
 
