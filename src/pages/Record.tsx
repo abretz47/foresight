@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { TouchableOpacity, Text, View, Dimensions, Switch } from 'react-native';
+import { TouchableOpacity, Text, View, Dimensions, Switch, Animated, PanResponder } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import Modal from 'react-native-modal';
 import { styles } from '../styles/styles';
@@ -37,14 +37,24 @@ interface State {
   containerPageX: number;
   containerPageY: number;
   offTarget: boolean;
+  pickerVisible: boolean;
 }
 
 const CIRCLE_SIZE_RATIO = 0.7;
 const MAX_CIRCLE_HEIGHT_RATIO = 0.5;
+const DRAG_THRESHOLD = 5;
+const PICKER_BUTTON_INITIAL_BOTTOM = 60;
+const PICKER_BUTTON_INITIAL_RIGHT = 10;
+const PICKER_WIDTH = 220;
 
 export default class Record extends Component<Props, State> {
   private focusListener: (() => void) | null = null;
   private containerRef = React.createRef<View>();
+  private pickerButtonRef = React.createRef<View>();
+  private panValue = new Animated.ValueXY({ x: 0, y: 0 });
+  private panResponder: ReturnType<typeof PanResponder.create>;
+  private panOffset = { x: 0, y: 0 };
+  private isDragging = false;
 
   constructor(props: Props) {
     super(props);
@@ -79,7 +89,41 @@ export default class Record extends Component<Props, State> {
       containerPageX: 0,
       containerPageY: 0,
       offTarget: false,
+      pickerVisible: false,
     };
+
+    this.panResponder = PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        this.panValue.setOffset(this.panOffset);
+        this.panValue.setValue({ x: 0, y: 0 });
+        this.isDragging = false;
+      },
+      onPanResponderMove: (evt, gesture) => {
+        if (Math.abs(gesture.dx) > DRAG_THRESHOLD || Math.abs(gesture.dy) > DRAG_THRESHOLD) {
+          this.isDragging = true;
+          if (this.state.pickerVisible) {
+            this.setState({ pickerVisible: false });
+          }
+        }
+        Animated.event(
+          [null, { dx: this.panValue.x, dy: this.panValue.y }],
+          { useNativeDriver: false }
+        )(evt, gesture);
+      },
+      onPanResponderRelease: (_, gesture) => {
+        this.panOffset = {
+          x: this.panOffset.x + gesture.dx,
+          y: this.panOffset.y + gesture.dy,
+        };
+        this.panValue.flattenOffset();
+        if (!this.isDragging) {
+          this.togglePicker();
+        }
+        this.isDragging = false;
+      },
+    });
   }
 
   componentDidMount() {
@@ -205,6 +249,10 @@ export default class Record extends Component<Props, State> {
     );
   };
 
+  togglePicker = () => {
+    this.setState(prev => ({ pickerVisible: !prev.pickerVisible }));
+  };
+
   render() {
     return (
       <View style={styles.template}>
@@ -276,6 +324,7 @@ export default class Record extends Component<Props, State> {
         <TouchableOpacity
           ref={this.containerRef}
           style={styles.touchableContainer}
+          disabled={this.state.pickerVisible}
           onLayout={(e) => {
             const { width, height } = e.nativeEvent.layout;
             if (width !== this.state.containerWidth || height !== this.state.containerHeight) {
@@ -390,19 +439,70 @@ export default class Record extends Component<Props, State> {
               return <View style={this.dataStyle(item.shotX - 5, item.shotY - 5)} key={key} />;
             })}
         </TouchableOpacity>
-        <View style={{ position: 'absolute', bottom: 10, right: '0%', width: '50%', maxHeight: '20%' }}>
-          <Picker
-            selectedValue={this.state.selectedShot}
-            style={{ color: 'black' }}
-            onValueChange={(itemValue) => {
-              this.selectionChange(Number(itemValue));
+        {/* Floating draggable picker button */}
+        <Animated.View
+          style={{
+            position: 'absolute',
+            bottom: PICKER_BUTTON_INITIAL_BOTTOM,
+            right: PICKER_BUTTON_INITIAL_RIGHT,
+            zIndex: 100,
+            alignItems: 'flex-end',
+            transform: this.panValue.getTranslateTransform(),
+          }}
+          {...this.panResponder.panHandlers}
+        >
+          {/* Picker shown above button when open */}
+          {this.state.pickerVisible && (
+            <View
+              style={{
+                width: PICKER_WIDTH,
+                backgroundColor: 'white',
+                borderRadius: 8,
+                marginBottom: 5,
+                elevation: 10,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.3,
+                shadowRadius: 4,
+              }}
+            >
+              <Picker
+                selectedValue={this.state.selectedShot}
+                style={{ color: 'black' }}
+                onValueChange={(itemValue) => {
+                  this.selectionChange(Number(itemValue));
+                }}
+              >
+                {this.state.shots.map((shot, index) => (
+                  <Picker.Item label={shot.distance + " - " + shot.name} value={index} key={shot.id} />
+                ))}
+              </Picker>
+            </View>
+          )}
+          {/* Draggable handle / toggle button */}
+          <View
+            ref={this.pickerButtonRef}
+            style={{
+              backgroundColor: this.state.pickerVisible ? '#145C17' : '#1A7A1F',
+              borderRadius: 8,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              elevation: 5,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.3,
+              shadowRadius: 4,
+              minWidth: 80,
+              alignItems: 'center',
             }}
           >
-            {this.state.shots.map((shot, index) => (
-              <Picker.Item label={shot.distance + " - " + shot.name} value={index} key={shot.id} />
-            ))}
-          </Picker>
-        </View>
+            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>
+              {this.state.shots[this.state.selectedShot]
+                ? this.state.shots[this.state.selectedShot].distance + ' - ' + this.state.shots[this.state.selectedShot].name
+                : 'Select Shot'}
+            </Text>
+          </View>
+        </Animated.View>
         <Modal isVisible={this.state.modalVisible}>
           <View style={styles.modalContent}>
             <View style={styles.row}>
