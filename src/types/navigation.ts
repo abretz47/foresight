@@ -25,6 +25,7 @@ export type RootStackParamList = {
     calledFrom: string;
   };
   Default: undefined;
+  HowToUse: undefined;
 };
 
 export type LoginNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;

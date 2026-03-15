@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
-import { Text, View, TouchableOpacity } from 'react-native';
+import { Text, View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { styles } from '../styles/styles';
+import { styles, COLORS } from '../styles/styles';
 import * as DB from '../data/db';
 import { ShotProfile } from '../data/db';
 import { RecordDetailsNavigationProp, RecordDetailsRouteProp } from '../types/navigation';
@@ -74,11 +74,12 @@ export default class RecordDetailsScreen extends Component<Props, State> {
   render() {
     const { navigate } = this.props.navigation;
     return (
-      <View style={styles.template}>
-        <View style={styles.container}>
-          <View style={styles.row}>
-            <View style={styles.column}>
-              <Text style={styles.label}>Select Shot Type</Text>
+      <View style={[styles.template, { paddingBottom: 20 }]}>
+        <View style={{ flex: 1, paddingTop: 8 }}>
+          {/* Picker card */}
+          <View style={[styles.card, rdStyles.sectionCard]}>
+            <Text style={rdStyles.sectionTitle}>Select Shot Type</Text>
+            <View style={rdStyles.pickerWrapper}>
               <Picker
                 selectedValue={this.state.selectedShot}
                 mode="dialog"
@@ -86,6 +87,7 @@ export default class RecordDetailsScreen extends Component<Props, State> {
                   this.setState({ selectedShot: itemValue });
                   this.selectionChange(Number(itemValue));
                 }}
+                style={rdStyles.picker}
               >
                 {Object.keys(this.state.shots).map((key) => (
                   <Picker.Item label={this.state.shots[Number(key)].name} value={key} key={key} />
@@ -93,30 +95,37 @@ export default class RecordDetailsScreen extends Component<Props, State> {
               </Picker>
             </View>
           </View>
-          <View style={styles.row}>
-            <View style={styles.column}>
-              <Text style={styles.label}>Shot Name</Text>
-              <Text>{this.state.shotName}</Text>
+
+          {/* Details card */}
+          <View style={[styles.card, rdStyles.sectionCard]}>
+            <Text style={rdStyles.sectionTitle}>Shot Details</Text>
+            <View style={rdStyles.detailRow}>
+              <View style={rdStyles.detailCell}>
+                <Text style={rdStyles.detailLabel}>Shot Name</Text>
+                <Text style={rdStyles.detailValue}>{this.state.shotName || '—'}</Text>
+              </View>
+              <View style={rdStyles.detailCell}>
+                <Text style={rdStyles.detailLabel}>Target Distance</Text>
+                <Text style={rdStyles.detailValue}>{this.state.targetDistance || '—'}</Text>
+              </View>
             </View>
-            <View style={styles.column}>
-              <Text style={styles.label}>Target Distance</Text>
-              <Text>{this.state.targetDistance}</Text>
-            </View>
-          </View>
-          <View style={styles.row}>
-            <View style={styles.column}>
-              <Text style={styles.label}>Target Radius</Text>
-              <Text>{this.state.targetRadius}</Text>
-            </View>
-            <View style={styles.column}>
-              <Text style={styles.label}>Miss Radius</Text>
-              <Text>{this.state.missRadius}</Text>
+            <View style={rdStyles.detailRow}>
+              <View style={rdStyles.detailCell}>
+                <Text style={rdStyles.detailLabel}>Target Radius</Text>
+                <Text style={rdStyles.detailValue}>{this.state.targetRadius || '—'}</Text>
+              </View>
+              <View style={rdStyles.detailCell}>
+                <Text style={rdStyles.detailLabel}>Miss Radius</Text>
+                <Text style={rdStyles.detailValue}>{this.state.missRadius || '—'}</Text>
+              </View>
             </View>
           </View>
         </View>
+
+        {/* Action button */}
         <View style={styles.buttonRow}>
           <TouchableOpacity
-            style={styles.buttonContainer}
+            style={styles.buttonPrimary}
             onPress={() => {
               const calledFrom = this.props.route.params?.calledFrom ?? 'Record';
               const user = this.props.route.params?.user ?? '';
@@ -131,10 +140,53 @@ export default class RecordDetailsScreen extends Component<Props, State> {
               });
             }}
           >
-            <Text style={styles.buttonLabel}>Go!</Text>
+            <Text style={styles.buttonLabelLight}>Let's Go! 🏌️</Text>
           </TouchableOpacity>
         </View>
       </View>
     );
   }
 }
+
+const rdStyles = StyleSheet.create({
+  sectionCard: {
+    marginTop: 16,
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 12,
+  },
+  pickerWrapper: {
+    backgroundColor: COLORS.surfaceAlt,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    overflow: 'hidden',
+  },
+  picker: {
+    color: COLORS.textPrimary,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  detailCell: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  detailLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  detailValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+});
