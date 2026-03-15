@@ -390,7 +390,7 @@ export default class Record extends Component<Props, State> {
               return <View style={this.dataStyle(item.shotX - 5, item.shotY - 5)} key={key} />;
             })}
         </TouchableOpacity>
-        <View style={{ position: 'absolute', bottom: 100, right: '10%', width: '25%' }}>
+        <View style={{ position: 'absolute', bottom: 0, right: '0%', width: '50%', maxHeight: '70px' }}>
           <Picker
             selectedValue={this.state.selectedShot}
             style={{ color: 'black' }}
@@ -399,7 +399,7 @@ export default class Record extends Component<Props, State> {
             }}
           >
             {this.state.shots.map((shot, index) => (
-              <Picker.Item label={shot.name} value={index} key={shot.id} />
+              <Picker.Item label={shot.distance + " - " + shot.name} value={index} key={shot.id} />
             ))}
           </Picker>
         </View>
