@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { TouchableOpacity, Text, View, Dimensions, Switch, Animated, PanResponder } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import Modal from 'react-native-modal';
 import { styles } from '../styles/styles';
@@ -493,11 +494,14 @@ export default class Record extends Component<Props, State> {
               shadowOpacity: 0.3,
               shadowRadius: 4,
               minWidth: 80,
+              flexDirection: 'row',
               alignItems: 'center',
+              gap: 6,
             }}
             {...this.panResponder.panHandlers}
           >
-            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>
+            <MaterialCommunityIcons name="drag" size={18} color="rgba(255,255,255,0.8)" />
+            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12, flexShrink: 1 }}>
               {this.state.shots[this.state.selectedShot]
                 ? this.state.shots[this.state.selectedShot].distance + ' - ' + this.state.shots[this.state.selectedShot].name
                 : 'Select Shot'}
