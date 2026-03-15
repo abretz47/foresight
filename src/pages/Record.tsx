@@ -39,6 +39,7 @@ interface State {
   containerPageY: number;
   offTarget: boolean;
   pickerVisible: boolean;
+  statsInfoVisible: null | 'left' | 'inPlay' | 'right';
 }
 
 const CIRCLE_SIZE_RATIO = 0.7;
@@ -46,6 +47,7 @@ const MAX_CIRCLE_HEIGHT_RATIO = 0.5;
 const PICKER_BUTTON_INITIAL_BOTTOM = 20;
 const PICKER_BUTTON_INITIAL_RIGHT = 12;
 const PICKER_WIDTH = 260;
+const STATS_AMBER = '#F0A030';
 
 export default class Record extends Component<Props, State> {
   private focusListener: (() => void) | null = null;
@@ -109,6 +111,7 @@ export default class Record extends Component<Props, State> {
       containerPageY: 0,
       offTarget: false,
       pickerVisible: false,
+      statsInfoVisible: null,
     };
   }
 
@@ -271,7 +274,7 @@ export default class Record extends Component<Props, State> {
         {(() => {
           const showStats = this.state.calledFrom === 'Analyze' && this.state.data.length > 0;
           let leftPct = 0;
-          let onTargetPct = 0;
+          let inPlayPct = 0;
           let rightPct = 0;
           let avgLeft: string = '--';
           let avgDistance: string = '--';
@@ -289,7 +292,7 @@ export default class Record extends Component<Props, State> {
             const onTargetTotal = onTargetShots.length;
             leftPct = onTargetTotal > 0 ? Math.round((leftShots.length / onTargetTotal) * 100) : 0;
             rightPct = onTargetTotal > 0 ? Math.round((rightShots.length / onTargetTotal) * 100) : 0;
-            onTargetPct = Math.round((onTargetShots.length / total) * 100);
+            inPlayPct = Math.round((onTargetShots.length / total) * 100);
             avgLeft = leftShots.length > 0
               ? (leftShots.reduce((sum, s) => sum + Math.abs((s.shotX - centerX) * missR / missRadiusPx), 0) / leftShots.length).toFixed(1)
               : '--';
@@ -300,29 +303,82 @@ export default class Record extends Component<Props, State> {
               ? (onTargetShots.reduce((sum, s) => sum + (targetDist - (s.shotY - centerY) * missR / missRadiusPx), 0) / onTargetShots.length).toFixed(1)
               : '--';
           }
+
+          // Color avgDistance by percentage of target distance
+          const { targetDistance } = this.state;
+          const targetDist = Number(targetDistance);
+          const avgDistNum = Number(avgDistance);
+          const avgDistPct = avgDistance !== '--' && targetDist > 0 ? (avgDistNum / targetDist) * 100 : null;
+          const avgDistColor =
+            avgDistPct === null ? COLORS.textLight
+            : avgDistPct <= 70 ? COLORS.danger
+            : avgDistPct < 85 ? STATS_AMBER
+            : avgDistPct >= 95 ? COLORS.success
+            : COLORS.textLight;
+
           return (
             <View style={[styles.statsRow, !showStats && { opacity: 0, pointerEvents: 'none' }]}
               accessibilityElementsHidden={!showStats}
               importantForAccessibility={!showStats ? 'no-hide-descendants' : 'auto'}
             >
+              {/* Left column */}
               <View style={styles.statCell}>
-                <Text style={styles.statLabel}>Left</Text>
+                <View style={recordStyles.statLabelRow}>
+                  <Text style={styles.statLabel}>◀ Left</Text>
+                  <TouchableOpacity onPress={() => this.setState({ statsInfoVisible: 'left' })} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                    <MaterialCommunityIcons name="information-outline" size={12} color={COLORS.accentLight} />
+                  </TouchableOpacity>
+                </View>
                 <Text style={styles.statValue}>{leftPct}%</Text>
                 <Text style={styles.statValue}>{avgLeft}</Text>
               </View>
+              {/* In Play column */}
               <View style={styles.statCell}>
-                <Text style={styles.statLabel}>On Target</Text>
-                <Text style={styles.statValue}>{onTargetPct}%</Text>
-                <Text style={styles.statValue}>{avgDistance}</Text>
+                <View style={recordStyles.statLabelRow}>
+                  <Text style={styles.statLabel}>In Play</Text>
+                  <TouchableOpacity onPress={() => this.setState({ statsInfoVisible: 'inPlay' })} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                    <MaterialCommunityIcons name="information-outline" size={12} color={COLORS.accentLight} />
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.statValue}>{inPlayPct}%</Text>
+                <Text style={[styles.statValue, { color: avgDistColor }]}>{avgDistance}</Text>
               </View>
+              {/* Right column */}
               <View style={styles.statCell}>
-                <Text style={styles.statLabel}>Right</Text>
+                <View style={recordStyles.statLabelRow}>
+                  <Text style={styles.statLabel}>Right ▶</Text>
+                  <TouchableOpacity onPress={() => this.setState({ statsInfoVisible: 'right' })} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                    <MaterialCommunityIcons name="information-outline" size={12} color={COLORS.accentLight} />
+                  </TouchableOpacity>
+                </View>
                 <Text style={styles.statValue}>{rightPct}%</Text>
                 <Text style={styles.statValue}>{avgRight}</Text>
               </View>
             </View>
           );
         })()}
+
+        {/* Stats info tooltip modal */}
+        <Modal isVisible={this.state.statsInfoVisible !== null} onBackdropPress={() => this.setState({ statsInfoVisible: null })}>
+          <View style={[styles.modalContent, recordStyles.infoModalContent]}>
+            <Text style={recordStyles.infoModalTitle}>
+              {this.state.statsInfoVisible === 'left' && '◀ Left'}
+              {this.state.statsInfoVisible === 'inPlay' && 'In Play'}
+              {this.state.statsInfoVisible === 'right' && 'Right ▶'}
+            </Text>
+            <Text style={recordStyles.infoModalBody}>
+              {this.state.statsInfoVisible === 'left' &&
+                'Top: % of in-play shots that landed left of centre.\nBottom: average left deviation from centre (yards).'}
+              {this.state.statsInfoVisible === 'inPlay' &&
+                'Top: % of shots that landed within the miss radius (in play).\nBottom: average carry distance of in-play shots (yards). Coloured green ≥95 %, amber <85 %, red ≤70 % of target distance.'}
+              {this.state.statsInfoVisible === 'right' &&
+                'Top: % of in-play shots that landed right of centre.\nBottom: average right deviation from centre (yards).'}
+            </Text>
+            <TouchableOpacity style={recordStyles.infoModalClose} onPress={() => this.setState({ statsInfoVisible: null })}>
+              <Text style={styles.buttonLabelLight}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </Modal>
 
         {/* Main touch area */}
         <TouchableOpacity
@@ -617,5 +673,33 @@ const recordStyles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '700',
     color: COLORS.textPrimary,
+  },
+  statLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  infoModalContent: {
+    alignItems: 'flex-start',
+    padding: 20,
+  },
+  infoModalTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+    marginBottom: 10,
+  },
+  infoModalBody: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: COLORS.textSecondary,
+    marginBottom: 16,
+  },
+  infoModalClose: {
+    alignSelf: 'flex-end',
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
   },
 });
