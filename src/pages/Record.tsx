@@ -449,7 +449,7 @@ export default class Record extends Component<Props, State> {
             <View
               style={{
                 width: PICKER_WIDTH,
-                backgroundColor: 'rgba(15,46,30,0.95)',
+                backgroundColor: COLORS.surfaceAlt,
                 borderRadius: 12,
                 marginBottom: 6,
                 elevation: 10,
@@ -461,7 +461,7 @@ export default class Record extends Component<Props, State> {
             >
               <Picker
                 selectedValue={this.state.selectedShot}
-                style={{ color: COLORS.textLight }}
+                style={{ color: COLORS.textPrimary }}
                 onValueChange={(itemValue) => {
                   this.selectionChange(Number(itemValue));
                 }}
