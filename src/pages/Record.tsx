@@ -311,9 +311,9 @@ export default class Record extends Component<Props, State> {
           const avgDistPct = avgDistance !== '--' && targetDist > 0 ? (avgDistNum / targetDist) * 100 : null;
           const avgDistColor =
             avgDistPct === null ? COLORS.textLight
-            : avgDistPct <= 70 ? COLORS.danger
-            : avgDistPct < 85 ? STATS_AMBER
-            : avgDistPct >= 95 ? COLORS.success
+            : avgDistPct < 85 ? COLORS.danger
+            : avgDistPct <= 92 ? STATS_AMBER
+            : avgDistPct >= 93 ? COLORS.success
             : COLORS.textLight;
 
           return (
@@ -370,7 +370,7 @@ export default class Record extends Component<Props, State> {
               {this.state.statsInfoVisible === 'left' &&
                 'Top: % of in-play shots that landed left of centre.\nBottom: average left deviation from centre (yards).'}
               {this.state.statsInfoVisible === 'inPlay' &&
-                'Top: % of shots that landed within the miss radius (in play).\nBottom: average carry distance of in-play shots (yards). Coloured green ≥95 %, amber <85 %, red ≤70 % of target distance.'}
+                'Top: % of shots that landed within the miss radius (in play).\nBottom: average carry distance of in-play shots (yards). Coloured green ≥93 %, amber <=92 %, red <85 % of target distance.'}
               {this.state.statsInfoVisible === 'right' &&
                 'Top: % of in-play shots that landed right of centre.\nBottom: average right deviation from centre (yards).'}
             </Text>
