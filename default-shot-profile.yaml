@@ -7,10 +7,22 @@ shots:
     distance: "220"
     targetRadius: "12"
     missRadius: "40"
-  - name: 5 Iron
-    distance: "180"
+  - name: 5 Wood
+    distance: "200"
+    targetRadius: "12"
+    missRadius: "35"
+  - name: 3 Iron
+    distance: "190"
     targetRadius: "10"
     missRadius: "30"
+  - name: 4 Iron
+    distance: "180"
+    targetRadius: "9"
+    missRadius: "28"
+  - name: 5 Iron
+    distance: "170"
+    targetRadius: "9"
+    missRadius: "28"
   - name: 7 Iron
     distance: "155"
     targetRadius: "8"
