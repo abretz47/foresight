@@ -23,10 +23,18 @@ shots:
     distance: "170"
     targetRadius: "9"
     missRadius: "28"
+  - name: 6 Iron
+    distance: "162"
+    targetRadius: "8"
+    missRadius: "26"
   - name: 7 Iron
     distance: "155"
     targetRadius: "8"
     missRadius: "25"
+  - name: 8 Iron
+    distance: "140"
+    targetRadius: "7"
+    missRadius: "22"
   - name: 9 Iron
     distance: "130"
     targetRadius: "7"
