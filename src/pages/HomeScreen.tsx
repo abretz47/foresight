@@ -3,6 +3,7 @@ import { View, Text, Alert, TouchableOpacity, StyleSheet } from 'react-native';
 import { styles, COLORS } from '../styles/styles';
 import { HomeNavigationProp, HomeRouteProp } from '../types/navigation';
 import * as DB from '../data/db';
+import { signOut } from '../lib/supabase';
 
 interface Props {
   navigation: HomeNavigationProp;
@@ -129,7 +130,13 @@ export default class HomeScreen extends Component<Props> {
 
         {/* Logout bar */}
         <View style={styles.logoutButtonRow}>
-          <TouchableOpacity style={styles.logoutButtonContainer} onPress={() => navigate('Login')}>
+          <TouchableOpacity
+            style={styles.logoutButtonContainer}
+            onPress={async () => {
+              await signOut();
+              navigate('Login');
+            }}
+          >
             <Text style={styles.buttonLabelLight}>Log Out</Text>
           </TouchableOpacity>
         </View>

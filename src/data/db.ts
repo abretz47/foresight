@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import defaultShotProfiles from './defaultShotProfiles';
+import { supabase } from '../lib/supabase';
+import * as SupabaseDB from './supabaseDb';
 
 const CLUBS_INDEX_KEY = '@foresight/clubs_index';
 const clubKey = (id: string) => `@foresight/club_${id}`;
@@ -7,6 +9,25 @@ const clubDataKey = (id: string) => `@foresight/club_${id}_shots`;
 
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
+// ── Session cache ─────────────────────────────────────────────────────────────
+// Avoid repeated async getSession() calls by tracking auth state in-memory.
+let _cloudMode = false;
+
+// Hydrate from persisted storage on module load, then keep in sync.
+(async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  _cloudMode = !!session;
+})();
+
+supabase.auth.onAuthStateChange((_event, session) => {
+  _cloudMode = !!session;
+});
+
+/** Returns true when the user has an active Supabase session. */
+function isCloudMode(): boolean {
+  return _cloudMode;
 }
 
 async function getClubsIndex(user: string): Promise<string[]> {
@@ -39,6 +60,9 @@ export interface DataPoint {
 }
 
 export async function getShotProfile(user: string, _callback: (data: ShotProfile[]) => void): Promise<void> {
+  if (isCloudMode()) {
+    return SupabaseDB.getShotProfile(_callback);
+  }
   const ids = await getClubsIndex(user);
   const clubs: ShotProfile[] = [];
   for (const id of ids) {
@@ -54,6 +78,9 @@ export async function getShotProfile(user: string, _callback: (data: ShotProfile
 }
 
 export async function saveShot(user: string, shot: { id: string; name: string; targetDistance: string; targetRadius: string; missRadius: string }): Promise<void> {
+  if (isCloudMode()) {
+    return SupabaseDB.saveShot(shot);
+  }
   if (shot.id && shot.id !== '') {
     const raw = await AsyncStorage.getItem(clubKey(shot.id));
     const existing = raw ? JSON.parse(raw) : {};
@@ -84,6 +111,9 @@ export async function saveShot(user: string, shot: { id: string; name: string; t
 }
 
 export async function deleteShot(user: string, id: string): Promise<void> {
+  if (isCloudMode()) {
+    return SupabaseDB.deleteShot(id);
+  }
   if (id && id !== '') {
     await AsyncStorage.removeItem(clubKey(id));
     await AsyncStorage.removeItem(clubDataKey(id));
@@ -93,6 +123,9 @@ export async function deleteShot(user: string, id: string): Promise<void> {
 }
 
 export async function saveDataPoint(user: string, data: { id: string; shotX: number; shotY: number; clickedFrom: string; screenHeight: number; screenWidth: number; offTarget: boolean }): Promise<void> {
+  if (isCloudMode()) {
+    return SupabaseDB.saveDataPoint(data);
+  }
   if (data.id && data.id !== '') {
     const raw = await AsyncStorage.getItem(clubDataKey(data.id));
     const shots: DataPoint[] = raw ? JSON.parse(raw) : [];
@@ -144,6 +177,9 @@ export async function getUsers(): Promise<string[]> {
 }
 
 export async function getShotData(user: string, id: string, _callback: (data: DataPoint[]) => void): Promise<void> {
+  if (isCloudMode()) {
+    return SupabaseDB.getShotData(id, _callback);
+  }
   if (id && id !== '') {
     const raw = await AsyncStorage.getItem(clubDataKey(id));
     const data: DataPoint[] = raw ? JSON.parse(raw) : [];
@@ -154,12 +190,18 @@ export async function getShotData(user: string, id: string, _callback: (data: Da
 }
 
 export async function deleteShotData(id: string): Promise<void> {
+  if (isCloudMode()) {
+    return SupabaseDB.deleteShotData(id);
+  }
   if (id && id !== '') {
     await AsyncStorage.removeItem(clubDataKey(id));
   }
 }
 
 export async function hasShotData(id: string): Promise<boolean> {
+  if (isCloudMode()) {
+    return SupabaseDB.hasShotData(id);
+  }
   if (!id || id === '') return false;
   const raw = await AsyncStorage.getItem(clubDataKey(id));
   if (!raw) return false;
@@ -168,6 +210,9 @@ export async function hasShotData(id: string): Promise<boolean> {
 }
 
 export async function initializeDefaultProfiles(user: string): Promise<void> {
+  if (isCloudMode()) {
+    return SupabaseDB.initializeDefaultProfiles();
+  }
   const ids = await getClubsIndex(user);
   if (ids.length > 0) return;
   for (const shot of defaultShotProfiles) {
