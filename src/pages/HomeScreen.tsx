@@ -26,13 +26,14 @@ interface FeatureCard {
   accent?: boolean;
 }
 
-type MigrateStep = 'scope' | 'mode' | 'confirm' | 'done';
+type MigrateStep = 'select' | 'scope' | 'mode' | 'confirm' | 'done';
 
 interface State {
   showMigrateModal: boolean;
-  hasLocalData: boolean;
+  localUsers: string[];
   isCloudUser: boolean;
   migrateStep: MigrateStep;
+  selectedLocalUser: string | null;
   includeProfiles: boolean;
   migrateMode: 'add' | 'overwrite';
   isMigrating: boolean;
@@ -43,9 +44,10 @@ interface State {
 export default class HomeScreen extends Component<Props, State> {
   state: State = {
     showMigrateModal: false,
-    hasLocalData: false,
+    localUsers: [],
     isCloudUser: false,
-    migrateStep: 'scope',
+    migrateStep: 'select',
+    selectedLocalUser: null,
     includeProfiles: true,
     migrateMode: 'add',
     isMigrating: false,
@@ -61,8 +63,8 @@ export default class HomeScreen extends Component<Props, State> {
 
   checkMigrationAvailability = async () => {
     const cloudUser = DB.isCloudMode();
-    const localData = await DB.hasLocalData('local_user');
-    this.setState({ isCloudUser: cloudUser, hasLocalData: localData });
+    const localUsers = await DB.getUsers();
+    this.setState({ isCloudUser: cloudUser, localUsers });
   };
 
   navigateToRecord = (calledFrom: 'Record' | 'Analyze') => {
@@ -99,7 +101,8 @@ export default class HomeScreen extends Component<Props, State> {
   openMigrateModal = () => {
     this.setState({
       showMigrateModal: true,
-      migrateStep: 'scope',
+      migrateStep: 'select',
+      selectedLocalUser: null,
       includeProfiles: true,
       migrateMode: 'add',
       isMigrating: false,
@@ -113,11 +116,13 @@ export default class HomeScreen extends Component<Props, State> {
   };
 
   runMigration = async () => {
+    const { selectedLocalUser, includeProfiles, migrateMode } = this.state;
+    if (!selectedLocalUser) return;
     this.setState({ isMigrating: true, migrateError: null });
     try {
-      const result = await DB.migrateLocalToCloud('local_user', {
-        includeProfiles: this.state.includeProfiles,
-        mode: this.state.migrateMode,
+      const result = await DB.migrateLocalToCloud(selectedLocalUser, {
+        includeProfiles,
+        mode: migrateMode,
       });
       this.setState({ isMigrating: false, migrateResult: result, migrateStep: 'done' });
     } catch (e) {
@@ -127,8 +132,16 @@ export default class HomeScreen extends Component<Props, State> {
   };
 
   renderMigrateModalContent() {
-    const { migrateStep, includeProfiles, migrateMode, isMigrating, migrateResult, migrateError } =
-      this.state;
+    const {
+      migrateStep,
+      localUsers,
+      selectedLocalUser,
+      includeProfiles,
+      migrateMode,
+      isMigrating,
+      migrateResult,
+      migrateError,
+    } = this.state;
 
     if (isMigrating) {
       return (
@@ -139,10 +152,60 @@ export default class HomeScreen extends Component<Props, State> {
       );
     }
 
-    if (migrateStep === 'scope') {
+    if (migrateStep === 'select') {
       return (
         <View style={migrateStyles.modalBody}>
           <Text style={migrateStyles.modalTitle}>Migrate to Cloud</Text>
+          <Text style={migrateStyles.modalSubtitle}>
+            Select the local account to import:
+          </Text>
+
+          {localUsers.map((u) => (
+            <TouchableOpacity
+              key={u}
+              style={[
+                migrateStyles.optionBtn,
+                selectedLocalUser === u && migrateStyles.optionBtnSelected,
+              ]}
+              onPress={() => this.setState({ selectedLocalUser: u })}
+            >
+              <Text style={migrateStyles.optionIcon}>👤</Text>
+              <View style={migrateStyles.optionTextWrap}>
+                <Text
+                  style={[
+                    migrateStyles.optionTitle,
+                    selectedLocalUser === u && migrateStyles.optionTitleSelected,
+                  ]}
+                >
+                  {u}
+                </Text>
+              </View>
+              {selectedLocalUser === u && (
+                <Text style={migrateStyles.checkmark}>✓</Text>
+              )}
+            </TouchableOpacity>
+          ))}
+
+          <View style={migrateStyles.btnRow}>
+            <TouchableOpacity style={migrateStyles.cancelBtn} onPress={this.closeMigrateModal}>
+              <Text style={migrateStyles.cancelBtnLabel}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[migrateStyles.nextBtn, !selectedLocalUser && migrateStyles.nextBtnDisabled]}
+              onPress={() => selectedLocalUser && this.setState({ migrateStep: 'scope' })}
+              disabled={!selectedLocalUser}
+            >
+              <Text style={migrateStyles.nextBtnLabel}>Next →</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
+
+    if (migrateStep === 'scope') {
+      return (
+        <View style={migrateStyles.modalBody}>
+          <Text style={migrateStyles.modalTitle}>Import Scope</Text>
           <Text style={migrateStyles.modalSubtitle}>What would you like to import?</Text>
 
           <TouchableOpacity
@@ -178,8 +241,11 @@ export default class HomeScreen extends Component<Props, State> {
           </TouchableOpacity>
 
           <View style={migrateStyles.btnRow}>
-            <TouchableOpacity style={migrateStyles.cancelBtn} onPress={this.closeMigrateModal}>
-              <Text style={migrateStyles.cancelBtnLabel}>Cancel</Text>
+            <TouchableOpacity
+              style={migrateStyles.cancelBtn}
+              onPress={() => this.setState({ migrateStep: 'select' })}
+            >
+              <Text style={migrateStyles.cancelBtnLabel}>← Back</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={migrateStyles.nextBtn}
@@ -261,6 +327,9 @@ export default class HomeScreen extends Component<Props, State> {
         <View style={migrateStyles.modalBody}>
           <Text style={migrateStyles.modalTitle}>Confirm Migration</Text>
           <Text style={migrateStyles.summaryText}>
+            Local account: <Text style={migrateStyles.summaryValue}>{selectedLocalUser}</Text>
+          </Text>
+          <Text style={migrateStyles.summaryText}>
             Import scope: <Text style={migrateStyles.summaryValue}>{scopeLabel}</Text>
           </Text>
           <Text style={migrateStyles.summaryText}>
@@ -321,8 +390,8 @@ export default class HomeScreen extends Component<Props, State> {
   render() {
     const { navigate } = this.props.navigation;
     const user = this.props.route.params?.user ?? 'local_user';
-    const { isCloudUser, hasLocalData, showMigrateModal } = this.state;
-    const showMigration = isCloudUser && hasLocalData;
+    const { isCloudUser, localUsers, showMigrateModal } = this.state;
+    const showMigration = isCloudUser && localUsers.length > 0;
 
     const cards: FeatureCard[] = [
       {
@@ -589,6 +658,9 @@ const migrateStyles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',
+  },
+  nextBtnDisabled: {
+    opacity: 0.4,
   },
   confirmBtn: {
     flex: 2,

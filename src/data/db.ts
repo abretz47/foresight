@@ -275,11 +275,6 @@ export async function initializeDefaultProfiles(user: string): Promise<void> {
   }
 }
 
-export async function hasLocalData(localUser: string): Promise<boolean> {
-  const ids = await getClubsIndex(localUser);
-  return ids.length > 0;
-}
-
 export interface MigrationOptions {
   /** When true, import shot profiles in addition to shot data. */
   includeProfiles: boolean;
