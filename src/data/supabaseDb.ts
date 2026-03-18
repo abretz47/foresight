@@ -174,6 +174,86 @@ export async function hasShotData(id: string): Promise<boolean> {
   return (count ?? 0) > 0;
 }
 
+export async function deleteAllUserProfiles(): Promise<void> {
+  if (!supabase) return;
+  const userId = await getAuthUserId();
+  if (!userId) return;
+  // Cascade delete removes associated data_points rows via FK constraint.
+  const { error } = await supabase.from('shot_profiles').delete().eq('user_id', userId);
+  if (error) console.error('Supabase deleteAllUserProfiles error:', error.message);
+}
+
+export async function insertProfile(profile: {
+  name: string;
+  distance: string;
+  targetRadius: string;
+  missRadius: string;
+}): Promise<string | null> {
+  if (!supabase) return null;
+  const userId = await getAuthUserId();
+  if (!userId) return null;
+  const id = generateId();
+  const { error } = await supabase.from('shot_profiles').insert({
+    id,
+    user_id: userId,
+    name: profile.name,
+    distance: profile.distance,
+    target_radius: profile.targetRadius,
+    miss_radius: profile.missRadius,
+  });
+  if (error) {
+    console.error('Supabase insertProfile error:', error.message);
+    return null;
+  }
+  return id;
+}
+
+export async function findProfileByName(name: string): Promise<ShotProfile | null> {
+  if (!supabase) return null;
+  const userId = await getAuthUserId();
+  if (!userId) return null;
+  const { data, error } = await supabase
+    .from('shot_profiles')
+    .select('id, name, distance, target_radius, miss_radius, updated_at')
+    .eq('user_id', userId)
+    .eq('name', name)
+    .limit(1);
+  if (error || !data || data.length === 0) return null;
+  const row = data[0];
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    distance: row.distance as string,
+    targetRadius: row.target_radius as string,
+    missRadius: row.miss_radius as string,
+    timestamp: row.updated_at as string,
+  };
+}
+
+export async function insertDataPointForProfile(
+  profileId: string,
+  point: DataPoint
+): Promise<void> {
+  if (!supabase || !profileId) return;
+  const userId = await getAuthUserId();
+  if (!userId) return;
+  const pointId = generateId();
+  const { error } = await supabase.from('data_points').insert({
+    id: pointId,
+    profile_id: profileId,
+    user_id: userId,
+    shot_x: point.shotX,
+    shot_y: point.shotY,
+    rel_x: point.relX ?? null,
+    rel_y: point.relY ?? null,
+    clicked_from: point.clickedFrom,
+    screen_height: point.screenHeight,
+    screen_width: point.screenWidth,
+    off_target: point.offTarget ?? false,
+  });
+  if (error) console.error('Supabase insertDataPointForProfile error:', error.message);
+}
+
 export async function initializeDefaultProfiles(): Promise<void> {
   if (!supabase) return;
   const userId = await getAuthUserId();
