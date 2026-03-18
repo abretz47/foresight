@@ -275,6 +275,29 @@ export async function initializeDefaultProfiles(user: string): Promise<void> {
   }
 }
 
+/**
+ * Deletes all local AsyncStorage data for `localUser`:
+ * each club profile, each club's shot data, and the clubs index.
+ */
+export async function deleteLocalUserData(localUser: string): Promise<void> {
+  const ids = await getClubsIndex(localUser);
+  await Promise.all([
+    ...ids.map((id) =>
+      AsyncStorage.removeItem(clubKey(id)).catch((e) =>
+        console.warn(`[Foresight] Failed to remove club ${id}:`, e)
+      )
+    ),
+    ...ids.map((id) =>
+      AsyncStorage.removeItem(clubDataKey(id)).catch((e) =>
+        console.warn(`[Foresight] Failed to remove shot data for club ${id}:`, e)
+      )
+    ),
+    AsyncStorage.removeItem(`${CLUBS_INDEX_KEY}_${localUser}`).catch((e) =>
+      console.warn(`[Foresight] Failed to remove clubs index for ${localUser}:`, e)
+    ),
+  ]);
+}
+
 export interface MigrationOptions {
   /** When true, import shot profiles in addition to shot data. */
   includeProfiles: boolean;

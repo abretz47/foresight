@@ -6,7 +6,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import Modal from 'react-native-modal';
 import { styles, COLORS } from '../styles/styles';
 import { HomeNavigationProp, HomeRouteProp } from '../types/navigation';
@@ -124,7 +126,13 @@ export default class HomeScreen extends Component<Props, State> {
         includeProfiles,
         mode: migrateMode,
       });
-      this.setState({ isMigrating: false, migrateResult: result, migrateStep: 'done' });
+      try {
+        await DB.deleteLocalUserData(selectedLocalUser);
+      } catch (cleanupErr) {
+        console.warn('[Foresight] Failed to clean up local data after migration:', cleanupErr);
+      }
+      const localUsers = await DB.getUsers();
+      this.setState({ isMigrating: false, migrateResult: result, migrateStep: 'done', localUsers });
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Unknown error';
       this.setState({ isMigrating: false, migrateError: msg, migrateStep: 'done' });
@@ -160,31 +168,26 @@ export default class HomeScreen extends Component<Props, State> {
             Select the local account to import:
           </Text>
 
-          {localUsers.map((u) => (
-            <TouchableOpacity
-              key={u}
-              style={[
-                migrateStyles.optionBtn,
-                selectedLocalUser === u && migrateStyles.optionBtnSelected,
-              ]}
-              onPress={() => this.setState({ selectedLocalUser: u })}
+          <View style={migrateStyles.pickerWrapper}>
+            <Picker
+              selectedValue={selectedLocalUser ?? ''}
+              onValueChange={(val) =>
+                this.setState({ selectedLocalUser: val !== '' ? val : null })
+              }
+              style={migrateStyles.picker}
+              dropdownIconColor={COLORS.textSecondary}
+              mode={Platform.OS === 'android' ? 'dropdown' : undefined}
             >
-              <Text style={migrateStyles.optionIcon}>👤</Text>
-              <View style={migrateStyles.optionTextWrap}>
-                <Text
-                  style={[
-                    migrateStyles.optionTitle,
-                    selectedLocalUser === u && migrateStyles.optionTitleSelected,
-                  ]}
-                >
-                  {u}
-                </Text>
-              </View>
-              {selectedLocalUser === u && (
-                <Text style={migrateStyles.checkmark}>✓</Text>
-              )}
-            </TouchableOpacity>
-          ))}
+              <Picker.Item
+                label="Select a local account…"
+                value=""
+                color={COLORS.textSecondary}
+              />
+              {localUsers.map((u) => (
+                <Picker.Item key={u} label={u} value={u} color={COLORS.textPrimary} />
+              ))}
+            </Picker>
+          </View>
 
           <View style={migrateStyles.btnRow}>
             <TouchableOpacity style={migrateStyles.cancelBtn} onPress={this.closeMigrateModal}>
@@ -661,6 +664,15 @@ const migrateStyles = StyleSheet.create({
   },
   nextBtnDisabled: {
     opacity: 0.4,
+  },
+  pickerWrapper: {
+    backgroundColor: COLORS.surfaceAlt,
+    borderRadius: 14,
+    marginBottom: 8,
+    overflow: 'hidden',
+  },
+  picker: {
+    color: COLORS.textPrimary,
   },
   confirmBtn: {
     flex: 2,
