@@ -42,6 +42,9 @@ interface State {
 }
 
 class Login extends Component<Props, State> {
+  /** Unsubscribe function returned by navigation.addListener('focus', ...) */
+  private _focusUnsubscribe: (() => void) | null = null;
+
   constructor(props: Props) {
     super(props);
     this.state = {
@@ -72,6 +75,16 @@ class Login extends Component<Props, State> {
   }
 
   async componentDidMount() {
+    // Reset transient UI state every time this screen comes into focus.
+    // This handles the logout → Login navigation case where the component
+    // stays mounted and isLoading/cloudError from the previous sign-in are
+    // still set, leaving the button stuck in its disabled/spinning state.
+    // On the initial mount focus this is a no-op (both fields start at their
+    // default values), so there is no unnecessary re-render.
+    this._focusUnsubscribe = this.props.navigation.addListener('focus', () => {
+      this.setState({ isLoading: false, cloudError: '' });
+    });
+
     // If Supabase is configured, check whether a valid session is already
     // stored in AsyncStorage (the sb-*-auth-token persisted by the SDK).
     // Navigate straight to Home on success; any error falls through to local login.
@@ -96,6 +109,10 @@ class Login extends Component<Props, State> {
 
     const users = await getUsers();
     this.setState({ allUsers: users, username: users[0] ?? '', checkingSession: false });
+  }
+
+  componentWillUnmount() {
+    this._focusUnsubscribe?.();
   }
 
   handleLogin = () => {
