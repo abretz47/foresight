@@ -12,3 +12,5 @@ ios/
 *.ipa
 *.aab
 .DS_Store
+Foresight.app/
+build-*.*
