@@ -93,6 +93,8 @@ export async function saveDataPoint(data: {
   id: string;
   shotX: number;
   shotY: number;
+  relX?: number;
+  relY?: number;
   clickedFrom: string;
   screenHeight: number;
   screenWidth: number;
@@ -113,6 +115,8 @@ export async function saveDataPoint(data: {
     user_id: userId,
     shot_x: data.shotX,
     shot_y: data.shotY,
+    rel_x: data.relX ?? null,
+    rel_y: data.relY ?? null,
     clicked_from: data.clickedFrom,
     screen_height: data.screenHeight,
     screen_width: data.screenWidth,
@@ -128,7 +132,7 @@ export async function getShotData(
   if (!supabase || !id) return;
   const { data, error } = await supabase
     .from('data_points')
-    .select('id, shot_x, shot_y, clicked_from, screen_height, screen_width, off_target, created_at')
+    .select('id, shot_x, shot_y, rel_x, rel_y, clicked_from, screen_height, screen_width, off_target, created_at')
     .eq('profile_id', id);
   if (error) {
     console.error('Supabase getShotData error:', error.message);
@@ -138,6 +142,8 @@ export async function getShotData(
     id: row.id as string,
     shotX: row.shot_x as number,
     shotY: row.shot_y as number,
+    relX: (row.rel_x as number | null) ?? undefined,
+    relY: (row.rel_y as number | null) ?? undefined,
     clickedFrom: row.clicked_from as string,
     screenHeight: row.screen_height as number,
     screenWidth: row.screen_width as number,
