@@ -31,6 +31,10 @@ export interface DataPoint {
   id?: string;
   shotX: number;
   shotY: number;
+  /** Horizontal offset from circle center, normalized by missRadiusPx (negative = left). */
+  relX?: number;
+  /** Vertical offset from circle center, normalized by missRadiusPx (negative = up / longer). */
+  relY?: number;
   clickedFrom: string;
   screenHeight: number;
   screenWidth: number;
@@ -92,7 +96,7 @@ export async function deleteShot(user: string, id: string): Promise<void> {
   }
 }
 
-export async function saveDataPoint(user: string, data: { id: string; shotX: number; shotY: number; clickedFrom: string; screenHeight: number; screenWidth: number; offTarget: boolean }): Promise<void> {
+export async function saveDataPoint(user: string, data: { id: string; shotX: number; shotY: number; relX?: number; relY?: number; clickedFrom: string; screenHeight: number; screenWidth: number; offTarget: boolean }): Promise<void> {
   if (data.id && data.id !== '') {
     const raw = await AsyncStorage.getItem(clubDataKey(data.id));
     const shots: DataPoint[] = raw ? JSON.parse(raw) : [];
@@ -100,6 +104,8 @@ export async function saveDataPoint(user: string, data: { id: string; shotX: num
       id: generateId(),
       shotX: data.shotX,
       shotY: data.shotY,
+      relX: data.relX,
+      relY: data.relY,
       clickedFrom: data.clickedFrom,
       screenHeight: data.screenHeight,
       screenWidth: data.screenWidth,
