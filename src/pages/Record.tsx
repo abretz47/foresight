@@ -28,6 +28,8 @@ interface State {
   shotAccuracy: string;
   shotX: number | string;
   shotY: number | string;
+  relX: number;
+  relY: number;
   data: DataPoint[];
   shots: ShotProfile[];
   selectedShot: number;
@@ -100,6 +102,8 @@ export default class Record extends Component<Props, State> {
       shotAccuracy: '',
       shotX: '',
       shotY: '',
+      relX: 0,
+      relY: 0,
       data: [],
       shots: [],
       selectedShot: 0,
@@ -187,6 +191,32 @@ export default class Record extends Component<Props, State> {
     borderRadius: this.state.missRadiusPx,
     zIndex: 1,
   });
+
+  /**
+   * Returns the normalized (relX, relY) coordinates for a stored DataPoint,
+   * relative to the circle center divided by missRadiusPx.
+   * New shots have relX/relY stored directly; for legacy shots that only have
+   * absolute shotX/shotY we fall back to estimating the original missRadiusPx
+   * from the stored screenWidth.
+   */
+  getRelCoords = (item: DataPoint): { relX: number; relY: number } => {
+    if (item.relX !== undefined && item.relY !== undefined) {
+      return { relX: item.relX, relY: item.relY };
+    }
+    // Legacy fallback: estimate missRadiusPx from stored screen dimensions
+    const oldMissRadiusPx =
+      Math.round(
+        Math.min(
+          item.screenWidth * CIRCLE_SIZE_RATIO,
+          item.screenHeight * MAX_CIRCLE_HEIGHT_RATIO
+        )
+      ) / 2 || 1;
+    return {
+      relX: (item.shotX - item.screenWidth / 2) / oldMissRadiusPx,
+      relY: (item.shotY - item.screenHeight / 2) / oldMissRadiusPx,
+    };
+  };
+
 
   convertShotAccuracy = (number: string | number) => {
     const absVal = Math.abs(Number(number));
@@ -280,27 +310,25 @@ export default class Record extends Component<Props, State> {
           let avgDistance: string = '--';
           let avgRight: string = '--';
           if (showStats) {
-            const { data, containerWidth, containerHeight, missRadiusPx, missRadius, targetDistance } = this.state;
+            const { data, missRadius, targetDistance } = this.state;
             const total = data.length;
-            const centerX = containerWidth / 2;
-            const centerY = containerHeight / 2;
             const missR = Number(missRadius);
             const targetDist = Number(targetDistance);
             const onTargetShots = data.filter((s) => s.offTarget === false);
-            const leftShots = onTargetShots.filter((s) => s.shotX < centerX);
-            const rightShots = onTargetShots.filter((s) => s.shotX >= centerX);
+            const leftShots = onTargetShots.filter((s) => this.getRelCoords(s).relX < 0);
+            const rightShots = onTargetShots.filter((s) => this.getRelCoords(s).relX >= 0);
             const onTargetTotal = onTargetShots.length;
             leftPct = onTargetTotal > 0 ? Math.round((leftShots.length / onTargetTotal) * 100) : 0;
             rightPct = onTargetTotal > 0 ? Math.round((rightShots.length / onTargetTotal) * 100) : 0;
             inPlayPct = Math.round((onTargetShots.length / total) * 100);
             avgLeft = leftShots.length > 0
-              ? (leftShots.reduce((sum, s) => sum + Math.abs((s.shotX - centerX) * missR / missRadiusPx), 0) / leftShots.length).toFixed(1)
+              ? (leftShots.reduce((sum, s) => sum + Math.abs(this.getRelCoords(s).relX * missR), 0) / leftShots.length).toFixed(1)
               : '--';
             avgRight = rightShots.length > 0
-              ? (rightShots.reduce((sum, s) => sum + ((s.shotX - centerX) * missR / missRadiusPx), 0) / rightShots.length).toFixed(1)
+              ? (rightShots.reduce((sum, s) => sum + (this.getRelCoords(s).relX * missR), 0) / rightShots.length).toFixed(1)
               : '--';
             avgDistance = onTargetShots.length > 0
-              ? (onTargetShots.reduce((sum, s) => sum + (targetDist - (s.shotY - centerY) * missR / missRadiusPx), 0) / onTargetShots.length).toFixed(1)
+              ? (onTargetShots.reduce((sum, s) => sum + (targetDist - this.getRelCoords(s).relY * missR), 0) / onTargetShots.length).toFixed(1)
               : '--';
           }
 
@@ -429,16 +457,20 @@ export default class Record extends Component<Props, State> {
               const distFromCenter = Math.sqrt(dx * dx + dy * dy);
               const clickedFrom = distFromCenter <= this.state.targetRadiusPx ? 'target' : 'miss';
               const offTarget = distFromCenter > this.state.missRadiusPx;
+              const relX = dx / this.state.missRadiusPx;
+              const relY = dy / this.state.missRadiusPx;
               this.setState({
                 shotDistance: (
                   Number(this.state.targetDistance) -
-                  (dy * Number(this.state.missRadius)) / this.state.missRadiusPx
+                  relY * Number(this.state.missRadius)
                 ).toFixed(0),
                 shotAccuracy: (
-                  (dx * Number(this.state.missRadius)) / this.state.missRadiusPx
+                  relX * Number(this.state.missRadius)
                 ).toFixed(0),
                 shotX: locationX,
                 shotY: locationY,
+                relX,
+                relY,
                 clickedFrom,
                 offTarget,
                 modalVisible: true,
@@ -497,7 +529,10 @@ export default class Record extends Component<Props, State> {
           {this.state.calledFrom === 'Analyze' &&
             Object.keys(this.state.data).map((key) => {
               const item = this.state.data[Number(key)];
-              return <View style={this.dataStyle(item.shotX - 5, item.shotY - 5)} key={key} />;
+              const { relX, relY } = this.getRelCoords(item);
+              const dotX = this.state.containerWidth / 2 + relX * this.state.missRadiusPx - 5;
+              const dotY = this.state.containerHeight / 2 + relY * this.state.missRadiusPx - 5;
+              return <View style={this.dataStyle(dotX, dotY)} key={key} />;
             })}
         </TouchableOpacity>
 
@@ -602,6 +637,8 @@ export default class Record extends Component<Props, State> {
                     id: this.state.shotId,
                     shotX: Number(this.state.shotX),
                     shotY: Number(this.state.shotY),
+                    relX: this.state.relX,
+                    relY: this.state.relY,
                     clickedFrom: this.state.clickedFrom,
                     screenHeight: this.state.screenHeight,
                     screenWidth: this.state.screenWidth,
