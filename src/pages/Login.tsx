@@ -92,6 +92,10 @@ class Login extends Component<Props, State> {
       this.setState({ cloudError: 'Please enter a display name.' });
       return;
     }
+    if (!supabase) {
+      this.setState({ cloudError: 'Cloud auth is not configured. Please use Local mode.' });
+      return;
+    }
 
     this.setState({ isLoading: true, cloudError: '' });
 

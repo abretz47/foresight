@@ -12,11 +12,18 @@ function generateId(): string {
 }
 
 async function getAuthUserId(): Promise<string | null> {
-  const { data: { session } } = await supabase.auth.getSession();
-  return session?.user?.id ?? null;
+  if (!supabase) return null;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.user?.id ?? null;
+  } catch (e) {
+    console.warn('[Foresight] getAuthUserId error:', e);
+    return null;
+  }
 }
 
 export async function getShotProfile(callback: (data: ShotProfile[]) => void): Promise<void> {
+  if (!supabase) return;
   const { data, error } = await supabase
     .from('shot_profiles')
     .select('id, name, distance, target_radius, miss_radius, updated_at');
@@ -45,6 +52,7 @@ export async function saveShot(shot: {
   targetRadius: string;
   missRadius: string;
 }): Promise<void> {
+  if (!supabase) return;
   const userId = await getAuthUserId();
   if (!userId) return;
 
@@ -75,7 +83,7 @@ export async function saveShot(shot: {
 }
 
 export async function deleteShot(id: string): Promise<void> {
-  if (!id) return;
+  if (!supabase || !id) return;
   // data_points rows cascade-delete via the FK constraint.
   const { error } = await supabase.from('shot_profiles').delete().eq('id', id);
   if (error) console.error('Supabase deleteShot error:', error.message);
@@ -90,6 +98,7 @@ export async function saveDataPoint(data: {
   screenWidth: number;
   offTarget: boolean;
 }): Promise<void> {
+  if (!supabase) return;
   if (!data.id) {
     console.error('error: no shot id!');
     return;
@@ -116,7 +125,7 @@ export async function getShotData(
   id: string,
   callback: (data: DataPoint[]) => void
 ): Promise<void> {
-  if (!id) return;
+  if (!supabase || !id) return;
   const { data, error } = await supabase
     .from('data_points')
     .select('id, shot_x, shot_y, clicked_from, screen_height, screen_width, off_target, created_at')
@@ -141,13 +150,13 @@ export async function getShotData(
 }
 
 export async function deleteShotData(id: string): Promise<void> {
-  if (!id) return;
+  if (!supabase || !id) return;
   const { error } = await supabase.from('data_points').delete().eq('profile_id', id);
   if (error) console.error('Supabase deleteShotData error:', error.message);
 }
 
 export async function hasShotData(id: string): Promise<boolean> {
-  if (!id) return false;
+  if (!supabase || !id) return false;
   const { count, error } = await supabase
     .from('data_points')
     .select('*', { count: 'exact', head: true })
@@ -160,6 +169,7 @@ export async function hasShotData(id: string): Promise<boolean> {
 }
 
 export async function initializeDefaultProfiles(): Promise<void> {
+  if (!supabase) return;
   const userId = await getAuthUserId();
   if (!userId) return;
 

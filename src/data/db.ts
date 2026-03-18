@@ -15,15 +15,21 @@ function generateId(): string {
 // Avoid repeated async getSession() calls by tracking auth state in-memory.
 let _cloudMode = false;
 
-// Hydrate from persisted storage on module load, then keep in sync.
-(async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-  _cloudMode = !!session;
-})();
+if (supabase) {
+  // Hydrate from persisted storage on module load, then keep in sync.
+  (async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      _cloudMode = !!session;
+    } catch (e) {
+      console.warn('[Foresight] getSession error during init (local mode will be used):', e);
+    }
+  })();
 
-supabase.auth.onAuthStateChange((_event, session) => {
-  _cloudMode = !!session;
-});
+  supabase.auth.onAuthStateChange((_event, session) => {
+    _cloudMode = !!session;
+  });
+}
 
 /** Returns true when the user has an active Supabase session. */
 function isCloudMode(): boolean {
@@ -61,7 +67,11 @@ export interface DataPoint {
 
 export async function getShotProfile(user: string, _callback: (data: ShotProfile[]) => void): Promise<void> {
   if (isCloudMode()) {
-    return SupabaseDB.getShotProfile(_callback);
+    try {
+      return await SupabaseDB.getShotProfile(_callback);
+    } catch (e) {
+      console.warn('[Foresight] Cloud getShotProfile failed, using local:', e);
+    }
   }
   const ids = await getClubsIndex(user);
   const clubs: ShotProfile[] = [];
@@ -79,7 +89,11 @@ export async function getShotProfile(user: string, _callback: (data: ShotProfile
 
 export async function saveShot(user: string, shot: { id: string; name: string; targetDistance: string; targetRadius: string; missRadius: string }): Promise<void> {
   if (isCloudMode()) {
-    return SupabaseDB.saveShot(shot);
+    try {
+      return await SupabaseDB.saveShot(shot);
+    } catch (e) {
+      console.warn('[Foresight] Cloud saveShot failed, using local:', e);
+    }
   }
   if (shot.id && shot.id !== '') {
     const raw = await AsyncStorage.getItem(clubKey(shot.id));
@@ -112,7 +126,11 @@ export async function saveShot(user: string, shot: { id: string; name: string; t
 
 export async function deleteShot(user: string, id: string): Promise<void> {
   if (isCloudMode()) {
-    return SupabaseDB.deleteShot(id);
+    try {
+      return await SupabaseDB.deleteShot(id);
+    } catch (e) {
+      console.warn('[Foresight] Cloud deleteShot failed, using local:', e);
+    }
   }
   if (id && id !== '') {
     await AsyncStorage.removeItem(clubKey(id));
@@ -124,7 +142,11 @@ export async function deleteShot(user: string, id: string): Promise<void> {
 
 export async function saveDataPoint(user: string, data: { id: string; shotX: number; shotY: number; clickedFrom: string; screenHeight: number; screenWidth: number; offTarget: boolean }): Promise<void> {
   if (isCloudMode()) {
-    return SupabaseDB.saveDataPoint(data);
+    try {
+      return await SupabaseDB.saveDataPoint(data);
+    } catch (e) {
+      console.warn('[Foresight] Cloud saveDataPoint failed, using local:', e);
+    }
   }
   if (data.id && data.id !== '') {
     const raw = await AsyncStorage.getItem(clubDataKey(data.id));
@@ -178,7 +200,11 @@ export async function getUsers(): Promise<string[]> {
 
 export async function getShotData(user: string, id: string, _callback: (data: DataPoint[]) => void): Promise<void> {
   if (isCloudMode()) {
-    return SupabaseDB.getShotData(id, _callback);
+    try {
+      return await SupabaseDB.getShotData(id, _callback);
+    } catch (e) {
+      console.warn('[Foresight] Cloud getShotData failed, using local:', e);
+    }
   }
   if (id && id !== '') {
     const raw = await AsyncStorage.getItem(clubDataKey(id));
@@ -191,7 +217,11 @@ export async function getShotData(user: string, id: string, _callback: (data: Da
 
 export async function deleteShotData(id: string): Promise<void> {
   if (isCloudMode()) {
-    return SupabaseDB.deleteShotData(id);
+    try {
+      return await SupabaseDB.deleteShotData(id);
+    } catch (e) {
+      console.warn('[Foresight] Cloud deleteShotData failed, using local:', e);
+    }
   }
   if (id && id !== '') {
     await AsyncStorage.removeItem(clubDataKey(id));
@@ -200,7 +230,11 @@ export async function deleteShotData(id: string): Promise<void> {
 
 export async function hasShotData(id: string): Promise<boolean> {
   if (isCloudMode()) {
-    return SupabaseDB.hasShotData(id);
+    try {
+      return await SupabaseDB.hasShotData(id);
+    } catch (e) {
+      console.warn('[Foresight] Cloud hasShotData failed, using local:', e);
+    }
   }
   if (!id || id === '') return false;
   const raw = await AsyncStorage.getItem(clubDataKey(id));
@@ -211,7 +245,11 @@ export async function hasShotData(id: string): Promise<boolean> {
 
 export async function initializeDefaultProfiles(user: string): Promise<void> {
   if (isCloudMode()) {
-    return SupabaseDB.initializeDefaultProfiles();
+    try {
+      return await SupabaseDB.initializeDefaultProfiles();
+    } catch (e) {
+      console.warn('[Foresight] Cloud initializeDefaultProfiles failed, using local:', e);
+    }
   }
   const ids = await getClubsIndex(user);
   if (ids.length > 0) return;
