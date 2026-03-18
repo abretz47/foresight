@@ -37,6 +37,8 @@ interface State {
   cloudSubMode: CloudSubMode;
   isLoading: boolean;
   cloudError: string;
+  /** true while we check AsyncStorage for a persisted Supabase session */
+  checkingSession: boolean;
 }
 
 class Login extends Component<Props, State> {
@@ -54,11 +56,46 @@ class Login extends Component<Props, State> {
       cloudSubMode: 'signin',
       isLoading: false,
       cloudError: '',
+      checkingSession: isSupabaseConfigured(),
     };
   }
 
-  componentDidMount() {
-    getUsers().then((users) => this.setState({ allUsers: users, username: users[0] ?? '' }));
+  /** Derive the user's display name from a Supabase user object. */
+  private static userDisplayName(
+    userMeta: Record<string, unknown> | undefined,
+    email: string | undefined
+  ): string {
+    return (
+      (userMeta?.display_name as string | undefined) ??
+      (email?.split('@')[0] || 'User')
+    );
+  }
+
+  async componentDidMount() {
+    // If Supabase is configured, check whether a valid session is already
+    // stored in AsyncStorage (the sb-*-auth-token persisted by the SDK).
+    // Navigate straight to Home on success; any error falls through to local login.
+    if (supabase) {
+      try {
+        const { data } = await supabase.auth.getSession();
+        const session = data.session;
+        if (session) {
+          const name = Login.userDisplayName(
+            session.user?.user_metadata,
+            session.user?.email
+          );
+          this.props.navigation.navigate('Home', { user: name });
+          return;
+        }
+      } catch (e) {
+        // Supabase host unreachable or token refresh failed – fall through to
+        // show the normal login form so Local mode still works.
+        console.warn('[Foresight] Session restore failed, showing login form:', e);
+      }
+    }
+
+    const users = await getUsers();
+    this.setState({ allUsers: users, username: users[0] ?? '', checkingSession: false });
   }
 
   handleLogin = () => {
@@ -117,9 +154,7 @@ class Login extends Component<Props, State> {
           this.setState({ cloudError: error.message, isLoading: false });
           return;
         }
-        const name =
-          (data.user?.user_metadata?.display_name as string | undefined) ??
-          (email.split('@')[0] || 'User');
+        const name = Login.userDisplayName(data.user?.user_metadata, email);
         this.props.navigation.navigate('Home', { user: name });
       }
     } catch (err) {
@@ -136,9 +171,27 @@ class Login extends Component<Props, State> {
   }
 
   render() {
-    const { username, authMode, cloudEmail, cloudPassword, cloudDisplayName, cloudSubMode, isLoading, cloudError } = this.state;
+    const { username, authMode, cloudEmail, cloudPassword, cloudDisplayName, cloudSubMode, isLoading, cloudError, checkingSession } = this.state;
     const suggestions = this.filteredUsers;
     const cloudAvailable = isSupabaseConfigured();
+
+    // Show a brief loading screen while we check for a persisted Supabase session.
+    if (checkingSession) {
+      return (
+        <View style={styles.template}>
+          <View style={loginStyles.brandHeader}>
+            <View style={loginStyles.logoCircle}>
+              <Text style={loginStyles.logoText}>⛳</Text>
+            </View>
+            <Text style={loginStyles.appTitle}>Foresight</Text>
+            <Text style={loginStyles.appSubtitle}>Golf Range Tracker</Text>
+          </View>
+          <View style={loginStyles.sessionCheckContainer}>
+            <ActivityIndicator size="large" color={COLORS.textLight} />
+          </View>
+        </View>
+      );
+    }
 
     return (
       <View style={styles.template}>
@@ -445,6 +498,11 @@ const loginStyles = StyleSheet.create({
     color: COLORS.primaryLight,
     fontSize: 14,
     fontWeight: '600',
+  },
+  sessionCheckContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 
