@@ -32,7 +32,7 @@ if (supabase) {
 }
 
 /** Returns true when the user has an active Supabase session. */
-function isCloudMode(): boolean {
+export function isCloudMode(): boolean {
   return _cloudMode;
 }
 
@@ -273,4 +273,105 @@ export async function initializeDefaultProfiles(user: string): Promise<void> {
     const currentIds = await getClubsIndex(user);
     await setClubsIndex(user, [...currentIds, id]);
   }
+}
+
+/**
+ * Deletes all local AsyncStorage data for `localUser`:
+ * each club profile, each club's shot data, and the clubs index.
+ */
+export async function deleteLocalUserData(localUser: string): Promise<void> {
+  const ids = await getClubsIndex(localUser);
+  await Promise.all([
+    ...ids.map((id) =>
+      AsyncStorage.removeItem(clubKey(id)).catch((e) =>
+        console.warn(`[Foresight] Failed to remove club ${id}:`, e)
+      )
+    ),
+    ...ids.map((id) =>
+      AsyncStorage.removeItem(clubDataKey(id)).catch((e) =>
+        console.warn(`[Foresight] Failed to remove shot data for club ${id}:`, e)
+      )
+    ),
+    AsyncStorage.removeItem(`${CLUBS_INDEX_KEY}_${localUser}`).catch((e) =>
+      console.warn(`[Foresight] Failed to remove clubs index for ${localUser}:`, e)
+    ),
+  ]);
+}
+
+export interface MigrationOptions {
+  /** When true, import shot profiles in addition to shot data. */
+  includeProfiles: boolean;
+  /** 'add' appends to existing cloud data; 'overwrite' replaces it. */
+  mode: 'add' | 'overwrite';
+}
+
+export interface MigrationResult {
+  profilesImported: number;
+  shotsImported: number;
+}
+
+/**
+ * Migrates local AsyncStorage data for `localUser` into the currently
+ * authenticated Supabase account.
+ *
+ * - `includeProfiles: true`  → creates new cloud profiles from local ones.
+ * - `includeProfiles: false` → matches local profiles to existing cloud
+ *   profiles by name and imports shot data only.
+ * - `mode: 'overwrite'` with profiles → deletes all existing cloud profiles
+ *   (cascades shot data) before importing.
+ * - `mode: 'overwrite'` without profiles → clears shot data from each
+ *   matched cloud profile before importing.
+ */
+export async function migrateLocalToCloud(
+  localUser: string,
+  options: MigrationOptions
+): Promise<MigrationResult> {
+  if (!isCloudMode()) throw new Error('Not in cloud mode');
+
+  const ids = await getClubsIndex(localUser);
+  if (ids.length === 0) return { profilesImported: 0, shotsImported: 0 };
+
+  const profiles: ShotProfile[] = [];
+  for (const id of ids) {
+    const raw = await AsyncStorage.getItem(clubKey(id));
+    if (raw) profiles.push(JSON.parse(raw));
+  }
+
+  let profilesImported = 0;
+  let shotsImported = 0;
+
+  if (options.mode === 'overwrite' && options.includeProfiles) {
+    await SupabaseDB.deleteAllUserProfiles();
+  }
+
+  for (const profile of profiles) {
+    let cloudProfileId: string | null = null;
+
+    if (options.includeProfiles) {
+      cloudProfileId = await SupabaseDB.insertProfile({
+        name: profile.name,
+        distance: profile.distance,
+        targetRadius: profile.targetRadius,
+        missRadius: profile.missRadius,
+      });
+      if (cloudProfileId) profilesImported++;
+    } else {
+      const existing = await SupabaseDB.findProfileByName(profile.name);
+      cloudProfileId = existing?.id ?? null;
+      if (cloudProfileId && options.mode === 'overwrite') {
+        await SupabaseDB.deleteShotData(cloudProfileId);
+      }
+    }
+
+    if (!cloudProfileId) continue;
+
+    const raw = await AsyncStorage.getItem(clubDataKey(profile.id));
+    const points: DataPoint[] = raw ? JSON.parse(raw) : [];
+    await Promise.all(
+      points.map((point) => SupabaseDB.insertDataPointForProfile(cloudProfileId as string, point))
+    );
+    shotsImported += points.length;
+  }
+
+  return { profilesImported, shotsImported };
 }
