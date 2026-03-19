@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import Modal from 'react-native-modal';
@@ -28,7 +29,7 @@ interface FeatureCard {
   accent?: boolean;
 }
 
-type MigrateStep = 'select' | 'scope' | 'mode' | 'confirm' | 'done';
+type MigrateStep = 'select' | 'scope' | 'mode' | 'merge' | 'confirm' | 'done';
 
 interface State {
   showMigrateModal: boolean;
@@ -41,6 +42,12 @@ interface State {
   isMigrating: boolean;
   migrateResult: DB.MigrationResult | null;
   migrateError: string | null;
+  /** Similar-name club pairs detected between local and cloud. */
+  similarClubs: DB.SimilarClubPair[];
+  /** User's merge choice for each similar pair. */
+  mergeDecisions: DB.ClubMergeDecision[];
+  /** True while the async similar-club detection is running. */
+  isDetectingSimilar: boolean;
 }
 
 export default class HomeScreen extends Component<Props, State> {
@@ -55,6 +62,9 @@ export default class HomeScreen extends Component<Props, State> {
     isMigrating: false,
     migrateResult: null,
     migrateError: null,
+    similarClubs: [],
+    mergeDecisions: [],
+    isDetectingSimilar: false,
   };
 
   componentDidMount() {
@@ -110,6 +120,9 @@ export default class HomeScreen extends Component<Props, State> {
       isMigrating: false,
       migrateResult: null,
       migrateError: null,
+      similarClubs: [],
+      mergeDecisions: [],
+      isDetectingSimilar: false,
     });
   };
 
@@ -118,13 +131,14 @@ export default class HomeScreen extends Component<Props, State> {
   };
 
   runMigration = async () => {
-    const { selectedLocalUser, includeProfiles, migrateMode } = this.state;
+    const { selectedLocalUser, includeProfiles, migrateMode, mergeDecisions } = this.state;
     if (!selectedLocalUser) return;
     this.setState({ isMigrating: true, migrateError: null });
     try {
       const result = await DB.migrateLocalToCloud(selectedLocalUser, {
         includeProfiles,
         mode: migrateMode,
+        mergeDecisions: mergeDecisions.length > 0 ? mergeDecisions : undefined,
       });
       try {
         await DB.deleteLocalUserData(selectedLocalUser);
@@ -139,6 +153,49 @@ export default class HomeScreen extends Component<Props, State> {
     }
   };
 
+  /**
+   * Called when the user taps "Next" on the mode step.  When scope is
+   * "Shots & Profiles" with mode "Add", we first check for similar club names
+   * between the local and cloud accounts.  If any are found we show the merge
+   * step; otherwise we skip straight to confirm.
+   */
+  proceedFromMode = async () => {
+    const { selectedLocalUser, includeProfiles, migrateMode } = this.state;
+    if (includeProfiles && migrateMode === 'add' && selectedLocalUser) {
+      this.setState({ isDetectingSimilar: true });
+      try {
+        const similar = await DB.detectSimilarClubs(selectedLocalUser);
+        const decisions: DB.ClubMergeDecision[] = similar.map((pair) => ({
+          localProfileId: pair.localProfile.id,
+          cloudProfileId: pair.cloudProfile.id,
+          keepWhich: 'cloud' as DB.MergeChoice,
+        }));
+        if (similar.length > 0) {
+          this.setState({
+            isDetectingSimilar: false,
+            similarClubs: similar,
+            mergeDecisions: decisions,
+            migrateStep: 'merge',
+          });
+        } else {
+          this.setState({ isDetectingSimilar: false, migrateStep: 'confirm' });
+        }
+      } catch (e) {
+        console.warn('[Foresight] detectSimilarClubs failed:', e);
+        this.setState({ isDetectingSimilar: false, migrateStep: 'confirm' });
+      }
+    } else {
+      this.setState({ migrateStep: 'confirm' });
+    }
+  };
+
+  updateMergeDecision = (localProfileId: string, keepWhich: DB.MergeChoice) => {
+    const updated = this.state.mergeDecisions.map((d) =>
+      d.localProfileId === localProfileId ? { ...d, keepWhich } : d
+    );
+    this.setState({ mergeDecisions: updated });
+  };
+
   renderMigrateModalContent() {
     const {
       migrateStep,
@@ -149,13 +206,18 @@ export default class HomeScreen extends Component<Props, State> {
       isMigrating,
       migrateResult,
       migrateError,
+      similarClubs,
+      mergeDecisions,
+      isDetectingSimilar,
     } = this.state;
 
-    if (isMigrating) {
+    if (isMigrating || isDetectingSimilar) {
       return (
         <View style={migrateStyles.modalBody}>
           <ActivityIndicator size="large" color={COLORS.primaryLight} />
-          <Text style={migrateStyles.loadingText}>Migrating data…</Text>
+          <Text style={migrateStyles.loadingText}>
+            {isMigrating ? 'Migrating data…' : 'Checking for club conflicts…'}
+          </Text>
         </View>
       );
     }
@@ -308,6 +370,90 @@ export default class HomeScreen extends Component<Props, State> {
             </TouchableOpacity>
             <TouchableOpacity
               style={migrateStyles.nextBtn}
+              onPress={this.proceedFromMode}
+            >
+              <Text style={migrateStyles.nextBtnLabel}>Next →</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
+
+    if (migrateStep === 'merge') {
+      return (
+        <View style={migrateStyles.modalBody}>
+          <Text style={migrateStyles.modalTitle}>Club Conflicts Found</Text>
+          <Text style={migrateStyles.modalSubtitle}>
+            Similar clubs were found in both accounts. Choose which to keep for each.
+          </Text>
+
+          <ScrollView style={migrateStyles.mergeScrollArea}>
+            {similarClubs.map((pair) => {
+              const decision = mergeDecisions.find(
+                (d) => d.localProfileId === pair.localProfile.id
+              );
+              const kept = decision?.keepWhich ?? 'cloud';
+              const OPTIONS: Array<{ value: DB.MergeChoice; label: string; desc: string }> = [
+                {
+                  value: 'cloud',
+                  label: `Keep cloud "${pair.cloudProfile.name}"`,
+                  desc: `${pair.cloudProfile.distance}y · miss ${pair.cloudProfile.missRadius}`,
+                },
+                {
+                  value: 'local',
+                  label: `Keep local "${pair.localProfile.name}"`,
+                  desc: `${pair.localProfile.distance}y · miss ${pair.localProfile.missRadius}`,
+                },
+                {
+                  value: 'both',
+                  label: 'Keep both (create separate)',
+                  desc: 'No merging — a new cloud club will be created',
+                },
+              ];
+              return (
+                <View key={pair.localProfile.id} style={migrateStyles.conflictCard}>
+                  <Text style={migrateStyles.conflictTitle}>
+                    ⚠️ "{pair.localProfile.name}" ≈ "{pair.cloudProfile.name}"
+                  </Text>
+                  {OPTIONS.map((opt) => (
+                    <TouchableOpacity
+                      key={opt.value}
+                      style={[
+                        migrateStyles.mergeOption,
+                        kept === opt.value && migrateStyles.mergeOptionSelected,
+                      ]}
+                      onPress={() => this.updateMergeDecision(pair.localProfile.id, opt.value)}
+                    >
+                      <View style={migrateStyles.mergeRadio}>
+                        {kept === opt.value && <View style={migrateStyles.mergeRadioFill} />}
+                      </View>
+                      <View style={migrateStyles.optionTextWrap}>
+                        <Text
+                          style={[
+                            migrateStyles.mergeOptionLabel,
+                            kept === opt.value && migrateStyles.mergeOptionLabelSelected,
+                          ]}
+                        >
+                          {opt.label}
+                        </Text>
+                        <Text style={migrateStyles.optionDesc}>{opt.desc}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              );
+            })}
+          </ScrollView>
+
+          <View style={migrateStyles.btnRow}>
+            <TouchableOpacity
+              style={migrateStyles.cancelBtn}
+              onPress={() => this.setState({ migrateStep: 'mode' })}
+            >
+              <Text style={migrateStyles.cancelBtnLabel}>← Back</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={migrateStyles.nextBtn}
               onPress={() => this.setState({ migrateStep: 'confirm' })}
             >
               <Text style={migrateStyles.nextBtnLabel}>Next →</Text>
@@ -344,7 +490,9 @@ export default class HomeScreen extends Component<Props, State> {
           <View style={migrateStyles.btnRow}>
             <TouchableOpacity
               style={migrateStyles.cancelBtn}
-              onPress={() => this.setState({ migrateStep: 'mode' })}
+              onPress={() =>
+                this.setState({ migrateStep: similarClubs.length > 0 ? 'merge' : 'mode' })
+              }
             >
               <Text style={migrateStyles.cancelBtnLabel}>← Back</Text>
             </TouchableOpacity>
@@ -719,5 +867,62 @@ const migrateStyles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     marginBottom: 12,
+  },
+  // ── Merge step ──────────────────────────────────────────────────────────────
+  mergeScrollArea: {
+    maxHeight: 320,
+    marginBottom: 4,
+  },
+  conflictCard: {
+    backgroundColor: COLORS.surfaceAlt,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+  },
+  conflictTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 10,
+  },
+  mergeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    borderRadius: 10,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  mergeOptionSelected: {
+    borderColor: COLORS.primaryLight,
+    backgroundColor: '#EAF4EE',
+  },
+  mergeRadio: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: COLORS.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    flexShrink: 0,
+  },
+  mergeRadioFill: {
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    backgroundColor: COLORS.primaryLight,
+  },
+  mergeOptionLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginBottom: 1,
+  },
+  mergeOptionLabelSelected: {
+    color: COLORS.primaryLight,
   },
 });

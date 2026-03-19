@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import defaultShotProfiles from './defaultShotProfiles';
 import { supabase } from '../lib/supabase';
 import * as SupabaseDB from './supabaseDb';
+import { clubNamesAreSimilar } from './clubNameUtils';
 
 const CLUBS_INDEX_KEY = '@foresight/clubs_index';
 const clubKey = (id: string) => `@foresight/club_${id}`;
@@ -303,11 +304,86 @@ export interface MigrationOptions {
   includeProfiles: boolean;
   /** 'add' appends to existing cloud data; 'overwrite' replaces it. */
   mode: 'add' | 'overwrite';
+  /**
+   * Per-club merge decisions for clubs whose names are similar between the
+   * local and cloud accounts.  Only consulted when `includeProfiles: true`
+   * and `mode: 'add'`.
+   */
+  mergeDecisions?: ClubMergeDecision[];
 }
 
 export interface MigrationResult {
   profilesImported: number;
   shotsImported: number;
+}
+
+/** A pair of local and cloud profiles whose names are deemed similar. */
+export interface SimilarClubPair {
+  localProfile: ShotProfile;
+  cloudProfile: ShotProfile;
+}
+
+/** Which profile's parameters to keep when merging a similar pair. */
+export type MergeChoice = 'cloud' | 'local' | 'both';
+
+/** User's decision for a single similar-name club conflict. */
+export interface ClubMergeDecision {
+  localProfileId: string;
+  cloudProfileId: string;
+  keepWhich: MergeChoice;
+}
+
+/**
+ * Scans the local user's clubs and the active cloud account for clubs with
+ * similar names (e.g. "3W" ≈ "3 Wood").  Returns one pair per match found.
+ */
+export async function detectSimilarClubs(localUser: string): Promise<SimilarClubPair[]> {
+  if (!isCloudMode()) return [];
+
+  const ids = await getClubsIndex(localUser);
+  if (ids.length === 0) return [];
+
+  const localProfiles: ShotProfile[] = [];
+  for (const id of ids) {
+    const raw = await AsyncStorage.getItem(clubKey(id));
+    if (raw) localProfiles.push(JSON.parse(raw));
+  }
+
+  const cloudProfiles = await SupabaseDB.getAllProfiles();
+  const pairs: SimilarClubPair[] = [];
+
+  for (const local of localProfiles) {
+    for (const cloud of cloudProfiles) {
+      if (clubNamesAreSimilar(local.name, cloud.name)) {
+        pairs.push({ localProfile: local, cloudProfile: cloud });
+      }
+    }
+  }
+
+  return pairs;
+}
+
+/**
+ * Re-normalises a shot's relX/relY from `donorMissRadius` to
+ * `targetMissRadius` so that the physical yard distance is preserved, and
+ * recomputes the `offTarget` flag accordingly.
+ */
+function transformShot(
+  point: DataPoint,
+  donorMissRadius: number,
+  targetMissRadius: number
+): DataPoint {
+  if (!donorMissRadius || !targetMissRadius || donorMissRadius === targetMissRadius) {
+    return point;
+  }
+  const ratio = donorMissRadius / targetMissRadius;
+  const newRelX = point.relX !== undefined ? point.relX * ratio : point.relX;
+  const newRelY = point.relY !== undefined ? point.relY * ratio : point.relY;
+  const offTarget =
+    newRelX !== undefined && newRelY !== undefined
+      ? Math.sqrt(newRelX * newRelX + newRelY * newRelY) > 1.0
+      : point.offTarget;
+  return { ...point, relX: newRelX, relY: newRelY, offTarget };
 }
 
 /**
@@ -321,6 +397,10 @@ export interface MigrationResult {
  *   (cascades shot data) before importing.
  * - `mode: 'overwrite'` without profiles → clears shot data from each
  *   matched cloud profile before importing.
+ * - `mergeDecisions` (only when `includeProfiles: true` and `mode: 'add'`) →
+ *   for each similar-name conflict, specifies whether to keep the cloud
+ *   profile, the local profile, or create both.  Shot coordinates are
+ *   re-normalised when the two profiles have different missRadius values.
  */
 export async function migrateLocalToCloud(
   localUser: string,
@@ -344,7 +424,108 @@ export async function migrateLocalToCloud(
     await SupabaseDB.deleteAllUserProfiles();
   }
 
+  // Pre-load cloud profile map if we have merge decisions that might need it.
+  let cloudProfilesById: Record<string, ShotProfile> = {};
+  if (
+    options.includeProfiles &&
+    options.mode === 'add' &&
+    options.mergeDecisions &&
+    options.mergeDecisions.length > 0
+  ) {
+    const allCloud = await SupabaseDB.getAllProfiles();
+    cloudProfilesById = Object.fromEntries(allCloud.map((p) => [p.id, p]));
+  }
+
   for (const profile of profiles) {
+    // ── Merge-decision path (Shots & Profiles + Add mode only) ──────────────
+    const decision =
+      options.includeProfiles && options.mode === 'add'
+        ? options.mergeDecisions?.find((d) => d.localProfileId === profile.id)
+        : undefined;
+
+    if (decision) {
+      const cloudProfile = cloudProfilesById[decision.cloudProfileId];
+      const localMissR = parseFloat(profile.missRadius) || 0;
+      const cloudMissR = parseFloat(cloudProfile?.missRadius ?? '0') || 0;
+
+      if (decision.keepWhich === 'cloud') {
+        // Keep cloud profile parameters; merge local shots in (transform if
+        // radii differ so physical yard distances are preserved).
+        const raw = await AsyncStorage.getItem(clubDataKey(profile.id));
+        const localPoints: DataPoint[] = raw ? JSON.parse(raw) : [];
+        const transformed = localPoints.map((p) =>
+          transformShot(p, localMissR, cloudMissR)
+        );
+        await Promise.all(
+          transformed.map((p) =>
+            SupabaseDB.insertDataPointForProfile(decision.cloudProfileId, p)
+          )
+        );
+        shotsImported += transformed.length;
+
+      } else if (decision.keepWhich === 'local') {
+        // Keep local profile parameters; transform existing cloud shots so
+        // their yard distances are preserved, then add the local shots.
+        let existingCloudShots: DataPoint[] = [];
+        await SupabaseDB.getShotData(decision.cloudProfileId, (data) => {
+          existingCloudShots = data;
+        });
+
+        // Update cloud profile to local parameters.
+        await SupabaseDB.saveShot({
+          id: decision.cloudProfileId,
+          name: profile.name,
+          targetDistance: profile.distance,
+          targetRadius: profile.targetRadius,
+          missRadius: profile.missRadius,
+        });
+
+        // Replace existing cloud shots with transformed versions.
+        await SupabaseDB.deleteShotData(decision.cloudProfileId);
+        const transformedCloud = existingCloudShots.map((p) =>
+          transformShot(p, cloudMissR, localMissR)
+        );
+        await Promise.all(
+          transformedCloud.map((p) =>
+            SupabaseDB.insertDataPointForProfile(decision.cloudProfileId, p)
+          )
+        );
+
+        // Insert local shots as-is (already normalised to local radii).
+        const raw = await AsyncStorage.getItem(clubDataKey(profile.id));
+        const localPoints: DataPoint[] = raw ? JSON.parse(raw) : [];
+        await Promise.all(
+          localPoints.map((p) =>
+            SupabaseDB.insertDataPointForProfile(decision.cloudProfileId, p)
+          )
+        );
+
+        shotsImported += transformedCloud.length + localPoints.length;
+
+      } else {
+        // keepWhich === 'both': create a brand-new cloud profile for the
+        // local club and import its shots without any transformation.
+        const newId = await SupabaseDB.insertProfile({
+          name: profile.name,
+          distance: profile.distance,
+          targetRadius: profile.targetRadius,
+          missRadius: profile.missRadius,
+        });
+        if (newId) {
+          profilesImported++;
+          const raw = await AsyncStorage.getItem(clubDataKey(profile.id));
+          const localPoints: DataPoint[] = raw ? JSON.parse(raw) : [];
+          await Promise.all(
+            localPoints.map((p) => SupabaseDB.insertDataPointForProfile(newId, p))
+          );
+          shotsImported += localPoints.length;
+        }
+      }
+
+      continue;
+    }
+
+    // ── Standard path ────────────────────────────────────────────────────────
     let cloudProfileId: string | null = null;
 
     if (options.includeProfiles) {
