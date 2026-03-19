@@ -208,6 +208,25 @@ export async function insertProfile(profile: {
   return id;
 }
 
+export async function getAllProfiles(): Promise<ShotProfile[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('shot_profiles')
+    .select('id, name, distance, target_radius, miss_radius, updated_at');
+  if (error) {
+    console.error('Supabase getAllProfiles error:', error.message);
+    return [];
+  }
+  return (data ?? []).map((row) => ({
+    id: row.id as string,
+    name: row.name as string,
+    distance: row.distance as string,
+    targetRadius: row.target_radius as string,
+    missRadius: row.miss_radius as string,
+    timestamp: row.updated_at as string,
+  }));
+}
+
 export async function findProfileByName(name: string): Promise<ShotProfile | null> {
   if (!supabase) return null;
   const userId = await getAuthUserId();
