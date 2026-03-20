@@ -11,3 +11,6 @@ ios/
 *.ipa
 *.aab
 .DS_Store
+.env
+build-*
+*.app
