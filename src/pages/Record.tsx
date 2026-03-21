@@ -10,6 +10,7 @@ import { RecordNavigationProp, RecordRouteProp } from '../types/navigation';
 import * as PiTracService from '../lib/piTracService';
 import type { PiTracShot } from '../lib/piTracService';
 import { PITRAC_ENABLED } from '../lib/featureFlags';
+import EmojiText from '../components/EmojiText';
 
 /** Metres to yards conversion factor */
 const M_TO_YD = 1.09361;
@@ -775,7 +776,7 @@ export default class Record extends Component<Props, State> {
                   this.setState({ modalVisible: false });
                 }}
               >
-                <Text style={styles.buttonLabelLight}>Save ✓</Text>
+                <EmojiText style={styles.buttonLabelLight}>Save ✓</EmojiText>
               </TouchableOpacity>
             </View>
           </View>

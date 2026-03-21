@@ -131,8 +131,8 @@ export async function getUsers(): Promise<string[]> {
       const ids = await getClubsIndex(user);
       let maxTimestamp = '';
       if (ids.length > 0) {
-        const pairs = await AsyncStorage.multiGet(ids.map(clubKey));
-        for (const [, raw] of pairs) {
+        const record = await AsyncStorage.getMany(ids.map(clubKey));
+        for (const raw of Object.values(record)) {
           if (raw) {
             const club = JSON.parse(raw);
             if (club.timestamp && club.timestamp > maxTimestamp) {

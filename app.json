@@ -10,9 +10,6 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "updates": {
-      "fallbackToCacheTimeout": 0
-    },
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -20,7 +17,10 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.bretza.foresight",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIFontFallbackOrderList": [
+          ".AppleColorEmojiUI"
+        ]
       }
     },
     "android": {

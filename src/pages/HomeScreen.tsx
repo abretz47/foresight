@@ -14,6 +14,7 @@ import { HomeNavigationProp, HomeRouteProp } from '../types/navigation';
 import * as DB from '../data/db';
 import * as PiTracService from '../lib/piTracService';
 import { PITRAC_ENABLED } from '../lib/featureFlags';
+import EmojiText from '../components/EmojiText';
 
 interface Props {
   navigation: HomeNavigationProp;
@@ -254,7 +255,7 @@ export default class HomeScreen extends Component<Props, State> {
       <View style={styles.template}>
         {/* Header greeting */}
         <View style={homeStyles.header}>
-          <Text style={homeStyles.greeting}>Hello, {user} 👋</Text>
+          <EmojiText style={homeStyles.greeting}>Hello, {user} 👋</EmojiText>
           <Text style={homeStyles.headerSub}>What would you like to do today?</Text>
         </View>
 
@@ -267,7 +268,7 @@ export default class HomeScreen extends Component<Props, State> {
               onPress={card.onPress}
               activeOpacity={0.82}
             >
-              <Text style={homeStyles.cardIcon}>{card.icon}</Text>
+              <EmojiText style={homeStyles.cardIcon}>{card.icon}</EmojiText>
               <View style={homeStyles.cardText}>
                 <Text
                   style={[
@@ -294,7 +295,7 @@ export default class HomeScreen extends Component<Props, State> {
           {PITRAC_ENABLED && (
           <View style={homeStyles.piTracCard}>
             <View style={homeStyles.piTracHeader}>
-              <Text style={homeStyles.piTracIcon}>📡</Text>
+              <EmojiText style={homeStyles.piTracIcon}>📡</EmojiText>
               <View style={homeStyles.piTracTitleRow}>
                 <Text style={homeStyles.piTracTitle}>PiTrac</Text>
                 {piTracConnected && (
