@@ -44,7 +44,7 @@ interface State {
   loading: boolean;
 }
 
-const CARD_POLYGON_SIZE = 80;
+const CARD_POLYGON_SIZE = 130;
 
 export default class HomeScreen extends Component<Props, State> {
   private piTracPulse = new Animated.Value(1);
@@ -249,20 +249,28 @@ export default class HomeScreen extends Component<Props, State> {
     const user = this.props.route.params?.user ?? 'local_user';
     const { club, hull } = item;
 
+    const targetRadiusNorm =
+      Number(club.missRadius) > 0
+        ? Number(club.targetRadius) / Number(club.missRadius)
+        : undefined;
+
     return (
       <TouchableOpacity
         style={homeStyles.clubCard}
         onPress={() => navigate('ShotDetails', { user, clubId: club.id, clubName: club.name })}
         activeOpacity={0.82}
       >
-        <View style={homeStyles.clubCardLeft}>
-          <Text style={homeStyles.clubCardName}>{club.name}</Text>
-          <Text style={homeStyles.clubCardDist}>{club.distance} yds</Text>
-        </View>
         <View style={homeStyles.clubCardPolygon}>
-          <DispersionPolygon hull={hull} width={CARD_POLYGON_SIZE} height={CARD_POLYGON_SIZE} />
+          <DispersionPolygon
+            hull={hull}
+            width={CARD_POLYGON_SIZE}
+            height={CARD_POLYGON_SIZE}
+            showCircles
+            targetRadiusNorm={targetRadiusNorm}
+          />
         </View>
-        <Text style={homeStyles.clubCardChevron}>›</Text>
+        <Text style={homeStyles.clubCardName} numberOfLines={1}>{club.name}</Text>
+        <Text style={homeStyles.clubCardDist}>{club.distance} yds</Text>
       </TouchableOpacity>
     );
   };
@@ -299,11 +307,13 @@ export default class HomeScreen extends Component<Props, State> {
           </TouchableOpacity>
         </View>
 
-        {/* Club cards list */}
+        {/* Club cards list — 2-column grid */}
         <FlatList
           data={clubCards}
           keyExtractor={(item) => item.club.id}
           renderItem={this.renderClubCard}
+          numColumns={2}
+          columnWrapperStyle={homeStyles.columnWrapper}
           contentContainerStyle={homeStyles.listContent}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
@@ -528,47 +538,47 @@ const homeStyles = StyleSheet.create({
     color: COLORS.textLight,
   },
   listContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 8,
+    paddingTop: 4,
     paddingBottom: 80,
   },
+  columnWrapper: {
+    justifyContent: 'flex-start',
+  },
 
-  // ── Club card ───────────────────────────────────────────────────────────
+  // ── Club card (2-column vertical) ───────────────────────────────────────
   clubCard: {
-    flexDirection: 'row',
+    flex: 1,
+    flexDirection: 'column',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
     borderRadius: 18,
-    padding: 14,
-    marginVertical: 6,
+    padding: 12,
+    margin: 6,
     shadowColor: 'rgba(0,0,0,0.2)',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 8,
     elevation: 5,
   },
-  clubCardLeft: {
-    flex: 1,
-    paddingRight: 8,
-  },
-  clubCardName: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginBottom: 2,
-  },
-  clubCardDist: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-  },
   clubCardPolygon: {
     width: CARD_POLYGON_SIZE,
     height: CARD_POLYGON_SIZE,
-    marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
   },
-  clubCardChevron: {
-    fontSize: 26,
+  clubCardName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  clubCardDist: {
+    fontSize: 12,
     color: COLORS.textSecondary,
-    fontWeight: '300',
+    textAlign: 'center',
   },
 
   // ── Empty state ─────────────────────────────────────────────────────────

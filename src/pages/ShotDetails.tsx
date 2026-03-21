@@ -12,7 +12,7 @@ import {
 import { styles, COLORS } from '../styles/styles';
 import { ShotDetailsNavigationProp, ShotDetailsRouteProp } from '../types/navigation';
 import * as DB from '../data/db';
-import { DataPoint } from '../data/db';
+import { DataPoint, ShotProfile } from '../data/db';
 import * as SessionService from '../lib/sessionService';
 import { computeDispersionHull, filterByDateRange } from '../lib/dispersion';
 import DispersionPolygon from '../components/DispersionPolygon';
@@ -27,6 +27,7 @@ interface State {
   allShots: DataPoint[];
   filteredShots: DataPoint[];
   hull: Point[];
+  clubProfile: ShotProfile | null;
   startDateText: string;
   endDateText: string;
   startDate: Date | null;
@@ -37,7 +38,7 @@ interface State {
   containerWidth: number;
 }
 
-const POLYGON_SIZE = 220;
+const POLYGON_SIZE = 260;
 
 export default class ShotDetails extends Component<Props, State> {
   private focusListener: (() => void) | null = null;
@@ -48,6 +49,7 @@ export default class ShotDetails extends Component<Props, State> {
       allShots: [],
       filteredShots: [],
       hull: [],
+      clubProfile: null,
       startDateText: '',
       endDateText: '',
       startDate: null,
@@ -71,9 +73,13 @@ export default class ShotDetails extends Component<Props, State> {
   }
 
   private loadData = async () => {
-    const { clubId } = this.props.route.params;
-    const allShots = await DB.getShotDataAsync(clubId);
-    this.setState({ allShots }, this.applyFilter);
+    const { clubId, user } = this.props.route.params;
+    const [allShots, clubs] = await Promise.all([
+      DB.getShotDataAsync(clubId),
+      DB.getShotProfileAsync(user),
+    ]);
+    const clubProfile = clubs.find((c) => c.id === clubId) ?? null;
+    this.setState({ allShots, clubProfile }, this.applyFilter);
   };
 
   private loadSession = async () => {
@@ -167,6 +173,7 @@ export default class ShotDetails extends Component<Props, State> {
       filteredShots,
       allShots,
       hull,
+      clubProfile,
       startDateText,
       endDateText,
       dateError,
@@ -177,6 +184,15 @@ export default class ShotDetails extends Component<Props, State> {
     const inPlayCount = filteredShots.filter((d) => d.offTarget === false).length;
     const totalCount = filteredShots.length;
     const isFiltered = !!(this.state.startDate || this.state.endDate);
+
+    // Circle overlay props derived from the club profile
+    const targetRadiusNorm =
+      clubProfile && Number(clubProfile.missRadius) > 0
+        ? Number(clubProfile.targetRadius) / Number(clubProfile.missRadius)
+        : undefined;
+    const targetDistanceYds = clubProfile ? Number(clubProfile.distance) : undefined;
+    const missRadiusYds = clubProfile ? Number(clubProfile.missRadius) : undefined;
+    const targetRadiusYds = clubProfile ? Number(clubProfile.targetRadius) : undefined;
 
     return (
       <View style={styles.template}>
@@ -199,10 +215,19 @@ export default class ShotDetails extends Component<Props, State> {
           <View style={sdStyles.polygonCard}>
             <Text style={sdStyles.sectionTitle}>Shot Dispersion (80% in-play)</Text>
             <View style={sdStyles.polygonContainer}>
-              {hull.length > 0 ? (
-                <DispersionPolygon hull={hull} width={POLYGON_SIZE} height={POLYGON_SIZE} />
-              ) : (
-                <View style={[sdStyles.emptyPolygon, { width: POLYGON_SIZE, height: POLYGON_SIZE }]}>
+              <DispersionPolygon
+                hull={hull}
+                width={POLYGON_SIZE}
+                height={POLYGON_SIZE}
+                showCircles
+                showLabels
+                targetRadiusNorm={targetRadiusNorm}
+                targetDistanceYds={targetDistanceYds}
+                missRadiusYds={missRadiusYds}
+                targetRadiusYds={targetRadiusYds}
+              />
+              {hull.length === 0 && (
+                <View style={[sdStyles.emptyOverlay, { width: POLYGON_SIZE, height: POLYGON_SIZE }]}>
                   <Text style={sdStyles.emptyText}>
                     {inPlayCount === 0 ? 'No in-play shots yet' : 'Not enough data'}
                   </Text>
@@ -326,13 +351,11 @@ const sdStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emptyPolygon: {
-    borderRadius: 110,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-    borderStyle: 'dashed',
+  emptyOverlay: {
+    position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
+    pointerEvents: 'none',
   },
   emptyText: {
     fontSize: 12,
