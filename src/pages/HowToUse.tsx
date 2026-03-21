@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { COLORS } from '../styles/styles';
 import EmojiText from '../components/EmojiText';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -108,7 +108,6 @@ const howStyles = StyleSheet.create({
   },
   scroll: {
     flex: 1,
-    ...(Platform.OS === 'web' ? { overflow: 'scroll' } : {}),
   },
   scrollContent: {
     paddingHorizontal: 16,
