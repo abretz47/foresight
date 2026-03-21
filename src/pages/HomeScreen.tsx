@@ -8,6 +8,7 @@ import {
   TextInput,
   Animated,
   Modal,
+  ScrollView,
 } from 'react-native';
 import { styles, COLORS } from '../styles/styles';
 import { HomeNavigationProp, HomeRouteProp } from '../types/navigation';
@@ -260,7 +261,11 @@ export default class HomeScreen extends Component<Props, State> {
         </View>
 
         {/* Feature cards */}
-        <View style={homeStyles.cardsContainer}>
+        <ScrollView
+          style={homeStyles.cardsContainer}
+          contentContainerStyle={homeStyles.cardsContent}
+          showsVerticalScrollIndicator={false}
+        >
           {cards.map((card) => (
             <TouchableOpacity
               key={card.title}
@@ -358,7 +363,7 @@ export default class HomeScreen extends Component<Props, State> {
             )}
           </View>
           )}
-        </View>
+        </ScrollView>
 
         {/* Logout bar */}
         <View style={styles.logoutButtonRow}>
@@ -435,6 +440,8 @@ const homeStyles = StyleSheet.create({
   cardsContainer: {
     flex: 1,
     paddingHorizontal: 16,
+  },
+  cardsContent: {
     paddingBottom: 60,
   },
   featureCard: {
