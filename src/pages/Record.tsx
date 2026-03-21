@@ -9,6 +9,7 @@ import { DataPoint, ShotProfile } from '../data/db';
 import { RecordNavigationProp, RecordRouteProp } from '../types/navigation';
 import * as PiTracService from '../lib/piTracService';
 import type { PiTracShot } from '../lib/piTracService';
+import { PITRAC_ENABLED } from '../lib/featureFlags';
 
 /** Metres to yards conversion factor */
 const M_TO_YD = 1.09361;
@@ -160,26 +161,28 @@ export default class Record extends Component<Props, State> {
     });
 
     // Subscribe to PiTrac connection state changes
-    this.unsubPiTracConn = PiTracService.addConnectionListener((connected) => {
-      this.setState({ piTracConnected: connected });
-      if (connected) {
+    if (PITRAC_ENABLED) {
+      this.unsubPiTracConn = PiTracService.addConnectionListener((connected) => {
+        this.setState({ piTracConnected: connected });
+        if (connected) {
+          this.startPiTracPulse();
+        } else {
+          this.stopPiTracPulse();
+        }
+      });
+
+      // Subscribe to incoming PiTrac shots
+      this.unsubPiTracShot = PiTracService.addShotListener((shot) => {
+        // Only auto-log when in Record mode
+        if (this.state.calledFrom === 'Record') {
+          this.handlePiTracShot(shot);
+        }
+      });
+
+      // If already connected when we mount, start the animation
+      if (PiTracService.isConnected()) {
         this.startPiTracPulse();
-      } else {
-        this.stopPiTracPulse();
       }
-    });
-
-    // Subscribe to incoming PiTrac shots
-    this.unsubPiTracShot = PiTracService.addShotListener((shot) => {
-      // Only auto-log when in Record mode
-      if (this.state.calledFrom === 'Record') {
-        this.handlePiTracShot(shot);
-      }
-    });
-
-    // If already connected when we mount, start the animation
-    if (PiTracService.isConnected()) {
-      this.startPiTracPulse();
     }
   }
 
@@ -381,7 +384,7 @@ export default class Record extends Component<Props, State> {
 
   render() {
     const { piTracConnected, calledFrom } = this.state;
-    const showPiTracIndicator = piTracConnected && calledFrom === 'Record';
+    const showPiTracIndicator = PITRAC_ENABLED && piTracConnected && calledFrom === 'Record';
 
     return (
       <View style={styles.template}>
@@ -563,7 +566,7 @@ export default class Record extends Component<Props, State> {
           }}
           onPress={(evt) => {
             // Manual input is disabled when PiTrac is connected in Record mode
-            if (this.state.calledFrom === 'Record' && this.state.piTracConnected) {
+            if (this.state.calledFrom === 'Record' && PITRAC_ENABLED && this.state.piTracConnected) {
               return;
             }
             if (this.state.calledFrom === 'Record') {

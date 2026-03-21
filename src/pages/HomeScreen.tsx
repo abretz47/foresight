@@ -13,6 +13,7 @@ import { styles, COLORS } from '../styles/styles';
 import { HomeNavigationProp, HomeRouteProp } from '../types/navigation';
 import * as DB from '../data/db';
 import * as PiTracService from '../lib/piTracService';
+import { PITRAC_ENABLED } from '../lib/featureFlags';
 
 interface Props {
   navigation: HomeNavigationProp;
@@ -64,23 +65,25 @@ export default class HomeScreen extends Component<Props, State> {
     DB.initializeDefaultProfiles(user);
 
     // Subscribe to connection-state changes
-    this.unsubConnection = PiTracService.addConnectionListener((connected) => {
-      this.setState({ piTracConnected: connected });
-      if (connected) {
+    if (PITRAC_ENABLED) {
+      this.unsubConnection = PiTracService.addConnectionListener((connected) => {
+        this.setState({ piTracConnected: connected });
+        if (connected) {
+          this.startPulse();
+        } else {
+          this.stopPulse();
+        }
+      });
+
+      // If already connected, start the animation and mark detected
+      if (PiTracService.isConnected()) {
+        this.setState({ piTracDetected: true });
         this.startPulse();
-      } else {
-        this.stopPulse();
       }
-    });
 
-    // If already connected, start the animation and mark detected
-    if (PiTracService.isConnected()) {
-      this.setState({ piTracDetected: true });
-      this.startPulse();
+      // Attempt to auto-detect a PiTrac server in the background
+      this.probePiTrac();
     }
-
-    // Attempt to auto-detect a PiTrac server in the background
-    this.probePiTrac();
   }
 
   componentWillUnmount() {
@@ -288,6 +291,7 @@ export default class HomeScreen extends Component<Props, State> {
           ))}
 
           {/* ── PiTrac section ─────────────────────────────────── */}
+          {PITRAC_ENABLED && (
           <View style={homeStyles.piTracCard}>
             <View style={homeStyles.piTracHeader}>
               <Text style={homeStyles.piTracIcon}>📡</Text>
@@ -352,6 +356,7 @@ export default class HomeScreen extends Component<Props, State> {
               </View>
             )}
           </View>
+          )}
         </View>
 
         {/* Logout bar */}
@@ -361,7 +366,8 @@ export default class HomeScreen extends Component<Props, State> {
           </TouchableOpacity>
         </View>
 
-        {/* URL-entry modal */}
+        {/* URL-entry modal — only rendered when PiTrac feature is enabled */}
+        {PITRAC_ENABLED && (
         <Modal
           visible={urlModalVisible}
           transparent
@@ -401,6 +407,7 @@ export default class HomeScreen extends Component<Props, State> {
             </View>
           </View>
         </Modal>
+        )}
       </View>
     );
   }
