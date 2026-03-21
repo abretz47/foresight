@@ -1,4 +1,5 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createStore } from 'redux';
@@ -53,6 +54,11 @@ export default function App() {
             headerStyle,
             headerTitleStyle,
             headerTintColor: COLORS.textLight,
+            // On web, the default headerMode:'screen' sets pageOverflowEnabled=true on
+            // CardSheet, which removes the height constraint that ScrollViews depend on.
+            // headerMode:'float' forces card mode (flex:1, overflow:hidden) so all
+            // ScrollView screens scroll correctly. iOS/Android are unaffected.
+            ...(Platform.OS === 'web' ? { headerMode: 'float' as const } : {}),
           }}
         >
           <Stack.Screen name="Login" component={Login} options={{ headerShown: false }} />
