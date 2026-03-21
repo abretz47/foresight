@@ -26,6 +26,11 @@ export type RootStackParamList = {
   };
   Default: undefined;
   HowToUse: undefined;
+  ShotDetails: {
+    user: string;
+    clubId: string;
+    clubName: string;
+  };
 };
 
 export type LoginNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
@@ -42,3 +47,6 @@ export type RecordDetailsRouteProp = RouteProp<RootStackParamList, 'RecordDetail
 
 export type RecordNavigationProp = StackNavigationProp<RootStackParamList, 'Record'>;
 export type RecordRouteProp = RouteProp<RootStackParamList, 'Record'>;
+
+export type ShotDetailsNavigationProp = StackNavigationProp<RootStackParamList, 'ShotDetails'>;
+export type ShotDetailsRouteProp = RouteProp<RootStackParamList, 'ShotDetails'>;

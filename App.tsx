@@ -12,6 +12,7 @@ import Record from './src/pages/Record';
 import RecordDetailsScreen from './src/pages/RecordDetailsScreen';
 import Default from './src/pages/Default';
 import HowToUse from './src/pages/HowToUse';
+import ShotDetails from './src/pages/ShotDetails';
 import { COLORS } from './src/styles/styles';
 
 const store = createStore(reducer);
@@ -77,6 +78,7 @@ export default function App() {
           <Stack.Screen name="Record" component={Record} options={{ title: 'Record' }} />
           <Stack.Screen name="HowToUse" component={HowToUse} options={{ title: 'How To Use' }} />
           <Stack.Screen name="Default" component={Default} />
+          <Stack.Screen name="ShotDetails" component={ShotDetails} options={{ title: 'Shot Details' }} />
         </Stack.Navigator>
       </NavigationContainer>
     </Provider>

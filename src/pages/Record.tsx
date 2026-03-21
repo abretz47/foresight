@@ -10,6 +10,7 @@ import * as PiTracService from '../lib/piTracService';
 import type { PiTracShot } from '../lib/piTracService';
 import { PITRAC_ENABLED } from '../lib/featureFlags';
 import EmojiText from '../components/EmojiText';
+import * as SessionService from '../lib/sessionService';
 
 /** Metres to yards conversion factor */
 const M_TO_YD = 1.09361;
@@ -777,8 +778,9 @@ export default class Record extends Component<Props, State> {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.buttonSuccess}
-                onPress={() => {
+                onPress={async () => {
                   const user = this.props.route.params?.user ?? '';
+                  const sessionId = (await SessionService.getActiveSessionId(user)) ?? undefined;
                   DB.saveDataPoint(user, {
                     id: this.state.shotId,
                     shotX: Number(this.state.shotX),
@@ -789,6 +791,7 @@ export default class Record extends Component<Props, State> {
                     screenHeight: this.state.screenHeight,
                     screenWidth: this.state.screenWidth,
                     offTarget: this.state.offTarget,
+                    sessionId,
                   });
                   this.setState({ modalVisible: false });
                 }}
