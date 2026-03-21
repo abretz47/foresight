@@ -5,6 +5,7 @@ import { getUser } from '../../reducer';
 import { styles, COLORS } from '../styles/styles';
 import { LoginNavigationProp } from '../types/navigation';
 import { getUsers } from '../data/db';
+import EmojiText from '../components/EmojiText';
 
 interface User {
   id: string;
@@ -70,7 +71,7 @@ class Login extends Component<Props, State> {
         {/* Branding header */}
         <View style={loginStyles.brandHeader}>
           <View style={loginStyles.logoCircle}>
-            <Text style={loginStyles.logoText}>⛳</Text>
+            <EmojiText style={loginStyles.logoText}>⛳</EmojiText>
           </View>
           <Text style={loginStyles.appTitle}>Foresight</Text>
           <Text style={loginStyles.appSubtitle}>Golf Range Tracker</Text>

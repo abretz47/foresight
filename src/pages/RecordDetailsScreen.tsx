@@ -5,6 +5,7 @@ import { styles, COLORS } from '../styles/styles';
 import * as DB from '../data/db';
 import { ShotProfile } from '../data/db';
 import { RecordDetailsNavigationProp, RecordDetailsRouteProp } from '../types/navigation';
+import EmojiText from '../components/EmojiText';
 
 interface Props {
   navigation: RecordDetailsNavigationProp;
@@ -140,7 +141,7 @@ export default class RecordDetailsScreen extends Component<Props, State> {
               });
             }}
           >
-            <Text style={styles.buttonLabelLight}>Let's Go! 🏌️</Text>
+            <EmojiText style={styles.buttonLabelLight}>Let's Go! 🏌️</EmojiText>
           </TouchableOpacity>
         </View>
       </View>
