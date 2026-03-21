@@ -1,8 +1,7 @@
 import React, { Component } from 'react';
-import { TouchableOpacity, Text, View, Dimensions, Switch, Animated, PanResponder, StyleSheet } from 'react-native';
+import { TouchableOpacity, Text, View, Dimensions, Switch, Animated, PanResponder, StyleSheet, Modal, TouchableWithoutFeedback } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
-import Modal from 'react-native-modal';
 import { styles, COLORS } from '../styles/styles';
 import * as DB from '../data/db';
 import { DataPoint, ShotProfile } from '../data/db';
@@ -512,25 +511,37 @@ export default class Record extends Component<Props, State> {
         })()}
 
         {/* Stats info tooltip modal */}
-        <Modal isVisible={this.state.statsInfoVisible !== null} onBackdropPress={() => this.setState({ statsInfoVisible: null })}>
-          <View style={[styles.modalContent, recordStyles.infoModalContent]}>
-            <Text style={recordStyles.infoModalTitle}>
-              {this.state.statsInfoVisible === 'left' && '◀ Left'}
-              {this.state.statsInfoVisible === 'inPlay' && 'In Play'}
-              {this.state.statsInfoVisible === 'right' && 'Right ▶'}
-            </Text>
-            <Text style={recordStyles.infoModalBody}>
-              {this.state.statsInfoVisible === 'left' &&
-                'Top: % of in-play shots that landed left of centre.\nBottom: average left deviation from centre (yards).'}
-              {this.state.statsInfoVisible === 'inPlay' &&
-                'Top: % of shots that landed within the miss radius (in play).\nBottom: average carry distance of in-play shots (yards). Coloured green ≥93 %, amber <=92 %, red <85 % of target distance.'}
-              {this.state.statsInfoVisible === 'right' &&
-                'Top: % of in-play shots that landed right of centre.\nBottom: average right deviation from centre (yards).'}
-            </Text>
-            <TouchableOpacity style={recordStyles.infoModalClose} onPress={() => this.setState({ statsInfoVisible: null })}>
-              <Text style={styles.buttonLabelLight}>Close</Text>
-            </TouchableOpacity>
-          </View>
+        <Modal
+          visible={this.state.statsInfoVisible !== null}
+          transparent
+          animationType="fade"
+          onRequestClose={() => this.setState({ statsInfoVisible: null })}
+        >
+          <TouchableWithoutFeedback onPress={() => this.setState({ statsInfoVisible: null })}>
+            <View style={[styles.modalContainer, recordStyles.backdrop]}>
+              {/* Inner touchable stops backdrop tap from reaching the content card */}
+              <TouchableWithoutFeedback onPress={() => {}}>
+                <View style={[styles.modalContent, recordStyles.infoModalContent]}>
+                  <Text style={recordStyles.infoModalTitle}>
+                    {this.state.statsInfoVisible === 'left' && '◀ Left'}
+                    {this.state.statsInfoVisible === 'inPlay' && 'In Play'}
+                    {this.state.statsInfoVisible === 'right' && 'Right ▶'}
+                  </Text>
+                  <Text style={recordStyles.infoModalBody}>
+                    {this.state.statsInfoVisible === 'left' &&
+                      'Top: % of in-play shots that landed left of centre.\nBottom: average left deviation from centre (yards).'}
+                    {this.state.statsInfoVisible === 'inPlay' &&
+                      'Top: % of shots that landed within the miss radius (in play).\nBottom: average carry distance of in-play shots (yards). Coloured green ≥93 %, amber <=92 %, red <85 % of target distance.'}
+                    {this.state.statsInfoVisible === 'right' &&
+                      'Top: % of in-play shots that landed right of centre.\nBottom: average right deviation from centre (yards).'}
+                  </Text>
+                  <TouchableOpacity style={recordStyles.infoModalClose} onPress={() => this.setState({ statsInfoVisible: null })}>
+                    <Text style={styles.buttonLabelLight}>Close</Text>
+                  </TouchableOpacity>
+                </View>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
         </Modal>
 
         {/* Main touch area */}
@@ -735,8 +746,14 @@ export default class Record extends Component<Props, State> {
         </Animated.View>
 
         {/* Shot confirmation modal */}
-        <Modal isVisible={this.state.modalVisible}>
-          <View style={styles.modalContent}>
+        <Modal
+          visible={this.state.modalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => this.setState({ modalVisible: false })}
+        >
+          <View style={[styles.modalContainer, recordStyles.backdrop]}>
+            <View style={styles.modalContent}>
             <Text style={recordStyles.modalTitle}>Confirm Shot</Text>
             <View style={recordStyles.modalStats}>
               <View style={recordStyles.modalStatCell}>
@@ -779,6 +796,7 @@ export default class Record extends Component<Props, State> {
                 <EmojiText style={styles.buttonLabelLight}>Save ✓</EmojiText>
               </TouchableOpacity>
             </View>
+          </View>
           </View>
         </Modal>
       </View>
@@ -867,6 +885,11 @@ const recordStyles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 20,
     paddingVertical: 10,
+  },
+
+  // ── Modal backdrop ───────────────────────────────────────────
+  backdrop: {
+    backgroundColor: COLORS.overlay,
   },
 
   // ── PiTrac live indicator ─────────────────────────────────────
