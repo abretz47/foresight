@@ -17,10 +17,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.bretza.foresight",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false,
-        "UIFontFallbackOrderList": [
-          ".AppleColorEmojiUI"
-        ]
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {

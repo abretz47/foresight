@@ -95,8 +95,6 @@ export default class HowToUse extends Component<Props> {
           >
             <EmojiText style={howStyles.ctaLabel}>Got it — let's play! 🏌️</EmojiText>
           </TouchableOpacity>
-
-          <View style={{ height: 32 }} />
         </ScrollView>
       </View>
     );
@@ -114,6 +112,7 @@ const howStyles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 8,
+    paddingBottom: 40,
   },
 
   // Header
