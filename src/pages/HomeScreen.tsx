@@ -624,6 +624,7 @@ export default class HomeScreen extends Component<Props, State> {
     );
   }
 
+
   // ── PiTrac helpers ─────────────────────────────────────────────────────
 
   private startPulse() {
@@ -904,6 +905,8 @@ export default class HomeScreen extends Component<Props, State> {
             ) : null
           }
         />
+
+
 
         {/* Hamburger menu modal */}
         <Modal
@@ -1517,3 +1520,4 @@ const migrateStyles = StyleSheet.create({
     color: COLORS.primaryLight,
   },
 });
+
