@@ -96,6 +96,13 @@ export async function getShotProfile(user: string, _callback: (data: ShotProfile
 
 /** Fetches all shot profiles for a user as a plain promise (no callback). */
 export async function getShotProfileAsync(user: string): Promise<ShotProfile[]> {
+  if (isCloudMode()) {
+    try {
+      return await SupabaseDB.getAllProfiles();
+    } catch (e) {
+      console.warn('[Foresight] Cloud getShotProfileAsync failed, using local:', e);
+    }
+  }
   const ids = await getClubsIndex(user);
   const clubs: ShotProfile[] = [];
   for (const id of ids) {
@@ -241,6 +248,15 @@ export async function getShotData(user: string, id: string, _callback: (data: Da
 
 /** Fetches all data points for a club as a plain promise (no callback). */
 export async function getShotDataAsync(id: string): Promise<DataPoint[]> {
+  if (isCloudMode()) {
+    try {
+      const points: DataPoint[] = [];
+      await SupabaseDB.getShotData(id, (data) => points.push(...data));
+      return points;
+    } catch (e) {
+      console.warn('[Foresight] Cloud getShotDataAsync failed, using local:', e);
+    }
+  }
   if (!id || id === '') return [];
   const raw = await AsyncStorage.getItem(clubDataKey(id));
   return raw ? (JSON.parse(raw) as DataPoint[]) : [];
