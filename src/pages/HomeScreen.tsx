@@ -291,7 +291,7 @@ export default class HomeScreen extends Component<Props, State> {
           />
         </View>
         <Text style={homeStyles.clubCardName} numberOfLines={1}>{club.name}</Text>
-        <Text style={homeStyles.clubCardDist}>{club.distance} yds</Text>
+        <Text style={homeStyles.clubCardDist}>{club.distance} </Text>
       </TouchableOpacity>
     );
   };

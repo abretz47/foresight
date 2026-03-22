@@ -188,7 +188,7 @@ export default function DispersionPolygon({
             fontWeight="600"
             fill={COLORS.textSecondary}
           >
-            {(dist + missR).toFixed(0)} yds
+            {(dist + missR).toFixed(0)}
           </SvgText>
 
           {/* Miss circle — close end (bottom, relY = +1) */}
@@ -199,11 +199,11 @@ export default function DispersionPolygon({
             fontWeight="600"
             fill={COLORS.textSecondary}
           >
-            {(dist - missR).toFixed(0)} yds
+            {(dist - missR).toFixed(0)} 
           </SvgText>
 
           {/* Target circle — far end */}
-          {targNorm > 0 && targR > 0 && (
+          {/* {targNorm > 0 && targR > 0 && (
             <SvgText
               x={cx} y={cy - targNorm * scale - 4}
               textAnchor="middle"
@@ -212,10 +212,10 @@ export default function DispersionPolygon({
             >
               {(dist + targR).toFixed(0)}
             </SvgText>
-          )}
+          )} */}
 
           {/* Target circle — close end */}
-          {targNorm > 0 && targR > 0 && (
+          {/* {targNorm > 0 && targR > 0 && (
             <SvgText
               x={cx} y={cy + targNorm * scale + 11}
               textAnchor="middle"
@@ -224,7 +224,7 @@ export default function DispersionPolygon({
             >
               {(dist - targR).toFixed(0)}
             </SvgText>
-          )}
+          )} */}
 
           {/* Radius indicator: centre → right edge of miss circle */}
           <Line
@@ -235,12 +235,12 @@ export default function DispersionPolygon({
             strokeDasharray="3,3"
           />
           <SvgText
-            x={cx + scale / 2} y={cy - 4}
+            x={cx + scale - 10} y={cy - 4}
             textAnchor="middle"
             fontSize={9}
             fill={COLORS.textMuted}
           >
-            {missR} yds
+            {missR}
           </SvgText>
 
           {/* Target diameter centred inside the target circle */}
@@ -248,11 +248,11 @@ export default function DispersionPolygon({
             <SvgText
               x={cx} y={cy + 5}
               textAnchor="middle"
-              fontSize={9}
+              fontSize={18}
               fontWeight="600"
               fill="#E53935"
             >
-              Ø{(targR * 2).toFixed(0)} yds
+            {(targR * 2).toFixed(0)}
             </SvgText>
           )}
         </>
@@ -271,12 +271,12 @@ export default function DispersionPolygon({
           />
           {missRadiusYds != null && missRadiusYds > 0 && (
             <SvgText
-              x={cx + scale / 2} y={cy - 3}
+              x={cx + scale - 8 } y={cy - 3}
               textAnchor="middle"
               fontSize={8}
               fill={COLORS.textMuted}
             >
-              {missRadiusYds} yds
+              {missRadiusYds}
             </SvgText>
           )}
 
@@ -285,11 +285,11 @@ export default function DispersionPolygon({
             <SvgText
               x={cx} y={cy + 4}
               textAnchor="middle"
-              fontSize={8}
+              fontSize={12}
               fontWeight="600"
               fill="#E53935"
             >
-              Ø{(targetRadiusYds * 2).toFixed(0)} yds
+            {(targetRadiusYds * 2).toFixed(0)}
             </SvgText>
           )}
         </>

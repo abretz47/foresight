@@ -234,7 +234,7 @@ export default class ShotDetails extends Component<Props, State> {
               style={sdStyles.actionBtnSecondary}
               onPress={this.handleEditProfile}
             >
-              <Text style={sdStyles.actionBtnSecondaryText}>✏️ Edit Profile</Text>
+              <Text style={sdStyles.actionBtnSecondaryText}>✏️ Edit Shot</Text>
             </TouchableOpacity>
           </View>
 
