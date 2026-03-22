@@ -7,6 +7,7 @@ import { LoginNavigationProp } from '../types/navigation';
 import { getUsers } from '../data/db';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import EmojiText from '../components/EmojiText';
+import * as SessionService from '../lib/sessionService';
 
 interface User {
   id: string;
@@ -116,12 +117,14 @@ class Login extends Component<Props, State> {
     this._focusUnsubscribe?.();
   }
 
-  handleLogin = () => {
+  handleLogin = async () => {
     const username = this.state.username.trim();
     if (!username) {
       alert('Please enter your name to continue.');
       return;
     }
+    // Ensure a session is always active so every shot is tagged automatically.
+    await SessionService.continueOrStartSession(username);
     this.props.navigation.navigate('Home', { user: username });
   };
 

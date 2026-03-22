@@ -10,6 +10,9 @@ import * as PiTracService from '../lib/piTracService';
 import type { PiTracShot } from '../lib/piTracService';
 import { PITRAC_ENABLED } from '../lib/featureFlags';
 import EmojiText from '../components/EmojiText';
+import * as SessionService from '../lib/sessionService';
+import { computeDispersionHull } from '../lib/dispersion';
+import DispersionPolygon from '../components/DispersionPolygon';
 
 /** Metres to yards conversion factor */
 const M_TO_YD = 1.09361;
@@ -50,6 +53,10 @@ interface State {
   statsInfoVisible: null | 'left' | 'inPlay' | 'right';
   /** true while PiTrac WebSocket is open */
   piTracConnected: boolean;
+  /** true when the dispersion hull overlay is shown in Analyze mode */
+  showDispersionOverlay: boolean;
+  /** pre-computed dispersion hull for the current data set (overlay) */
+  dispersionHull: import('../lib/dispersion').Point[];
 }
 
 const CIRCLE_SIZE_RATIO = 0.7;
@@ -130,6 +137,8 @@ export default class Record extends Component<Props, State> {
       pickerVisible: false,
       statsInfoVisible: null,
       piTracConnected: PiTracService.isConnected(),
+      showDispersionOverlay: false,
+      dispersionHull: [],
     };
   }
 
@@ -344,7 +353,7 @@ export default class Record extends Component<Props, State> {
   loadData = (id: string) => {
     const user = this.props.route.params?.user ?? '';
     DB.getShotData(user, id, (data) => {
-      this.setState({ data });
+      this.setState({ data, dispersionHull: computeDispersionHull(data) });
     });
   };
 
@@ -422,6 +431,29 @@ export default class Record extends Component<Props, State> {
             trackColor={{ false: COLORS.textSecondary, true: COLORS.primaryLight }}
           />
           <Text style={styles.sliderLabel}>Analyze</Text>
+          {/* Dispersion overlay toggle — only shown in Analyze mode */}
+          {this.state.calledFrom === 'Analyze' && (
+            <TouchableOpacity
+              style={[
+                recordStyles.overlayBtn,
+                this.state.showDispersionOverlay && recordStyles.overlayBtnActive,
+              ]}
+              onPress={() =>
+                this.setState((prev) => ({
+                  showDispersionOverlay: !prev.showDispersionOverlay,
+                }))
+              }
+            >
+              <Text
+                style={[
+                  recordStyles.overlayBtnText,
+                  this.state.showDispersionOverlay && recordStyles.overlayBtnTextActive,
+                ]}
+              >
+                Dispersion
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Stats bar — always rendered so layout height is consistent between Record and Analyze modes */}
@@ -674,6 +706,32 @@ export default class Record extends Component<Props, State> {
               const dotY = this.state.containerHeight / 2 + relY * this.state.missRadiusPx - 5;
               return <View style={this.dataStyle(dotX, dotY)} key={key} />;
             })}
+          {/* Dispersion overlay (Analyze mode, when toggled on) */}
+          {this.state.showDispersionOverlay &&
+            this.state.calledFrom === 'Analyze' &&
+            this.state.missRadiusPx > 0 && (
+              <View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  left: (this.state.containerWidth - this.state.missRadiusPx * 2) / 2,
+                  top: (this.state.containerHeight - this.state.missRadiusPx * 2) / 2,
+                  width: this.state.missRadiusPx * 2,
+                  height: this.state.missRadiusPx * 2,
+                  zIndex: 5,
+                }}
+              >
+                <DispersionPolygon
+                  hull={this.state.dispersionHull}
+                  width={this.state.missRadiusPx * 2}
+                  height={this.state.missRadiusPx * 2}
+                  unitRadiusPx={this.state.missRadiusPx}
+                  showCircles={false}
+                  fillColor="rgba(45,106,72,0.30)"
+                  strokeColor={COLORS.primaryLight}
+                />
+              </View>
+            )}
         </TouchableOpacity>
 
         {/* Floating draggable picker button */}
@@ -777,8 +835,9 @@ export default class Record extends Component<Props, State> {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.buttonSuccess}
-                onPress={() => {
+                onPress={async () => {
                   const user = this.props.route.params?.user ?? '';
+                  const sessionId = (await SessionService.getActiveSessionId(user)) ?? undefined;
                   DB.saveDataPoint(user, {
                     id: this.state.shotId,
                     shotX: Number(this.state.shotX),
@@ -789,6 +848,7 @@ export default class Record extends Component<Props, State> {
                     screenHeight: this.state.screenHeight,
                     screenWidth: this.state.screenWidth,
                     offTarget: this.state.offTarget,
+                    sessionId,
                   });
                   this.setState({ modalVisible: false });
                 }}
@@ -890,6 +950,30 @@ const recordStyles = StyleSheet.create({
   // ── Modal backdrop ───────────────────────────────────────────
   backdrop: {
     backgroundColor: COLORS.overlay,
+  },
+
+  // ── Dispersion overlay toggle button ─────────────────────────
+  overlayBtn: {
+    position: 'absolute',
+    right: 12,
+    backgroundColor: COLORS.surfaceAlt,
+    borderRadius: 8,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  overlayBtnActive: {
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
+  },
+  overlayBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+  },
+  overlayBtnTextActive: {
+    color: COLORS.textPrimary,
   },
 
   // ── PiTrac live indicator ─────────────────────────────────────

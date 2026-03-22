@@ -24,6 +24,7 @@
     "react-native-modal": "^13.0.2",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.24.0",
+    "react-native-svg": "15.15.3",
     "react-native-web": "^0.21.0",
     "react-redux": "^9.1.2",
     "redux": "^5.0.1"
