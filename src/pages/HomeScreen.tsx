@@ -30,6 +30,8 @@ interface Props {
 interface ClubCardData {
   club: ShotProfile;
   hull: Point[];
+  inPlayPct: number;   // 0..1, or -1 when no shots recorded
+  totalShots: number;
 }
 
 interface State {
@@ -45,6 +47,15 @@ interface State {
 }
 
 const CARD_POLYGON_SIZE = 130;
+
+/** Returns fill/stroke colors for the dispersion polygon based on in-play percentage.
+ *  inPlayPct == -1 means no shots recorded → use default neutral color. */
+function dispersionColor(inPlayPct: number): { fill: string; stroke: string } {
+  if (inPlayPct < 0) return { fill: 'rgba(45,106,72,0.28)', stroke: COLORS.primaryLight };
+  if (inPlayPct >= 0.7) return { fill: 'rgba(45,122,79,0.30)', stroke: '#2D7A4F' };
+  if (inPlayPct >= 0.5) return { fill: 'rgba(212,160,23,0.28)', stroke: '#C68A00' };
+  return { fill: 'rgba(217,79,61,0.28)', stroke: '#D94F3D' };
+}
 
 export default class HomeScreen extends Component<Props, State> {
   private piTracPulse = new Animated.Value(1);
@@ -114,7 +125,10 @@ export default class HomeScreen extends Component<Props, State> {
         clubs.map(async (club) => {
           const shots: DataPoint[] = await DB.getShotDataAsync(club.id);
           const hull = computeDispersionHull(shots);
-          return { club, hull };
+          const totalShots = shots.length;
+          const inPlayCount = shots.filter((s) => s.offTarget === false).length;
+          const inPlayPct = totalShots > 0 ? inPlayCount / totalShots : -1;
+          return { club, hull, inPlayPct, totalShots };
         })
       );
 
@@ -247,12 +261,14 @@ export default class HomeScreen extends Component<Props, State> {
   private renderClubCard = ({ item }: ListRenderItemInfo<ClubCardData>) => {
     const { navigate } = this.props.navigation;
     const user = this.props.route.params?.user ?? 'local_user';
-    const { club, hull } = item;
+    const { club, hull, inPlayPct } = item;
 
+    const missR = Number(club.missRadius);
+    const targR = Number(club.targetRadius);
     const targetRadiusNorm =
-      Number(club.missRadius) > 0
-        ? Number(club.targetRadius) / Number(club.missRadius)
-        : undefined;
+      missR > 0 ? targR / missR : undefined;
+
+    const { fill, stroke } = dispersionColor(inPlayPct);
 
     return (
       <TouchableOpacity
@@ -267,6 +283,11 @@ export default class HomeScreen extends Component<Props, State> {
             height={CARD_POLYGON_SIZE}
             showCircles
             targetRadiusNorm={targetRadiusNorm}
+            fillColor={fill}
+            strokeColor={stroke}
+            showInnerLabels
+            missRadiusYds={missR > 0 ? missR : undefined}
+            targetRadiusYds={targR > 0 ? targR : undefined}
           />
         </View>
         <Text style={homeStyles.clubCardName} numberOfLines={1}>{club.name}</Text>

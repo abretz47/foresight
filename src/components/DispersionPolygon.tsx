@@ -36,6 +36,20 @@ interface Props {
   /** Target radius in yards — labels on the inner circle. */
   targetRadiusYds?: number;
 
+  /**
+   * Compact labels for smaller canvases (e.g. home-page cards).
+   * Renders the target diameter (2 × targetRadiusYds) centred inside the target
+   * circle, and the miss radius above the horizontal dashed indicator line.
+   * Does NOT render the full top/bottom distance labels of showLabels.
+   */
+  showInnerLabels?: boolean;
+
+  /**
+   * Individual in-play shot positions in normalised coordinates to overlay as dots.
+   * Each point uses the same (x, y) convention as hull vertices.
+   */
+  shots?: Array<{ x: number; y: number }>;
+
   // ── Scale override ─────────────────────────────────────────────────────
   /**
    * Explicit pixel radius for normalised coordinate 1.0.
@@ -66,6 +80,8 @@ export default function DispersionPolygon({
   targetDistanceYds,
   missRadiusYds,
   targetRadiusYds,
+  showInnerLabels = false,
+  shots,
   unitRadiusPx,
 }: Props) {
   const cx = width / 2;
@@ -75,7 +91,7 @@ export default function DispersionPolygon({
   const scale = unitRadiusPx ?? Math.min(cx, cy) * 0.85;
 
   // Nothing to render at all
-  if (hull.length === 0 && !showCircles) {
+  if (hull.length === 0 && !showCircles && !shots?.length) {
     return <View style={[styles.placeholder, { width, height }]} />;
   }
 
@@ -148,7 +164,20 @@ export default function DispersionPolygon({
       {/* ── Hull polygon / line / dot ────────────────────────────── */}
       {hullElement}
 
-      {/* ── Distance labels ─────────────────────────────────────── */}
+      {/* ── Individual shot dots ─────────────────────────────────── */}
+      {shots && shots.map((s, i) => {
+        const { px, py } = toPixel(s);
+        return (
+          <Circle
+            key={i}
+            cx={px} cy={py} r={3}
+            fill={strokeColor}
+            opacity={0.55}
+          />
+        );
+      })}
+
+      {/* ── Distance labels (full) ───────────────────────────────── */}
       {hasLabels && (
         <>
           {/* Miss circle — far end (top, relY = -1) */}
@@ -213,6 +242,56 @@ export default function DispersionPolygon({
           >
             {missR} yds
           </SvgText>
+
+          {/* Target diameter centred inside the target circle */}
+          {targNorm > 0 && targR > 0 && (
+            <SvgText
+              x={cx} y={cy + 5}
+              textAnchor="middle"
+              fontSize={9}
+              fontWeight="600"
+              fill="#E53935"
+            >
+              Ø{(targR * 2).toFixed(0)} yds
+            </SvgText>
+          )}
+        </>
+      )}
+
+      {/* ── Compact inner labels (home-page cards) ───────────────── */}
+      {showInnerLabels && showCircles && (
+        <>
+          {/* Radius indicator: centre → right edge of miss circle */}
+          <Line
+            x1={cx} y1={cy}
+            x2={cx + scale} y2={cy}
+            stroke={COLORS.textMuted}
+            strokeWidth={1}
+            strokeDasharray="3,3"
+          />
+          {missRadiusYds != null && missRadiusYds > 0 && (
+            <SvgText
+              x={cx + scale / 2} y={cy - 3}
+              textAnchor="middle"
+              fontSize={8}
+              fill={COLORS.textMuted}
+            >
+              {missRadiusYds} yds
+            </SvgText>
+          )}
+
+          {/* Target diameter centred inside the target circle */}
+          {targNorm > 0 && targetRadiusYds != null && targetRadiusYds > 0 && (
+            <SvgText
+              x={cx} y={cy + 4}
+              textAnchor="middle"
+              fontSize={8}
+              fontWeight="600"
+              fill="#E53935"
+            >
+              Ø{(targetRadiusYds * 2).toFixed(0)} yds
+            </SvgText>
+          )}
         </>
       )}
     </Svg>

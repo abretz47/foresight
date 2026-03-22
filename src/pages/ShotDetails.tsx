@@ -32,6 +32,7 @@ interface State {
   endDate: Date | null;
   dateError: string;
   containerWidth: number;
+  showShots: boolean;
 }
 
 const POLYGON_SIZE = 260;
@@ -52,6 +53,7 @@ export default class ShotDetails extends Component<Props, State> {
       endDate: null,
       dateError: '',
       containerWidth: 0,
+      showShots: false,
     };
   }
 
@@ -160,11 +162,39 @@ export default class ShotDetails extends Component<Props, State> {
       startDateText,
       endDateText,
       dateError,
+      showShots,
     } = this.state;
 
     const inPlayCount = filteredShots.filter((d) => d.offTarget === false).length;
     const totalCount = filteredShots.length;
     const isFiltered = !!(this.state.startDate || this.state.endDate);
+
+    // Dispersion color based on in-play percentage
+    const inPlayPct = totalCount > 0 ? inPlayCount / totalCount : -1;
+    let dispersionFill: string;
+    let dispersionStroke: string;
+    if (inPlayPct < 0) {
+      dispersionFill = 'rgba(45,106,72,0.28)';
+      dispersionStroke = '#2D6A48';
+    } else if (inPlayPct >= 0.7) {
+      dispersionFill = 'rgba(45,122,79,0.30)';
+      dispersionStroke = '#2D7A4F';
+    } else if (inPlayPct >= 0.5) {
+      dispersionFill = 'rgba(212,160,23,0.28)';
+      dispersionStroke = '#C68A00';
+    } else {
+      dispersionFill = 'rgba(217,79,61,0.28)';
+      dispersionStroke = '#D94F3D';
+    }
+
+    // Individual shot dots (in-play only, only when toggled on)
+    const shotDots = showShots
+      ? filteredShots
+          .filter((d): d is DataPoint & { relX: number; relY: number } =>
+            d.offTarget === false && typeof d.relX === 'number' && typeof d.relY === 'number'
+          )
+          .map((d) => ({ x: d.relX, y: d.relY }))
+      : undefined;
 
     const targetRadiusNorm =
       clubProfile && Number(clubProfile.missRadius) > 0
@@ -210,7 +240,17 @@ export default class ShotDetails extends Component<Props, State> {
 
           {/* Dispersion polygon */}
           <View style={sdStyles.polygonCard}>
-            <Text style={sdStyles.sectionTitle}>Shot Dispersion (80% in-play)</Text>
+            <View style={sdStyles.sectionTitleRow}>
+              <Text style={sdStyles.sectionTitle}>Shot Dispersion (80% in-play)</Text>
+              <TouchableOpacity
+                style={[sdStyles.shotsToggleBtn, showShots && sdStyles.shotsToggleBtnActive]}
+                onPress={() => this.setState((s) => ({ showShots: !s.showShots }))}
+              >
+                <Text style={[sdStyles.shotsToggleBtnText, showShots && sdStyles.shotsToggleBtnTextActive]}>
+                  {showShots ? 'Hide Shots' : 'Show Shots'}
+                </Text>
+              </TouchableOpacity>
+            </View>
             <View style={sdStyles.polygonContainer}>
               <DispersionPolygon
                 hull={hull}
@@ -222,6 +262,9 @@ export default class ShotDetails extends Component<Props, State> {
                 targetDistanceYds={targetDistanceYds}
                 missRadiusYds={missRadiusYds}
                 targetRadiusYds={targetRadiusYds}
+                fillColor={dispersionFill}
+                strokeColor={dispersionStroke}
+                shots={shotDots}
               />
               {hull.length === 0 && (
                 <View style={[sdStyles.emptyOverlay, { width: POLYGON_SIZE, height: POLYGON_SIZE }]}>
@@ -235,7 +278,7 @@ export default class ShotDetails extends Component<Props, State> {
 
           {/* Date range filter */}
           <View style={sdStyles.filterCard}>
-            <Text style={sdStyles.sectionTitle}>Filter by Date</Text>
+            <Text style={[sdStyles.sectionTitle, { marginBottom: 12 }]}>Filter by Date</Text>
             <View style={sdStyles.dateRow}>
               <View style={sdStyles.dateField}>
                 <Text style={sdStyles.dateLabel}>From</Text>
@@ -349,6 +392,33 @@ const sdStyles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
   },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'stretch',
+    marginBottom: 12,
+  },
+  shotsToggleBtn: {
+    marginLeft: 'auto',
+    backgroundColor: COLORS.surfaceAlt,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  shotsToggleBtnActive: {
+    backgroundColor: COLORS.primaryLight,
+    borderColor: COLORS.primaryLight,
+  },
+  shotsToggleBtnText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+  },
+  shotsToggleBtnTextActive: {
+    color: COLORS.textLight,
+  },
   polygonContainer: {
     marginTop: 8,
     alignItems: 'center',
@@ -382,7 +452,7 @@ const sdStyles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: COLORS.textPrimary,
-    marginBottom: 12,
+    flex: 1,
   },
   dateRow: {
     flexDirection: 'row',
