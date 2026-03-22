@@ -235,7 +235,7 @@ export default class ShotDetails extends Component<Props, State> {
         >
           {/* Club header */}
           <View style={sdStyles.header}>
-            <Text style={sdStyles.clubName}>{clubName}</Text>
+            <Text style={sdStyles.clubName}>{clubName} - {targetDistanceYds}</Text>
             <Text style={sdStyles.statLine}>
               {isFiltered
                 ? `${totalCount} shots in range · ${inPlayCount} in-play`

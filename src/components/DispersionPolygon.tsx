@@ -203,7 +203,7 @@ export default function DispersionPolygon({
           </SvgText>
 
           {/* Target circle — far end */}
-          {/* {targNorm > 0 && targR > 0 && (
+          {targNorm > 0 && targR > 0 && (
             <SvgText
               x={cx} y={cy - targNorm * scale - 4}
               textAnchor="middle"
@@ -212,10 +212,10 @@ export default function DispersionPolygon({
             >
               {(dist + targR).toFixed(0)}
             </SvgText>
-          )} */}
+          )}
 
           {/* Target circle — close end */}
-          {/* {targNorm > 0 && targR > 0 && (
+          {targNorm > 0 && targR > 0 && (
             <SvgText
               x={cx} y={cy + targNorm * scale + 11}
               textAnchor="middle"
@@ -224,7 +224,7 @@ export default function DispersionPolygon({
             >
               {(dist - targR).toFixed(0)}
             </SvgText>
-          )} */}
+          )}
 
           {/* Radius indicator: centre → right edge of miss circle */}
           <Line
