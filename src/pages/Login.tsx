@@ -5,6 +5,8 @@ import { getUser } from '../../reducer';
 import { styles, COLORS } from '../styles/styles';
 import { LoginNavigationProp } from '../types/navigation';
 import { getUsers } from '../data/db';
+import EmojiText from '../components/EmojiText';
+import * as SessionService from '../lib/sessionService';
 
 interface User {
   id: string;
@@ -36,12 +38,14 @@ class Login extends Component<Props, State> {
     getUsers().then((users) => this.setState({ allUsers: users, username: users[0] ?? '' }));
   }
 
-  handleLogin = () => {
+  handleLogin = async () => {
     const username = this.state.username.trim();
     if (!username) {
       alert('Please enter your name to continue.');
       return;
     }
+    // Ensure a session is always active so every shot is tagged automatically.
+    await SessionService.continueOrStartSession(username);
     this.props.navigation.navigate('Home', { user: username });
   };
 
@@ -70,7 +74,7 @@ class Login extends Component<Props, State> {
         {/* Branding header */}
         <View style={loginStyles.brandHeader}>
           <View style={loginStyles.logoCircle}>
-            <Text style={loginStyles.logoText}>⛳</Text>
+            <EmojiText style={loginStyles.logoText}>⛳</EmojiText>
           </View>
           <Text style={loginStyles.appTitle}>Foresight</Text>
           <Text style={loginStyles.appSubtitle}>Golf Range Tracker</Text>

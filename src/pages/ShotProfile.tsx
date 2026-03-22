@@ -52,10 +52,28 @@ export default class ShotProfile extends Component<Props, State> {
     }
   }
 
-  getShotProfile = () => {
+  getShotProfile = (retainShotId?: string) => {
     const user = this.props.route.params?.user ?? '';
+    // Honour a selectedClubId navigation param when no explicit retainShotId was supplied
+    const targetId = retainShotId ?? this.props.route.params?.selectedClubId;
     DB.getShotProfile(user, (data) => {
-      this.setState({ shots: data, selectedShot: 0 });
+      if (targetId) {
+        const idx = data.findIndex((s) => s.id === targetId);
+        if (idx >= 0) {
+          const shot = data[idx];
+          this.setState({
+            shots: data,
+            selectedShot: String(idx),
+            id: shot.id,
+            shotName: shot.name,
+            targetDistance: shot.distance,
+            targetRadius: shot.targetRadius,
+            missRadius: shot.missRadius,
+          });
+          return;
+        }
+      }
+      this.setState({ shots: data, selectedShot: 'New Shot' });
     });
   };
 
@@ -97,22 +115,20 @@ export default class ShotProfile extends Component<Props, State> {
                 onPress: async () => {
                   await DB.deleteShotData(shot.id);
                   await DB.saveShot(user, shot);
-                  this.getShotProfile();
-                  this.selectionChange('New Shot', 0);
+                  this.getShotProfile(shot.id);
                 },
               },
             ]
           );
         } else {
           DB.saveShot(user, shot);
-          this.getShotProfile();
-          this.selectionChange('New Shot', 0);
+          this.getShotProfile(shot.id);
         }
       });
     } else {
       DB.saveShot(user, shot);
+      // New club — reload without a retain target (resets to "New Shot")
       this.getShotProfile();
-      this.selectionChange('New Shot', 0);
     }
   };
 
@@ -120,7 +136,7 @@ export default class ShotProfile extends Component<Props, State> {
     const user = this.props.route.params?.user ?? '';
     DB.deleteShot(user, this.state.id);
     this.getShotProfile();
-    this.selectionChange('New Shot', 0);
+    this.setState({ id: '', shotName: '', targetDistance: '', targetRadius: '', missRadius: '' });
   };
 
   render() {
