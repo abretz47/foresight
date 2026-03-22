@@ -4,16 +4,17 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Platform,
   ScrollView,
-  TextInput,
+  Modal,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { styles, COLORS } from '../styles/styles';
 import { ShotDetailsNavigationProp, ShotDetailsRouteProp } from '../types/navigation';
 import * as DB from '../data/db';
 import { DataPoint, ShotProfile } from '../data/db';
 import { computeDispersionHull, filterByDateRange } from '../lib/dispersion';
 import DispersionPolygon from '../components/DispersionPolygon';
+import TimeRangeSlider from '../components/TimeRangeSlider';
 import type { Point } from '../lib/dispersion';
 
 interface Props {
@@ -26,13 +27,11 @@ interface State {
   filteredShots: DataPoint[];
   hull: Point[];
   clubProfile: ShotProfile | null;
-  startDateText: string;
-  endDateText: string;
   startDate: Date | null;
   endDate: Date | null;
-  dateError: string;
   containerWidth: number;
   showShots: boolean;
+  infoVisible: boolean;
 }
 
 const POLYGON_SIZE = 260;
@@ -47,13 +46,11 @@ export default class ShotDetails extends Component<Props, State> {
       filteredShots: [],
       hull: [],
       clubProfile: null,
-      startDateText: '',
-      endDateText: '',
       startDate: null,
       endDate: null,
-      dateError: '',
       containerWidth: 0,
       showShots: false,
+      infoVisible: false,
     };
   }
 
@@ -84,52 +81,40 @@ export default class ShotDetails extends Component<Props, State> {
     this.setState({ filteredShots, hull });
   };
 
-  private parseDate(text: string): Date | null {
-    if (!text.trim()) return null;
-    const parts = text.trim().split('-');
-    if (parts.length !== 3) return null;
-    const year = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1;
-    const day = parseInt(parts[2], 10);
-    if (isNaN(year) || isNaN(month) || isNaN(day)) return null;
-    if (month < 0 || month > 11 || day < 1 || day > 31) return null;
-    const d = new Date(year, month, day);
-    if (isNaN(d.getTime())) return null;
-    return d;
+  /** Returns the [min, max] Date of all shots that have a timestamp, or null. */
+  private getDateBounds(): { min: Date; max: Date } | null {
+    const { allShots } = this.state;
+    const ts = allShots
+      .filter((d) => !!d.timestamp)
+      .map((d) => new Date(d.timestamp!).getTime());
+    if (ts.length < 2) return null;
+    const min = new Date(Math.min(...ts));
+    const max = new Date(Math.max(...ts));
+    if (min.getTime() === max.getTime()) return null;
+    return { min, max };
   }
 
-  private handleApplyDates = () => {
-    const { startDateText, endDateText } = this.state;
-    const startDate = this.parseDate(startDateText);
-    const endDate = this.parseDate(endDateText);
+  private handleRangeChange = (start: Date, end: Date) => {
+    const bounds = this.getDateBounds();
+    if (!bounds) return;
 
-    if (startDateText.trim() && !startDate) {
-      this.setState({ dateError: 'Invalid start date. Use YYYY-MM-DD.' });
-      return;
-    }
-    if (endDateText.trim() && !endDate) {
-      this.setState({ dateError: 'Invalid end date. Use YYYY-MM-DD.' });
-      return;
-    }
-    if (startDate && endDate && startDate > endDate) {
-      this.setState({ dateError: 'Start date must be before end date.' });
-      return;
+    // When handles are at the absolute extremes, remove the filter entirely
+    // so that shots without timestamps are still included.
+    const atMin = start.getTime() <= bounds.min.getTime();
+    const atMax = end.getTime() >= bounds.max.getTime();
+
+    const startDate: Date | null = atMin ? null : start;
+    let endDate: Date | null = null;
+    if (!atMax) {
+      endDate = new Date(end);
+      endDate.setHours(23, 59, 59, 999);
     }
 
-    let adjustedEnd = endDate;
-    if (adjustedEnd) {
-      adjustedEnd = new Date(adjustedEnd);
-      adjustedEnd.setHours(23, 59, 59, 999);
-    }
-
-    this.setState({ startDate, endDate: adjustedEnd, dateError: '' }, this.applyFilter);
+    this.setState({ startDate, endDate }, this.applyFilter);
   };
 
-  private handleClearDates = () => {
-    this.setState(
-      { startDateText: '', endDateText: '', startDate: null, endDate: null, dateError: '' },
-      this.applyFilter
-    );
+  private handleResetDates = () => {
+    this.setState({ startDate: null, endDate: null }, this.applyFilter);
   };
 
   private handleRecord = () => {
@@ -159,18 +144,20 @@ export default class ShotDetails extends Component<Props, State> {
       allShots,
       hull,
       clubProfile,
-      startDateText,
-      endDateText,
-      dateError,
       showShots,
+      infoVisible,
     } = this.state;
 
     const inPlayCount = filteredShots.filter((d) => d.offTarget === false).length;
     const totalCount = filteredShots.length;
     const isFiltered = !!(this.state.startDate || this.state.endDate);
 
-    // Dispersion color based on in-play percentage
+    // Actual in-play percentage for the title
     const inPlayPct = totalCount > 0 ? inPlayCount / totalCount : -1;
+    const inPlayPctLabel =
+      inPlayPct >= 0 ? `${Math.round(inPlayPct * 100)}%` : '--';
+
+    // Dispersion color based on in-play percentage
     let dispersionFill: string;
     let dispersionStroke: string;
     if (inPlayPct < 0) {
@@ -204,8 +191,43 @@ export default class ShotDetails extends Component<Props, State> {
     const missRadiusYds = clubProfile ? Number(clubProfile.missRadius) : undefined;
     const targetRadiusYds = clubProfile ? Number(clubProfile.targetRadius) : undefined;
 
+    const dateBounds = this.getDateBounds();
+
     return (
       <View style={styles.template}>
+        {/* ── Info modal ───────────────────────────────────────── */}
+        <Modal
+          visible={infoVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => this.setState({ infoVisible: false })}
+        >
+          <TouchableOpacity
+            style={sdStyles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => this.setState({ infoVisible: false })}
+          >
+            <View style={sdStyles.infoBox}>
+              <Text style={sdStyles.infoTitle}>How is this calculated?</Text>
+              <Text style={sdStyles.infoBody}>
+                The dispersion polygon shows where 80% of your in-play shots land.
+                {'\n\n'}
+                All shots that land within the miss circle are considered "in-play".
+                The closest 80% of those in-play shots to the target center are
+                selected, and a convex hull is drawn around them. This filters out
+                outliers and gives you a realistic picture of your typical shot
+                dispersion.
+              </Text>
+              <TouchableOpacity
+                style={sdStyles.infoDismissBtn}
+                onPress={() => this.setState({ infoVisible: false })}
+              >
+                <Text style={sdStyles.infoDismissBtnText}>Got it</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
         <ScrollView
           style={sdStyles.scroll}
           contentContainerStyle={sdStyles.scrollContent}
@@ -241,7 +263,22 @@ export default class ShotDetails extends Component<Props, State> {
           {/* Dispersion polygon */}
           <View style={sdStyles.polygonCard}>
             <View style={sdStyles.sectionTitleRow}>
-              <Text style={sdStyles.sectionTitle}>Shot Dispersion (80% in-play)</Text>
+              <Text style={sdStyles.sectionTitle}>
+                Shot Dispersion ({inPlayPctLabel} in-play)
+              </Text>
+              {/* Info icon */}
+              <TouchableOpacity
+                style={sdStyles.infoIconBtn}
+                onPress={() => this.setState({ infoVisible: true })}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons
+                  name="information-circle-outline"
+                  size={18}
+                  color={COLORS.textMuted}
+                />
+              </TouchableOpacity>
+              {/* Show shots toggle */}
               <TouchableOpacity
                 style={[sdStyles.shotsToggleBtn, showShots && sdStyles.shotsToggleBtnActive]}
                 onPress={() => this.setState((s) => ({ showShots: !s.showShots }))}
@@ -276,47 +313,29 @@ export default class ShotDetails extends Component<Props, State> {
             </View>
           </View>
 
-          {/* Date range filter */}
-          <View style={sdStyles.filterCard}>
-            <Text style={[sdStyles.sectionTitle, { marginBottom: 12 }]}>Filter by Date</Text>
-            <View style={sdStyles.dateRow}>
-              <View style={sdStyles.dateField}>
-                <Text style={sdStyles.dateLabel}>From</Text>
-                <TextInput
-                  style={sdStyles.dateInput}
-                  value={startDateText}
-                  onChangeText={(t) => this.setState({ startDateText: t, dateError: '' })}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor={COLORS.textMuted}
-                  keyboardType={Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'default'}
-                  autoCorrect={false}
-                />
+          {/* Date range slider */}
+          {dateBounds && (
+            <View style={sdStyles.filterCard}>
+              <View style={sdStyles.filterTitleRow}>
+                <Text style={[sdStyles.sectionTitle, sdStyles.filterTitle]}>Date Range</Text>
+                {isFiltered && (
+                  <TouchableOpacity
+                    style={sdStyles.resetBtn}
+                    onPress={this.handleResetDates}
+                  >
+                    <Text style={sdStyles.resetBtnText}>Reset</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-              <View style={sdStyles.dateField}>
-                <Text style={sdStyles.dateLabel}>To</Text>
-                <TextInput
-                  style={sdStyles.dateInput}
-                  value={endDateText}
-                  onChangeText={(t) => this.setState({ endDateText: t, dateError: '' })}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor={COLORS.textMuted}
-                  keyboardType={Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'default'}
-                  autoCorrect={false}
-                />
-              </View>
+              <TimeRangeSlider
+                minDate={dateBounds.min}
+                maxDate={dateBounds.max}
+                startDate={this.state.startDate ?? dateBounds.min}
+                endDate={this.state.endDate ?? dateBounds.max}
+                onRangeChange={this.handleRangeChange}
+              />
             </View>
-            {!!dateError && <Text style={sdStyles.errorText}>{dateError}</Text>}
-            <View style={sdStyles.filterBtnRow}>
-              <TouchableOpacity style={sdStyles.applyBtn} onPress={this.handleApplyDates}>
-                <Text style={sdStyles.applyBtnText}>Apply</Text>
-              </TouchableOpacity>
-              {isFiltered && (
-                <TouchableOpacity style={sdStyles.clearBtn} onPress={this.handleClearDates}>
-                  <Text style={sdStyles.clearBtnText}>Clear</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
+          )}
         </ScrollView>
       </View>
     );
@@ -448,72 +467,77 @@ const sdStyles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
   },
+  filterTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  filterTitle: {
+    flex: 1,
+  },
+  resetBtn: {
+    backgroundColor: COLORS.surfaceAlt,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  resetBtnText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+  },
+  // ── Info modal ──────────────────────────────────────────────────
   sectionTitle: {
     fontSize: 15,
     fontWeight: '700',
     color: COLORS.textPrimary,
+  },
+  infoIconBtn: {
+    marginRight: 8,
+  },
+  modalOverlay: {
     flex: 1,
+    backgroundColor: 'rgba(15,46,30,0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
   },
-  dateRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 8,
+  infoBox: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 20,
+    padding: 22,
+    width: '100%',
+    maxWidth: 360,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 10,
   },
-  dateField: {
-    flex: 1,
-  },
-  dateLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-    marginBottom: 4,
-  },
-  dateInput: {
-    backgroundColor: COLORS.surfaceAlt,
-    borderColor: COLORS.border,
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    fontSize: 13,
+  infoTitle: {
+    fontSize: 17,
+    fontWeight: '800',
     color: COLORS.textPrimary,
+    marginBottom: 12,
   },
-  errorText: {
-    fontSize: 12,
-    color: COLORS.danger,
-    marginBottom: 8,
-    fontWeight: '500',
+  infoBody: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    lineHeight: 21,
+    marginBottom: 18,
   },
-  filterBtnRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 4,
-  },
-  applyBtn: {
+  infoDismissBtn: {
     backgroundColor: COLORS.primaryLight,
-    borderRadius: 10,
-    paddingHorizontal: 18,
-    paddingVertical: 8,
+    borderRadius: 12,
+    paddingVertical: 11,
+    alignItems: 'center',
   },
-  applyBtnText: {
+  infoDismissBtnText: {
     color: COLORS.textLight,
     fontWeight: '700',
-    fontSize: 13,
-  },
-  clearBtn: {
-    backgroundColor: COLORS.surfaceAlt,
-    borderRadius: 10,
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  clearBtnText: {
-    color: COLORS.textSecondary,
-    fontWeight: '600',
-    fontSize: 13,
+    fontSize: 14,
   },
 });
 
