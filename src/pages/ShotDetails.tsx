@@ -7,13 +7,11 @@ import {
   Platform,
   ScrollView,
   TextInput,
-  Alert,
 } from 'react-native';
 import { styles, COLORS } from '../styles/styles';
 import { ShotDetailsNavigationProp, ShotDetailsRouteProp } from '../types/navigation';
 import * as DB from '../data/db';
 import { DataPoint, ShotProfile } from '../data/db';
-import * as SessionService from '../lib/sessionService';
 import { computeDispersionHull, filterByDateRange } from '../lib/dispersion';
 import DispersionPolygon from '../components/DispersionPolygon';
 import type { Point } from '../lib/dispersion';
@@ -33,8 +31,6 @@ interface State {
   startDate: Date | null;
   endDate: Date | null;
   dateError: string;
-  activeSessionId: string | null;
-  sessionLoading: boolean;
   containerWidth: number;
 }
 
@@ -55,8 +51,6 @@ export default class ShotDetails extends Component<Props, State> {
       startDate: null,
       endDate: null,
       dateError: '',
-      activeSessionId: null,
-      sessionLoading: false,
       containerWidth: 0,
     };
   }
@@ -64,7 +58,6 @@ export default class ShotDetails extends Component<Props, State> {
   componentDidMount() {
     this.focusListener = this.props.navigation.addListener('focus', () => {
       this.loadData();
-      this.loadSession();
     });
   }
 
@@ -82,12 +75,6 @@ export default class ShotDetails extends Component<Props, State> {
     this.setState({ allShots, clubProfile }, this.applyFilter);
   };
 
-  private loadSession = async () => {
-    const { user } = this.props.route.params;
-    const activeSessionId = await SessionService.getActiveSessionId(user);
-    this.setState({ activeSessionId });
-  };
-
   private applyFilter = () => {
     const { allShots, startDate, endDate } = this.state;
     const filteredShots = filterByDateRange(allShots, startDate, endDate);
@@ -97,7 +84,6 @@ export default class ShotDetails extends Component<Props, State> {
 
   private parseDate(text: string): Date | null {
     if (!text.trim()) return null;
-    // Parse YYYY-MM-DD explicitly to avoid timezone ambiguity
     const parts = text.trim().split('-');
     if (parts.length !== 3) return null;
     const year = parseInt(parts[0], 10);
@@ -128,7 +114,6 @@ export default class ShotDetails extends Component<Props, State> {
       return;
     }
 
-    // Set endDate to end of day
     let adjustedEnd = endDate;
     if (adjustedEnd) {
       adjustedEnd = new Date(adjustedEnd);
@@ -145,26 +130,24 @@ export default class ShotDetails extends Component<Props, State> {
     );
   };
 
-  private handleStartContinueSession = async () => {
-    const { user } = this.props.route.params;
-    this.setState({ sessionLoading: true });
-    try {
-      const sessionId = await SessionService.continueOrStartSession(user);
-      this.setState({ activeSessionId: sessionId });
-      Alert.alert(
-        'Session Active',
-        'All shots you record will now be tagged to this practice session.',
-        [{ text: 'OK' }]
-      );
-    } finally {
-      this.setState({ sessionLoading: false });
-    }
+  private handleRecord = () => {
+    const { user, clubId } = this.props.route.params;
+    const { clubProfile } = this.state;
+    if (!clubProfile) return;
+    this.props.navigation.navigate('Record', {
+      user,
+      id: clubId,
+      shotName: clubProfile.name,
+      targetDistance: clubProfile.distance,
+      targetRadius: clubProfile.targetRadius,
+      missRadius: clubProfile.missRadius,
+      calledFrom: 'Record',
+    });
   };
 
-  private handleStopSession = async () => {
-    const { user } = this.props.route.params;
-    await SessionService.stopSession(user);
-    this.setState({ activeSessionId: null });
+  private handleEditProfile = () => {
+    const { user, clubId } = this.props.route.params;
+    this.props.navigation.navigate('ShotProfile', { user, selectedClubId: clubId });
   };
 
   render() {
@@ -177,15 +160,12 @@ export default class ShotDetails extends Component<Props, State> {
       startDateText,
       endDateText,
       dateError,
-      activeSessionId,
-      sessionLoading,
     } = this.state;
 
     const inPlayCount = filteredShots.filter((d) => d.offTarget === false).length;
     const totalCount = filteredShots.length;
     const isFiltered = !!(this.state.startDate || this.state.endDate);
 
-    // Circle overlay props derived from the club profile
     const targetRadiusNorm =
       clubProfile && Number(clubProfile.missRadius) > 0
         ? Number(clubProfile.targetRadius) / Number(clubProfile.missRadius)
@@ -209,6 +189,23 @@ export default class ShotDetails extends Component<Props, State> {
                 ? `${totalCount} shots in range · ${inPlayCount} in-play`
                 : `${allShots.length} shots total · ${inPlayCount} in-play`}
             </Text>
+          </View>
+
+          {/* Quick-action buttons */}
+          <View style={sdStyles.actionRow}>
+            <TouchableOpacity
+              style={[sdStyles.actionBtn, !clubProfile && sdStyles.actionBtnDisabled]}
+              onPress={this.handleRecord}
+              disabled={!clubProfile}
+            >
+              <Text style={sdStyles.actionBtnText}>📍 Record Shots</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={sdStyles.actionBtnSecondary}
+              onPress={this.handleEditProfile}
+            >
+              <Text style={sdStyles.actionBtnSecondaryText}>✏️ Edit Profile</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Dispersion polygon */}
@@ -277,34 +274,6 @@ export default class ShotDetails extends Component<Props, State> {
               )}
             </View>
           </View>
-
-          {/* Practice session */}
-          <View style={sdStyles.sessionCard}>
-            <Text style={sdStyles.sectionTitle}>Practice Session</Text>
-            {activeSessionId ? (
-              <>
-                <Text style={sdStyles.sessionStatus}>
-                  ✅ Session active — new shots will be tagged
-                </Text>
-                <TouchableOpacity style={sdStyles.sessionBtnSecondary} onPress={this.handleStopSession}>
-                  <Text style={sdStyles.sessionBtnSecondaryText}>Stop Session</Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <>
-                <Text style={sdStyles.sessionStatus}>No active session</Text>
-                <TouchableOpacity
-                  style={[sdStyles.sessionBtn, sessionLoading && sdStyles.sessionBtnDisabled]}
-                  onPress={this.handleStartContinueSession}
-                  disabled={sessionLoading}
-                >
-                  <Text style={sdStyles.sessionBtnText}>
-                    {sessionLoading ? 'Starting…' : 'Start / Continue Session'}
-                  </Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
         </ScrollView>
       </View>
     );
@@ -321,7 +290,7 @@ const sdStyles = StyleSheet.create({
     paddingBottom: 40,
   },
   header: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   clubName: {
     fontSize: 26,
@@ -333,6 +302,40 @@ const sdStyles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.textMuted,
     fontWeight: '500',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 14,
+  },
+  actionBtn: {
+    flex: 1,
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  actionBtnDisabled: {
+    opacity: 0.4,
+  },
+  actionBtnText: {
+    color: COLORS.textLight,
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  actionBtnSecondary: {
+    flex: 1,
+    backgroundColor: COLORS.surfaceAlt,
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  actionBtnSecondaryText: {
+    color: COLORS.textSecondary,
+    fontWeight: '700',
+    fontSize: 13,
   },
   polygonCard: {
     backgroundColor: COLORS.surface,
@@ -442,48 +445,5 @@ const sdStyles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 13,
   },
-  sessionCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 14,
-    shadowColor: 'rgba(0,0,0,0.2)',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  sessionStatus: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    marginBottom: 12,
-    fontWeight: '500',
-  },
-  sessionBtn: {
-    backgroundColor: COLORS.accent,
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  sessionBtnDisabled: {
-    opacity: 0.5,
-  },
-  sessionBtnText: {
-    color: COLORS.textPrimary,
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  sessionBtnSecondary: {
-    backgroundColor: COLORS.surfaceAlt,
-    borderRadius: 12,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  sessionBtnSecondaryText: {
-    color: COLORS.textSecondary,
-    fontWeight: '600',
-    fontSize: 13,
-  },
 });
+

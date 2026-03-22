@@ -393,12 +393,7 @@ export default class HomeScreen extends Component<Props, State> {
           }
         />
 
-        {/* Logout bar */}
-        <View style={styles.logoutButtonRow}>
-          <TouchableOpacity style={styles.logoutButtonContainer} onPress={() => navigate('Login')}>
-            <Text style={styles.buttonLabelLight}>Log Out</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Logout bar is now inside the hamburger menu */}
 
         {/* Hamburger menu modal */}
         <Modal
@@ -445,6 +440,14 @@ export default class HomeScreen extends Component<Props, State> {
                   onPress: () => {
                     this.setState({ menuVisible: false });
                     navigate('HowToUse');
+                  },
+                },
+                {
+                  icon: '🚪',
+                  label: 'Log Out',
+                  onPress: () => {
+                    this.setState({ menuVisible: false });
+                    navigate('Login');
                   },
                 },
               ].map((item) => (

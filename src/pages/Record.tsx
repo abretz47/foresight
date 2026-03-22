@@ -722,7 +722,7 @@ export default class Record extends Component<Props, State> {
                 }}
               >
                 <DispersionPolygon
-                  hull={computeDispersionHull(this.state.data)}
+                  hull={this.state.dispersionHull}
                   width={this.state.missRadiusPx * 2}
                   height={this.state.missRadiusPx * 2}
                   unitRadiusPx={this.state.missRadiusPx}
