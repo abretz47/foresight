@@ -1,0 +1,12 @@
+{
+  "name": "pitrac-test-server",
+  "version": "1.0.0",
+  "description": "PiTrac web-server simulator for testing the Foresight PiTrac integration",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.2"
+  }
+}

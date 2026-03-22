@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { COLORS } from '../styles/styles';
+import EmojiText from '../components/EmojiText';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../types/navigation';
 
@@ -66,7 +67,7 @@ export default class HowToUse extends Component<Props> {
         >
           {/* Header */}
           <View style={howStyles.header}>
-            <Text style={howStyles.headerEmoji}>📖</Text>
+            <EmojiText style={howStyles.headerEmoji}>📖</EmojiText>
             <Text style={howStyles.headerTitle}>How To Use Foresight</Text>
             <Text style={howStyles.headerSubtitle}>
               Follow these steps to start tracking and improving your golf game
@@ -80,7 +81,7 @@ export default class HowToUse extends Component<Props> {
                 <View style={howStyles.stepBadge}>
                   <Text style={howStyles.stepBadgeText}>{step.number}</Text>
                 </View>
-                <Text style={howStyles.stepIcon}>{step.icon}</Text>
+                <EmojiText style={howStyles.stepIcon}>{step.icon}</EmojiText>
                 <Text style={howStyles.stepTitle}>{step.title}</Text>
               </View>
               <Text style={howStyles.stepBody}>{step.body}</Text>
@@ -92,10 +93,8 @@ export default class HowToUse extends Component<Props> {
             style={howStyles.ctaButton}
             onPress={() => this.props.navigation.goBack()}
           >
-            <Text style={howStyles.ctaLabel}>Got it — let's play! 🏌️</Text>
+            <EmojiText style={howStyles.ctaLabel}>Got it — let's play! 🏌️</EmojiText>
           </TouchableOpacity>
-
-          <View style={{ height: 32 }} />
         </ScrollView>
       </View>
     );
@@ -113,6 +112,7 @@ const howStyles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 8,
+    paddingBottom: 40,
   },
 
   // Header
@@ -203,6 +203,5 @@ const howStyles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
     color: COLORS.textPrimary,
-    letterSpacing: 0.3,
   },
 });

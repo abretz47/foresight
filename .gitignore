@@ -1,5 +1,4 @@
 node_modules/
-.env
 *.watchmanconfig
 *.yarn.lock
 .DS_Store
@@ -12,5 +11,8 @@ ios/
 *.ipa
 *.aab
 .DS_Store
-Foresight.app/
-build-*.*
+.env
+.env.local
+.env.*.local
+build-*
+*.app

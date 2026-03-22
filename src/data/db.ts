@@ -68,6 +68,8 @@ export interface DataPoint {
   screenWidth: number;
   offTarget?: boolean;
   timestamp?: string;
+  /** Optional practice-session tag set when a session is active at record time. */
+  sessionId?: string;
 }
 
 export async function getShotProfile(user: string, _callback: (data: ShotProfile[]) => void): Promise<void> {
@@ -90,6 +92,27 @@ export async function getShotProfile(user: string, _callback: (data: ShotProfile
   if (clubs.length) {
     _callback(clubs);
   }
+}
+
+/** Fetches all shot profiles for a user as a plain promise (no callback). */
+export async function getShotProfileAsync(user: string): Promise<ShotProfile[]> {
+  if (isCloudMode()) {
+    try {
+      return await SupabaseDB.getAllProfiles();
+    } catch (e) {
+      console.warn('[Foresight] Cloud getShotProfileAsync failed, using local:', e);
+    }
+  }
+  const ids = await getClubsIndex(user);
+  const clubs: ShotProfile[] = [];
+  for (const id of ids) {
+    const raw = await AsyncStorage.getItem(clubKey(id));
+    if (raw) {
+      clubs.push(JSON.parse(raw));
+    }
+  }
+  clubs.sort((a, b) => (Number(b.distance) || 0) - (Number(a.distance) || 0));
+  return clubs;
 }
 
 export async function saveShot(user: string, shot: { id: string; name: string; targetDistance: string; targetRadius: string; missRadius: string }): Promise<void> {
@@ -145,7 +168,7 @@ export async function deleteShot(user: string, id: string): Promise<void> {
   }
 }
 
-export async function saveDataPoint(user: string, data: { id: string; shotX: number; shotY: number; relX?: number; relY?: number; clickedFrom: string; screenHeight: number; screenWidth: number; offTarget: boolean }): Promise<void> {
+export async function saveDataPoint(user: string, data: { id: string; shotX: number; shotY: number; relX?: number; relY?: number; clickedFrom: string; screenHeight: number; screenWidth: number; offTarget: boolean; sessionId?: string }): Promise<void> {
   if (isCloudMode()) {
     try {
       return await SupabaseDB.saveDataPoint(data);
@@ -167,6 +190,7 @@ export async function saveDataPoint(user: string, data: { id: string; shotX: num
       screenWidth: data.screenWidth,
       offTarget: data.offTarget,
       timestamp: new Date().toISOString(),
+      sessionId: data.sessionId,
     };
     shots.push(point);
     await AsyncStorage.setItem(clubDataKey(data.id), JSON.stringify(shots));
@@ -220,6 +244,22 @@ export async function getShotData(user: string, id: string, _callback: (data: Da
       _callback(data);
     }
   }
+}
+
+/** Fetches all data points for a club as a plain promise (no callback). */
+export async function getShotDataAsync(id: string): Promise<DataPoint[]> {
+  if (isCloudMode()) {
+    try {
+      const points: DataPoint[] = [];
+      await SupabaseDB.getShotData(id, (data) => points.push(...data));
+      return points;
+    } catch (e) {
+      console.warn('[Foresight] Cloud getShotDataAsync failed, using local:', e);
+    }
+  }
+  if (!id || id === '') return [];
+  const raw = await AsyncStorage.getItem(clubDataKey(id));
+  return raw ? (JSON.parse(raw) as DataPoint[]) : [];
 }
 
 export async function deleteShotData(id: string): Promise<void> {

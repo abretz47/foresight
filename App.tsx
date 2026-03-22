@@ -1,4 +1,5 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createStore } from 'redux';
@@ -11,6 +12,7 @@ import Record from './src/pages/Record';
 import RecordDetailsScreen from './src/pages/RecordDetailsScreen';
 import Default from './src/pages/Default';
 import HowToUse from './src/pages/HowToUse';
+import ShotDetails from './src/pages/ShotDetails';
 import { COLORS } from './src/styles/styles';
 
 const store = createStore(reducer);
@@ -53,6 +55,11 @@ export default function App() {
             headerStyle,
             headerTitleStyle,
             headerTintColor: COLORS.textLight,
+            // On web, the default headerMode:'screen' sets pageOverflowEnabled=true on
+            // CardSheet, which removes the height constraint that ScrollViews depend on.
+            // headerMode:'float' forces card mode (flex:1, overflow:hidden) so all
+            // ScrollView screens scroll correctly. iOS/Android are unaffected.
+            ...(Platform.OS === 'web' ? { headerMode: 'float' as const } : {}),
           }}
         >
           <Stack.Screen name="Login" component={Login} options={{ headerShown: false }} />
@@ -71,6 +78,7 @@ export default function App() {
           <Stack.Screen name="Record" component={Record} options={{ title: 'Record' }} />
           <Stack.Screen name="HowToUse" component={HowToUse} options={{ title: 'How To Use' }} />
           <Stack.Screen name="Default" component={Default} />
+          <Stack.Screen name="ShotDetails" component={ShotDetails} options={{ title: 'Shot Details' }} />
         </Stack.Navigator>
       </NavigationContainer>
     </Provider>
