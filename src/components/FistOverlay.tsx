@@ -11,7 +11,7 @@
  * by N fist-widths, the lateral offset at distance D is:
  *
  *   angle_per_fist  = arctan(handWidth / armLength)
- *   lateral_n (yds) = D * tan(n * angle_per_fist)   ← proper arc formula
+ *   lateral_n (dist) = D * tan(n * angle_per_fist)   ← proper arc formula
  *
  * Negative relX = left side of circle.
  */
@@ -25,8 +25,8 @@ interface FistPosition {
   n: number;
   /** pixel X position of the fist CENTER within the container */
   centerX: number;
-  /** lateral distance in yards for this fist count */
-  lateralYards: number;
+  /** lateral distance in the user's preferred unit for this fist count */
+  lateralDist: number;
 }
 
 export interface FistOverlayProps {
@@ -36,14 +36,16 @@ export interface FistOverlayProps {
   containerHeight: number;
   /** Pixel radius of the miss circle */
   missRadiusPx: number;
-  /** Miss radius in yards (from shot profile) */
+  /** Miss radius in the user's preferred unit (from shot profile) */
   missRadius: number;
-  /** Target distance in yards (from shot profile) */
+  /** Target distance in the user's preferred unit (from shot profile) */
   targetDistance: number;
   /** User's hand width in cm (ring-knuckle → pinky-knuckle, fist closed) */
   handWidthCm: number;
   /** User's arm length in cm (palm-base → inside shoulder) */
   armLengthCm: number;
+  /** Preferred unit system — controls the distance label ('m' vs 'yds') */
+  units?: 'imperial' | 'metric';
 }
 
 // Default body measurements (cm) used when the user hasn't set their profile.
@@ -67,6 +69,7 @@ export default function FistOverlay({
   targetDistance,
   handWidthCm,
   armLengthCm,
+  units = 'imperial',
 }: FistOverlayProps) {
   if (
     containerWidth <= 0 ||
@@ -86,17 +89,18 @@ export default function FistOverlay({
 
   /** Height of the fist icon in pixels. */
   const FIST_HEIGHT = FIST_SIZE;
-  /** Width of the label container — wide enough for "8 fists = 99.9yds" */
+  /** Width of the label container — wide enough for "8 fists = 999m" */
   const LABEL_WIDTH = 110;
   /** Height of the label. */
   const LABEL_HEIGHT = 18;
 
   // Build the list of fist positions (left side only).
   const positions: FistPosition[] = [];
+  const distUnit = units === 'metric' ? 'm' : 'yds';
   for (let n = 1; n <= MAX_FISTS; n++) {
-    // Arc-based lateral offset in yards (Z-axis body rotation)
-    const lateralYards = targetDistance * Math.tan(n * anglePerFist);
-    const relX = -lateralYards / missRadius; // negative = left
+    // Arc-based lateral offset in the user's preferred unit (Z-axis body rotation)
+    const lateralDist = targetDistance * Math.tan(n * anglePerFist);
+    const relX = -lateralDist / missRadius; // negative = left
 
     const fx = centerX + relX * missRadiusPx;
 
@@ -105,15 +109,15 @@ export default function FistOverlay({
     // The first fist is always included (possibly clamped in the render).
     if (n > 1 && fx - LABEL_WIDTH / 2 < 0) break;
 
-    positions.push({ n, centerX: fx, lateralYards });
+    positions.push({ n, centerX: fx, lateralDist });
   }
 
   if (positions.length === 0) return null;
 
   return (
     <>
-      {positions.map(({ n, centerX: fx, lateralYards }) => {
-        const distLabel = `${lateralYards.toFixed(1)}yds`;
+      {positions.map(({ n, centerX: fx, lateralDist }) => {
+        const distLabel = `${lateralDist.toFixed(1)}${distUnit}`;
         const label = n === 1
           ? `1 fist = ${distLabel}`
           : `${n} fists = ${distLabel}`;
