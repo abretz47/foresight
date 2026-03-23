@@ -37,18 +37,17 @@ interface State {
 // across the knuckle area (fingers only, no thumb) with vertical tick marks
 // at the left and right edges of the finger span.
 function HandWidthDiagram() {
-  // Container dimensions
-  const W = 220;
-  const H = 200;
-  // Icon placement
+  // Container dimensions – icon is flush with the left edge
   const iconSize = 160;
-  const iconLeft = 30;
+  const W = iconSize;
+  const H = 200;
+  const iconLeft = 0;
   const iconTop = 15;
   // Measurement line coordinates (in container space).
   // hand-back-right: back of right hand, thumb on left.
   // Finger span (index → pinky, no thumb) ≈ 40 % → 93 % of icon width.
-  const leftX = iconLeft + Math.round(iconSize * 0.40);  // ~94
-  const rightX = iconLeft + Math.round(iconSize * 0.93); // ~179
+  const leftX = iconLeft + Math.round(iconSize * 0.40);  // ~64
+  const rightX = iconLeft + Math.round(iconSize * 0.93); // ~149
   // Knuckle level ≈ 52 % down from icon top.
   const lineY = iconTop + Math.round(iconSize * 0.52);   // ~98
   const tickH = 20; // half-height of each vertical tick
