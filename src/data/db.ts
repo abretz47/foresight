@@ -1,9 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import defaultShotProfiles from './defaultShotProfiles';
+import defaultShotProfiles, { getDefaultProfilesForPlayer } from './defaultShotProfiles';
 
 const CLUBS_INDEX_KEY = '@foresight/clubs_index';
 const clubKey = (id: string) => `@foresight/club_${id}`;
 const clubDataKey = (id: string) => `@foresight/club_${id}_shots`;
+const userProfileKey = (user: string) => `@foresight/user_profile_${user}`;
 
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -25,6 +26,20 @@ export interface ShotProfile {
   targetRadius: string;
   missRadius: string;
   timestamp?: string;
+}
+
+/** Measurements and skill info collected during the first-run profile setup. */
+export interface UserProfile {
+  /** Player age in years. */
+  age?: string;
+  /** Golf handicap / index (numeric string, e.g. "12"). */
+  handicap?: string;
+  /** Preferred unit system: 'imperial' (yards/inches) or 'metric' (metres/cm). Defaults to 'imperial' for new users. */
+  units?: 'imperial' | 'metric';
+  /** Hand width in the user's chosen unit (inches if imperial, cm if metric). */
+  handWidth?: string;
+  /** Arm length in the user's chosen unit (inches if imperial, cm if metric). */
+  armLength?: string;
 }
 
 export interface DataPoint {
@@ -197,10 +212,11 @@ export async function hasShotData(id: string): Promise<boolean> {
   return data.length > 0;
 }
 
-export async function initializeDefaultProfiles(user: string): Promise<void> {
+export async function initializeDefaultProfiles(user: string, handicap?: number | null, age?: number | null, units?: 'imperial' | 'metric' | null): Promise<void> {
   const ids = await getClubsIndex(user);
   if (ids.length > 0) return;
-  for (const shot of defaultShotProfiles) {
+  const profiles = getDefaultProfilesForPlayer(handicap, age, units);
+  for (const shot of profiles) {
     const id = generateId();
     const newClub = {
       id,
@@ -214,4 +230,21 @@ export async function initializeDefaultProfiles(user: string): Promise<void> {
     const currentIds = await getClubsIndex(user);
     await setClubsIndex(user, [...currentIds, id]);
   }
+}
+
+// ── User Profile ────────────────────────────────────────────────────────────
+
+export async function getUserProfile(user: string): Promise<UserProfile | null> {
+  const raw = await AsyncStorage.getItem(userProfileKey(user));
+  return raw ? (JSON.parse(raw) as UserProfile) : null;
+}
+
+export async function saveUserProfile(user: string, profile: UserProfile): Promise<void> {
+  await AsyncStorage.setItem(userProfileKey(user), JSON.stringify(profile));
+}
+
+/** Returns true when the user has completed the first-run profile setup. */
+export async function hasUserProfile(user: string): Promise<boolean> {
+  const raw = await AsyncStorage.getItem(userProfileKey(user));
+  return raw !== null;
 }
