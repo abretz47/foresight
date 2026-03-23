@@ -119,7 +119,7 @@ export default function FistOverlay({
             pointerEvents="none"
             style={{
               position: 'absolute',
-              left: fx - LABEL_WIDTH / 2,
+              left: Math.max(0, fx - LABEL_WIDTH / 2),
               top: centerY - (FIST_HEIGHT + LABEL_HEIGHT) / 2,
               width: LABEL_WIDTH,
               height: FIST_HEIGHT + LABEL_HEIGHT,
