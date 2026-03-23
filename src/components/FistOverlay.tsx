@@ -93,7 +93,6 @@ export default function FistOverlay({
 
   // Build the list of fist positions (left side only).
   const positions: FistPosition[] = [];
-  let hitLeftEdge = false;
   for (let n = 1; n <= MAX_FISTS; n++) {
     // Arc-based lateral offset in yards (Z-axis body rotation)
     const lateralYards = targetDistance * Math.tan(n * anglePerFist);
@@ -101,13 +100,10 @@ export default function FistOverlay({
 
     const fx = centerX + relX * missRadiusPx;
 
-    // If a previous fist was already clamped to the left edge, adding more
-    // would just stack them on top of each other — stop here.
-    if (hitLeftEdge) break;
-
-    // If this fist's natural position would overflow the left edge, clamp it
-    // (handled in the render below) and stop after this one.
-    if (fx - LABEL_WIDTH / 2 < 0) hitLeftEdge = true;
+    // For fists beyond the first: if the natural position overflows the left
+    // edge, stop — clamping it would stack it on top of the previous fist.
+    // The first fist is always included (possibly clamped in the render).
+    if (n > 1 && fx - LABEL_WIDTH / 2 < 0) break;
 
     positions.push({ n, centerX: fx, lateralYards });
   }
