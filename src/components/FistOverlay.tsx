@@ -18,6 +18,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import Svg, { G, Path, Circle, Text as SvgText } from 'react-native-svg';
+import { COLORS } from '../styles/styles'
 
 // ── Tiny fist silhouette SVG ────────────────────────────────────────────────
 // Drawn in a 32×32 viewport, filled solid.
@@ -91,7 +92,7 @@ const FIST_SIZE = 28;
 /** Opacity of the fist icons. */
 const FIST_OPACITY = 0.55;
 /** Fist icon fill colour (semi-transparent dark). */
-const FIST_COLOR = 'rgba(26,60,42,0.85)';
+const FIST_COLOR = COLORS.accent;
 /** Maximum number of fist markers to display. */
 const MAX_FISTS = 8;
 
