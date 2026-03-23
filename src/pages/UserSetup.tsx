@@ -189,7 +189,7 @@ export default class UserSetup extends Component<Props, State> {
       // Initialize default shot profiles using handicap/age if no clubs exist yet.
       const handicapNum = handicap.trim() ? parseFloat(handicap.trim()) : null;
       const ageNum = age.trim() ? parseInt(age.trim(), 10) : null;
-      await DB.initializeDefaultProfiles(user, handicapNum, ageNum);
+      await DB.initializeDefaultProfiles(user, handicapNum, ageNum, units);
     }
 
     await SessionService.continueOrStartSession(user);

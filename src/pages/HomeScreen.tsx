@@ -78,7 +78,9 @@ export default class HomeScreen extends Component<Props, State> {
 
   componentDidMount() {
     const user = this.props.route.params?.user ?? 'local_user';
-    DB.initializeDefaultProfiles(user);
+    DB.getUserProfile(user).then(profile => {
+      DB.initializeDefaultProfiles(user, null, null, profile?.units ?? null);
+    });
 
     this.focusListener = this.props.navigation.addListener('focus', () => {
       this.loadClubCards();

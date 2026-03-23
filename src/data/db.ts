@@ -212,10 +212,10 @@ export async function hasShotData(id: string): Promise<boolean> {
   return data.length > 0;
 }
 
-export async function initializeDefaultProfiles(user: string, handicap?: number | null, age?: number | null): Promise<void> {
+export async function initializeDefaultProfiles(user: string, handicap?: number | null, age?: number | null, units?: 'imperial' | 'metric' | null): Promise<void> {
   const ids = await getClubsIndex(user);
   if (ids.length > 0) return;
-  const profiles = getDefaultProfilesForPlayer(handicap, age);
+  const profiles = getDefaultProfilesForPlayer(handicap, age, units);
   for (const shot of profiles) {
     const id = generateId();
     const newClub = {
