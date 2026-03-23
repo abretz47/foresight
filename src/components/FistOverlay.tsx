@@ -84,27 +84,35 @@ export default function FistOverlay({
   const centerX = containerWidth / 2;
   const centerY = containerHeight / 2;
 
-  // Build the list of fist positions (left side only).
-  const positions: FistPosition[] = [];
-  for (let n = 1; n <= MAX_FISTS; n++) {
-    // Arc-based lateral offset in yards (Z-axis body rotation)
-    const lateralYards = targetDistance * Math.tan(n * anglePerFist);
-    const relX = -lateralYards / missRadius; // negative = left
-
-    // Stop once we've gone more than 10% beyond the miss circle edge
-    if (relX < -1.1) break;
-
-    positions.push({ n, centerX: centerX + relX * missRadiusPx, lateralYards });
-  }
-
-  if (positions.length === 0) return null;
-
   /** Height of the fist icon in pixels. */
   const FIST_HEIGHT = FIST_SIZE;
   /** Width of the label container — wide enough for "8 fists = 99.9yds" */
   const LABEL_WIDTH = 110;
   /** Height of the label. */
   const LABEL_HEIGHT = 18;
+
+  // Build the list of fist positions (left side only).
+  const positions: FistPosition[] = [];
+  let hitLeftEdge = false;
+  for (let n = 1; n <= MAX_FISTS; n++) {
+    // Arc-based lateral offset in yards (Z-axis body rotation)
+    const lateralYards = targetDistance * Math.tan(n * anglePerFist);
+    const relX = -lateralYards / missRadius; // negative = left
+
+    const fx = centerX + relX * missRadiusPx;
+
+    // If a previous fist was already clamped to the left edge, adding more
+    // would just stack them on top of each other — stop here.
+    if (hitLeftEdge) break;
+
+    // If this fist's natural position would overflow the left edge, clamp it
+    // (handled in the render below) and stop after this one.
+    if (fx - LABEL_WIDTH / 2 < 0) hitLeftEdge = true;
+
+    positions.push({ n, centerX: fx, lateralYards });
+  }
+
+  if (positions.length === 0) return null;
 
   return (
     <>
