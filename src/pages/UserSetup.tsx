@@ -7,7 +7,8 @@ import {
   StyleSheet,
   Modal,
 } from 'react-native';
-import Svg, { Path, Line, Polygon, Circle, Rect, G } from 'react-native-svg';
+import Svg, { Path, Line, Polygon, Circle, Rect } from 'react-native-svg';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import * as DB from '../data/db';
 import * as SessionService from '../lib/sessionService';
@@ -31,76 +32,60 @@ interface State {
   showArmDiagramModal: boolean;
 }
 
-// ── Fist / hand-width SVG diagram ─────────────────────────────────────────
-// Shows a simple closed fist with a dimension arrow from the ring-finger
-// knuckle to the pinky knuckle.
+// ── Fist / hand-width diagram ─────────────────────────────────────────────
+// Shows the back-of-hand icon with a measurement overlay: a horizontal line
+// across the knuckle area (fingers only, no thumb) with vertical tick marks
+// at the left and right edges of the finger span.
 function HandWidthDiagram() {
+  // Container dimensions
+  const W = 220;
+  const H = 200;
+  // Icon placement
+  const iconSize = 160;
+  const iconLeft = 30;
+  const iconTop = 15;
+  // Measurement line coordinates (in container space).
+  // hand-back-right: back of right hand, thumb on left.
+  // Finger span (index → pinky, no thumb) ≈ 40 % → 93 % of icon width.
+  const leftX = iconLeft + Math.round(iconSize * 0.40);  // ~94
+  const rightX = iconLeft + Math.round(iconSize * 0.93); // ~179
+  // Knuckle level ≈ 52 % down from icon top.
+  const lineY = iconTop + Math.round(iconSize * 0.52);   // ~98
+  const tickH = 20; // half-height of each vertical tick
+
   return (
-    <Svg width="260" height="200" viewBox="0 0 260 200">
-      {/* Palm base */}
-      <Path
-        d="M70,160 Q65,175 90,178 Q130,185 170,178 Q195,175 190,160"
-        fill="#E8D5B5"
-        stroke="#8B6914"
-        strokeWidth="2"
+    <View style={{ width: W, height: H }}>
+      <MaterialCommunityIcons
+        name="hand-back-right"
+        size={iconSize}
+        color="#8B6914"
+        style={{ position: 'absolute', top: iconTop, left: iconLeft }}
       />
-      {/* Index finger */}
-      <Path
-        d="M95,160 L90,100 Q90,88 98,88 Q106,88 106,100 L108,160"
-        fill="#E8D5B5"
-        stroke="#8B6914"
-        strokeWidth="2"
-      />
-      {/* Middle finger */}
-      <Path
-        d="M115,160 L112,92 Q112,80 120,80 Q128,80 128,92 L128,160"
-        fill="#E8D5B5"
-        stroke="#8B6914"
-        strokeWidth="2"
-      />
-      {/* Ring finger */}
-      <Path
-        d="M136,160 L133,98 Q133,86 141,86 Q149,86 149,98 L149,160"
-        fill="#E8D5B5"
-        stroke="#8B6914"
-        strokeWidth="2"
-      />
-      {/* Pinky finger */}
-      <Path
-        d="M157,160 L154,110 Q154,100 161,100 Q168,100 168,110 L168,160"
-        fill="#E8D5B5"
-        stroke="#8B6914"
-        strokeWidth="2"
-      />
-      {/* Thumb (folded) */}
-      <Path
-        d="M70,160 Q65,150 68,138 Q72,125 82,122 Q90,120 92,130 L95,160"
-        fill="#E8D5B5"
-        stroke="#8B6914"
-        strokeWidth="2"
-      />
-
-      {/* Ring finger knuckle dot */}
-      <Circle cx="141" cy="86" r="4" fill="#D94F3D" />
-      {/* Pinky knuckle dot */}
-      <Circle cx="161" cy="100" r="4" fill="#D94F3D" />
-
-      {/* Dimension line */}
-      <Line x1="141" y1="72" x2="161" y2="72" stroke="#D94F3D" strokeWidth="2" />
-      {/* Left arrow */}
-      <Polygon points="136,72 144,68 144,76" fill="#D94F3D" />
-      {/* Right arrow */}
-      <Polygon points="166,72 158,68 158,76" fill="#D94F3D" />
-
-      {/* Labels */}
-      <G>
-        <Path d="M141,72 L141,86" stroke="#D94F3D" strokeWidth="1.5" strokeDasharray="3,2" />
-        <Path d="M161,72 L161,100" stroke="#D94F3D" strokeWidth="1.5" strokeDasharray="3,2" />
-      </G>
-
-      {/* Measurement label */}
-      <Rect x="126" y="52" width="88" height="18" rx="5" fill="rgba(217,79,61,0.15)" />
-    </Svg>
+      <Svg
+        width={W}
+        height={H}
+        style={{ position: 'absolute', top: 0, left: 0 }}
+      >
+        {/* Horizontal measurement line through knuckle area (fingers only) */}
+        <Line
+          x1={leftX} y1={lineY}
+          x2={rightX} y2={lineY}
+          stroke="#D94F3D" strokeWidth="2.5"
+        />
+        {/* Left vertical tick */}
+        <Line
+          x1={leftX} y1={lineY - tickH}
+          x2={leftX} y2={lineY + tickH}
+          stroke="#D94F3D" strokeWidth="2.5"
+        />
+        {/* Right vertical tick */}
+        <Line
+          x1={rightX} y1={lineY - tickH}
+          x2={rightX} y2={lineY + tickH}
+          stroke="#D94F3D" strokeWidth="2.5"
+        />
+      </Svg>
+    </View>
   );
 }
 
