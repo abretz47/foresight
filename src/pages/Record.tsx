@@ -13,6 +13,7 @@ import EmojiText from '../components/EmojiText';
 import * as SessionService from '../lib/sessionService';
 import { computeDispersionHull } from '../lib/dispersion';
 import DispersionPolygon from '../components/DispersionPolygon';
+import FistOverlay, { DEFAULT_HAND_WIDTH_CM, DEFAULT_ARM_LENGTH_CM } from '../components/FistOverlay';
 
 /** Metres to yards conversion factor */
 const M_TO_YD = 1.09361;
@@ -57,6 +58,10 @@ interface State {
   showDispersionOverlay: boolean;
   /** pre-computed dispersion hull for the current data set (overlay) */
   dispersionHull: import('../lib/dispersion').Point[];
+  /** User's hand width in cm (from profile, else DEFAULT_HAND_WIDTH_CM) */
+  userHandWidthCm: number;
+  /** User's arm length in cm (from profile, else DEFAULT_ARM_LENGTH_CM) */
+  userArmLengthCm: number;
 }
 
 const CIRCLE_SIZE_RATIO = 0.7;
@@ -139,6 +144,8 @@ export default class Record extends Component<Props, State> {
       piTracConnected: PiTracService.isConnected(),
       showDispersionOverlay: false,
       dispersionHull: [],
+      userHandWidthCm: DEFAULT_HAND_WIDTH_CM,
+      userArmLengthCm: DEFAULT_ARM_LENGTH_CM,
     };
   }
 
@@ -165,6 +172,7 @@ export default class Record extends Component<Props, State> {
         () => {
           this.loadData(shotId);
           this.loadShots();
+          this.loadUserProfile();
         }
       );
     });
@@ -364,6 +372,19 @@ export default class Record extends Component<Props, State> {
       const selectedShot = Math.max(0, shots.findIndex((s) => s.id === shotId));
       this.setState({ shots, selectedShot });
     });
+  };
+
+  loadUserProfile = async () => {
+    const user = this.props.route.params?.user ?? '';
+    const profile = await DB.getUserProfile(user);
+    if (profile) {
+      const hw = parseFloat(profile.handWidth ?? '');
+      const al = parseFloat(profile.armLength ?? '');
+      this.setState({
+        userHandWidthCm: hw > 0 ? hw : DEFAULT_HAND_WIDTH_CM,
+        userArmLengthCm: al > 0 ? al : DEFAULT_ARM_LENGTH_CM,
+      });
+    }
   };
 
   selectionChange = (index: number) => {
@@ -732,6 +753,18 @@ export default class Record extends Component<Props, State> {
                 />
               </View>
             )}
+          {/* Fist reference overlay (Record mode only) */}
+          {this.state.calledFrom === 'Record' && this.state.missRadiusPx > 0 && (
+            <FistOverlay
+              containerWidth={this.state.containerWidth}
+              containerHeight={this.state.containerHeight}
+              missRadiusPx={this.state.missRadiusPx}
+              missRadius={Number(this.state.missRadius)}
+              targetDistance={Number(this.state.targetDistance)}
+              handWidthCm={this.state.userHandWidthCm}
+              armLengthCm={this.state.userArmLengthCm}
+            />
+          )}
         </TouchableOpacity>
 
         {/* Floating draggable picker button */}
