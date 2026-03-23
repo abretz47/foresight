@@ -23,6 +23,8 @@ interface Props {
 interface State {
   age: string;
   handicap: string;
+  /** 'imperial' = yards / inches (default);  'metric' = metres / cm */
+  units: 'imperial' | 'metric';
   handWidth: string;
   armLength: string;
   showHandInfoModal: boolean;
@@ -143,6 +145,7 @@ export default class UserSetup extends Component<Props, State> {
     this.state = {
       age: '',
       handicap: '',
+      units: 'imperial',
       handWidth: '',
       armLength: '',
       showHandInfoModal: false,
@@ -160,6 +163,7 @@ export default class UserSetup extends Component<Props, State> {
       this.setState({
         age: profile.age ?? '',
         handicap: profile.handicap ?? '',
+        units: profile.units ?? 'imperial',
         handWidth: profile.handWidth ?? '',
         armLength: profile.armLength ?? '',
       });
@@ -169,11 +173,12 @@ export default class UserSetup extends Component<Props, State> {
   handleSave = async () => {
     const user = this.props.route.params?.user ?? '';
     const fistOnly = this.props.route.params?.fistOnly ?? false;
-    const { age, handicap, handWidth, armLength } = this.state;
+    const { age, handicap, units, handWidth, armLength } = this.state;
 
     const profile: DB.UserProfile = {
       age: age.trim() || undefined,
       handicap: handicap.trim() || undefined,
+      units,
       handWidth: handWidth.trim() || undefined,
       armLength: armLength.trim() || undefined,
     };
@@ -212,6 +217,7 @@ export default class UserSetup extends Component<Props, State> {
     const {
       age,
       handicap,
+      units,
       handWidth,
       armLength,
       showHandcapInfoModal,
@@ -220,6 +226,11 @@ export default class UserSetup extends Component<Props, State> {
       showHandDiagramModal,
       showArmDiagramModal,
     } = this.state;
+
+    const isImperial = units === 'imperial';
+    const unitLabel = isImperial ? 'in' : 'cm';
+    const handPlaceholder = isImperial ? 'e.g. 3.0' : 'e.g. 7.5';
+    const armPlaceholder = isImperial ? 'e.g. 24' : 'e.g. 60';
 
     const fistOnly = this.props.route.params?.fistOnly ?? false;
 
@@ -238,6 +249,29 @@ export default class UserSetup extends Component<Props, State> {
               ? 'Enter your arm and hand measurements so fist markers can be shown on your shot views.'
               : 'Help us personalize your experience. All fields are optional.'}
           </Text>
+        </View>
+
+        {/* ── Section 0: Units preference ───────────────────────────────── */}
+        <View style={[styles.card, usStyles.sectionCard]}>
+          <Text style={usStyles.sectionTitle}>Measurement Units</Text>
+          <View style={usStyles.unitsToggleRow}>
+            <TouchableOpacity
+              style={[usStyles.unitsBtn, isImperial && usStyles.unitsBtnActive]}
+              onPress={() => this.setState({ units: 'imperial' })}
+            >
+              <Text style={[usStyles.unitsBtnText, isImperial && usStyles.unitsBtnTextActive]}>
+                Yards / Inches
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[usStyles.unitsBtn, !isImperial && usStyles.unitsBtnActive]}
+              onPress={() => this.setState({ units: 'metric' })}
+            >
+              <Text style={[usStyles.unitsBtnText, !isImperial && usStyles.unitsBtnTextActive]}>
+                Metres / cm
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* ── Section 1: Golf info (hidden in fist-only mode) ───────────── */}
@@ -313,11 +347,11 @@ export default class UserSetup extends Component<Props, State> {
               style={[styles.textInput, usStyles.measureInput]}
               value={handWidth}
               onChangeText={(t) => this.setState({ handWidth: t })}
-              placeholder="e.g. 7.5"
+              placeholder={handPlaceholder}
               placeholderTextColor={COLORS.textMuted}
               keyboardType="numeric"
             />
-            <Text style={usStyles.unitLabel}>cm</Text>
+            <Text style={usStyles.unitLabel}>{unitLabel}</Text>
           </View>
         </View>
 
@@ -351,11 +385,11 @@ export default class UserSetup extends Component<Props, State> {
               style={[styles.textInput, usStyles.measureInput]}
               value={armLength}
               onChangeText={(t) => this.setState({ armLength: t })}
-              placeholder="e.g. 60"
+              placeholder={armPlaceholder}
               placeholderTextColor={COLORS.textMuted}
               keyboardType="numeric"
             />
-            <Text style={usStyles.unitLabel}>cm</Text>
+            <Text style={usStyles.unitLabel}>{unitLabel}</Text>
           </View>
         </View>
 
@@ -632,6 +666,31 @@ const usStyles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.textSecondary,
     width: 30,
+  },
+  unitsToggleRow: {
+    flexDirection: 'row',
+    marginTop: 10,
+    borderRadius: 10,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  unitsBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    backgroundColor: COLORS.surfaceAlt,
+  },
+  unitsBtnActive: {
+    backgroundColor: COLORS.primaryLight,
+  },
+  unitsBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+  },
+  unitsBtnTextActive: {
+    color: COLORS.textLight,
   },
   // ── Modals ──────────────────────────────────────────────────────────────
   modalOverlay: {

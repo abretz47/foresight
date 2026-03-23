@@ -380,9 +380,13 @@ export default class Record extends Component<Props, State> {
     if (profile) {
       const hw = parseFloat(profile.handWidth ?? '');
       const al = parseFloat(profile.armLength ?? '');
+      // Convert to cm: imperial users enter inches (1 in = 2.54 cm).
+      // Profiles without a units field were saved before this feature existed
+      // and already contain cm values, so treat them as metric.
+      const toCm = profile.units === 'imperial' ? 2.54 : 1;
       this.setState({
-        userHandWidthCm: hw > 0 ? hw : DEFAULT_HAND_WIDTH_CM,
-        userArmLengthCm: al > 0 ? al : DEFAULT_ARM_LENGTH_CM,
+        userHandWidthCm: hw > 0 ? hw * toCm : DEFAULT_HAND_WIDTH_CM,
+        userArmLengthCm: al > 0 ? al * toCm : DEFAULT_ARM_LENGTH_CM,
       });
     }
   };

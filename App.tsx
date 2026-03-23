@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform } from 'react-native';
+import { Platform, Text, TouchableOpacity } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createStore } from 'redux';
@@ -14,10 +14,13 @@ import Default from './src/pages/Default';
 import HowToUse from './src/pages/HowToUse';
 import ShotDetails from './src/pages/ShotDetails';
 import UserSetup from './src/pages/UserSetup';
+import HamburgerMenu from './src/components/HamburgerMenu';
 import { COLORS } from './src/styles/styles';
+import type { RootStackParamList } from './src/types/navigation';
+import { StackNavigationProp } from '@react-navigation/stack';
 
 const store = createStore(reducer);
-const Stack = createStackNavigator();
+const Stack = createStackNavigator<RootStackParamList>();
 
 const NavTheme = {
   ...DefaultTheme,
@@ -52,7 +55,7 @@ export default function App() {
       <NavigationContainer theme={NavTheme}>
         <Stack.Navigator
           initialRouteName="Login"
-          screenOptions={{
+          screenOptions={({ navigation, route }) => ({
             headerStyle,
             headerTitleStyle,
             headerTintColor: COLORS.textLight,
@@ -61,7 +64,13 @@ export default function App() {
             // headerMode:'float' forces card mode (flex:1, overflow:hidden) so all
             // ScrollView screens scroll correctly. iOS/Android are unaffected.
             ...(Platform.OS === 'web' ? { headerMode: 'float' as const } : {}),
-          }}
+            headerRight: () => (
+              <HamburgerMenu
+                navigation={navigation as StackNavigationProp<RootStackParamList>}
+                user={(route.params as { user?: string } | undefined)?.user}
+              />
+            ),
+          })}
         >
           <Stack.Screen name="Login" component={Login} options={{ headerShown: false }} />
           <Stack.Screen
@@ -80,8 +89,38 @@ export default function App() {
             component={RecordDetailsScreen}
             options={{ title: 'Shot Selection' }}
           />
-          <Stack.Screen name="Analyze" component={Record} options={{ title: 'Analyze' }} />
-          <Stack.Screen name="Record" component={Record} options={{ title: 'Record' }} />
+          <Stack.Screen
+            name="Analyze"
+            component={Record}
+            options={({ navigation, route }) => ({
+              title: 'Analyze',
+              headerLeft: () => (
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('Home', { user: (route.params as any).user })}
+                  style={{ paddingHorizontal: 16 }}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Text style={{ color: COLORS.textLight, fontSize: 20 }}>🏠</Text>
+                </TouchableOpacity>
+              ),
+            })}
+          />
+          <Stack.Screen
+            name="Record"
+            component={Record}
+            options={({ navigation, route }) => ({
+              title: 'Record',
+              headerLeft: () => (
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('Home', { user: (route.params as any).user })}
+                  style={{ paddingHorizontal: 16 }}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Text style={{ color: COLORS.textLight, fontSize: 20 }}>🏠</Text>
+                </TouchableOpacity>
+              ),
+            })}
+          />
           <Stack.Screen name="HowToUse" component={HowToUse} options={{ title: 'How To Use' }} />
           <Stack.Screen name="Default" component={Default} />
           <Stack.Screen name="ShotDetails" component={ShotDetails} options={{ title: 'Shot Details' }} />

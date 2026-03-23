@@ -41,7 +41,6 @@ interface State {
   piTracUrl: string;
   urlModalVisible: boolean;
   urlDraft: string;
-  menuVisible: boolean;
   clubCards: ClubCardData[];
   loading: boolean;
 }
@@ -72,7 +71,6 @@ export default class HomeScreen extends Component<Props, State> {
       piTracUrl: PiTracService.getUrl() ?? PiTracService.buildWsUrl('pitrac.local'),
       urlModalVisible: false,
       urlDraft: '',
-      menuVisible: false,
       clubCards: [],
       loading: true,
     };
@@ -238,40 +236,7 @@ export default class HomeScreen extends Component<Props, State> {
     this.setState({ piTracUrl: url, urlModalVisible: false, piTracDetected: true });
   };
 
-  // ── Record navigation ──────────────────────────────────────────────────
-
-  navigateToRecord = (calledFrom: 'Record' | 'Analyze') => {
-    const user = this.props.route.params?.user ?? 'local_user';
-    const { navigate } = this.props.navigation;
-    let navigated = false;
-    const promise = DB.getShotProfile(user, (shots) => {
-      navigated = true;
-      const firstShot = shots[0];
-      navigate(calledFrom, {
-        user,
-        id: firstShot.id,
-        shotName: firstShot.name,
-        targetDistance: firstShot.distance,
-        targetRadius: firstShot.targetRadius,
-        missRadius: firstShot.missRadius,
-        calledFrom,
-      });
-    });
-    void promise.then(() => {
-      if (!navigated) {
-        Alert.alert(
-          'No Shot Profiles Found',
-          'Please create at least one shot profile before recording or analyzing data.',
-          [
-            { text: 'Go to Shot Profile', onPress: () => navigate('ShotProfile', { user }) },
-            { text: 'Cancel', style: 'cancel' },
-          ]
-        );
-      }
-    });
-  };
-
-  // ── Render helpers ─────────────────────────────────────────────────────
+    // ── Render helpers ─────────────────────────────────────────────────────
 
   private renderClubCard = ({ item }: ListRenderItemInfo<ClubCardData>) => {
     const { navigate } = this.props.navigation;
@@ -321,26 +286,18 @@ export default class HomeScreen extends Component<Props, State> {
       piTracUrl,
       urlModalVisible,
       urlDraft,
-      menuVisible,
       clubCards,
       loading,
     } = this.state;
 
     return (
       <View style={styles.template}>
-        {/* Header with hamburger */}
+        {/* Header */}
         <View style={homeStyles.header}>
           <View style={homeStyles.headerLeft}>
             <EmojiText style={homeStyles.greeting}>Hello, {user} 👋</EmojiText>
             <Text style={homeStyles.headerSub}>Tap a club to review its dispersion</Text>
           </View>
-          <TouchableOpacity
-            style={homeStyles.hamburgerBtn}
-            onPress={() => this.setState({ menuVisible: true })}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Text style={homeStyles.hamburgerIcon}>☰</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Club cards list — 2-column grid */}
@@ -428,80 +385,6 @@ export default class HomeScreen extends Component<Props, State> {
             ) : null
           }
         />
-
-        {/* Logout bar is now inside the hamburger menu */}
-
-        {/* Hamburger menu modal */}
-        <Modal
-          visible={menuVisible}
-          transparent
-          animationType="fade"
-          onRequestClose={() => this.setState({ menuVisible: false })}
-        >
-          <TouchableOpacity
-            style={homeStyles.menuOverlay}
-            activeOpacity={1}
-            onPress={() => this.setState({ menuVisible: false })}
-          >
-            <View style={homeStyles.menuBox}>
-              <Text style={homeStyles.menuTitle}>Menu</Text>
-              {[
-                {
-                  icon: '🏌️',
-                  label: 'Shot Profile',
-                  onPress: () => {
-                    this.setState({ menuVisible: false });
-                    navigate('ShotProfile', { user });
-                  },
-                },
-                {
-                  icon: '📍',
-                  label: 'Record Data',
-                  onPress: () => {
-                    this.setState({ menuVisible: false });
-                    this.navigateToRecord('Record');
-                  },
-                },
-                {
-                  icon: '📊',
-                  label: 'Analyze Data',
-                  onPress: () => {
-                    this.setState({ menuVisible: false });
-                    this.navigateToRecord('Analyze');
-                  },
-                },
-                {
-                  icon: '❓',
-                  label: 'How To Use',
-                  onPress: () => {
-                    this.setState({ menuVisible: false });
-                    navigate('HowToUse');
-                  },
-                },
-                {
-                  icon: '🚪',
-                  label: 'Log Out',
-                  onPress: () => {
-                    this.setState({ menuVisible: false });
-                    navigate('Login');
-                  },
-                },
-              ].map((item) => (
-                <TouchableOpacity key={item.label} style={homeStyles.menuItem} onPress={item.onPress}>
-                  <EmojiText style={homeStyles.menuItemIcon}>{item.icon}</EmojiText>
-                  <Text style={homeStyles.menuItemLabel}>{item.label}</Text>
-                  <Text style={homeStyles.menuItemChevron}>›</Text>
-                </TouchableOpacity>
-              ))}
-              <TouchableOpacity
-                style={homeStyles.menuCloseBtn}
-                onPress={() => this.setState({ menuVisible: false })}
-              >
-                <Text style={homeStyles.menuCloseBtnText}>Close</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        </Modal>
 
         {/* PiTrac URL-entry modal */}
         {PITRAC_ENABLED && (

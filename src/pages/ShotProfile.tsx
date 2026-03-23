@@ -21,6 +21,7 @@ interface State {
   targetDistance: string;
   targetRadius: string;
   missRadius: string;
+  units: 'imperial' | 'metric';
   handWidth: string;
   armLength: string;
 }
@@ -38,6 +39,7 @@ export default class ShotProfile extends Component<Props, State> {
       targetDistance: '',
       targetRadius: '',
       missRadius: '',
+      units: 'imperial',
       handWidth: '',
       armLength: '',
     };
@@ -149,6 +151,7 @@ export default class ShotProfile extends Component<Props, State> {
     const profile = await DB.getUserProfile(user);
     if (profile) {
       this.setState({
+        units: profile.units ?? 'imperial',
         handWidth: profile.handWidth ?? '',
         armLength: profile.armLength ?? '',
       });
@@ -266,23 +269,27 @@ export default class ShotProfile extends Component<Props, State> {
           </Text>
           <View style={spStyles.fieldRow}>
             <View style={spStyles.fieldCol}>
-              <Text style={styles.label}>Hand Width (cm)</Text>
+              <Text style={styles.label}>
+                Hand Width ({this.state.units === 'imperial' ? 'in' : 'cm'})
+              </Text>
               <TextInput
                 value={this.state.handWidth}
                 style={styles.textInput}
                 onChangeText={(text) => this.setState({ handWidth: text })}
-                placeholder="e.g. 7.5"
+                placeholder={this.state.units === 'imperial' ? 'e.g. 3.0' : 'e.g. 7.5'}
                 placeholderTextColor={COLORS.textMuted}
                 keyboardType="numeric"
               />
             </View>
             <View style={spStyles.fieldCol}>
-              <Text style={styles.label}>Arm Length (cm)</Text>
+              <Text style={styles.label}>
+                Arm Length ({this.state.units === 'imperial' ? 'in' : 'cm'})
+              </Text>
               <TextInput
                 value={this.state.armLength}
                 style={styles.textInput}
                 onChangeText={(text) => this.setState({ armLength: text })}
-                placeholder="e.g. 60"
+                placeholder={this.state.units === 'imperial' ? 'e.g. 24' : 'e.g. 60'}
                 placeholderTextColor={COLORS.textMuted}
                 keyboardType="numeric"
               />

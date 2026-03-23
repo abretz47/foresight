@@ -57,7 +57,7 @@ const FIST_OPACITY = 0.55;
 /** Fist icon fill colour (semi-transparent dark). */
 const FIST_COLOR = COLORS.accent;
 /** Maximum number of fist markers to display. */
-const MAX_FISTS = 8;
+const MAX_FISTS = 3;
 
 export default function FistOverlay({
   containerWidth,

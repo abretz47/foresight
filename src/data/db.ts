@@ -34,9 +34,11 @@ export interface UserProfile {
   age?: string;
   /** Golf handicap / index (numeric string, e.g. "12"). */
   handicap?: string;
-  /** Hand width in cm (ring-finger knuckle → pinky knuckle, fist closed). */
+  /** Preferred unit system: 'imperial' (yards/inches) or 'metric' (metres/cm). Defaults to 'imperial' for new users. */
+  units?: 'imperial' | 'metric';
+  /** Hand width in the user's chosen unit (inches if imperial, cm if metric). */
   handWidth?: string;
-  /** Arm length in cm (palm base → inside shoulder). */
+  /** Arm length in the user's chosen unit (inches if imperial, cm if metric). */
   armLength?: string;
 }
 
