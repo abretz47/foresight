@@ -184,6 +184,7 @@ export default class UserSetup extends Component<Props, State> {
 
   handleSave = async () => {
     const user = this.props.route.params?.user ?? '';
+    const fistOnly = this.props.route.params?.fistOnly ?? false;
     const { age, handicap, handWidth, armLength } = this.state;
 
     const profile: DB.UserProfile = {
@@ -195,10 +196,12 @@ export default class UserSetup extends Component<Props, State> {
 
     await DB.saveUserProfile(user, profile);
 
-    // Initialize default shot profiles using handicap/age if no clubs exist yet.
-    const handicapNum = handicap.trim() ? parseFloat(handicap.trim()) : null;
-    const ageNum = age.trim() ? parseInt(age.trim(), 10) : null;
-    await DB.initializeDefaultProfiles(user, handicapNum, ageNum);
+    if (!fistOnly) {
+      // Initialize default shot profiles using handicap/age if no clubs exist yet.
+      const handicapNum = handicap.trim() ? parseFloat(handicap.trim()) : null;
+      const ageNum = age.trim() ? parseInt(age.trim(), 10) : null;
+      await DB.initializeDefaultProfiles(user, handicapNum, ageNum);
+    }
 
     await SessionService.continueOrStartSession(user);
     this.props.navigation.navigate('Home', { user });
@@ -206,6 +209,14 @@ export default class UserSetup extends Component<Props, State> {
 
   handleSkip = async () => {
     const user = this.props.route.params?.user ?? '';
+    const fistOnly = this.props.route.params?.fistOnly ?? false;
+
+    if (fistOnly) {
+      // In fist-only mode just return to Home; leave the existing profile intact.
+      this.props.navigation.navigate('Home', { user });
+      return;
+    }
+
     // Save an empty profile so we don't show this screen again.
     await DB.saveUserProfile(user, {});
     await DB.initializeDefaultProfiles(user);
@@ -226,6 +237,8 @@ export default class UserSetup extends Component<Props, State> {
       showArmDiagramModal,
     } = this.state;
 
+    const fistOnly = this.props.route.params?.fistOnly ?? false;
+
     return (
       <KeyboardAwareScrollView
         style={[styles.container, { backgroundColor: COLORS.background }]}
@@ -237,11 +250,14 @@ export default class UserSetup extends Component<Props, State> {
         <View style={usStyles.header}>
           <Text style={usStyles.headerTitle}>Player Profile</Text>
           <Text style={usStyles.headerSubtitle}>
-            Help us personalize your experience. All fields are optional.
+            {fistOnly
+              ? 'Enter your arm and hand measurements so fist markers can be shown on your shot views.'
+              : 'Help us personalize your experience. All fields are optional.'}
           </Text>
         </View>
 
-        {/* ── Section 1: Golf info ──────────────────────────────────────── */}
+        {/* ── Section 1: Golf info (hidden in fist-only mode) ───────────── */}
+        {!fistOnly && (
         <View style={[styles.card, usStyles.sectionCard]}>
           <View style={usStyles.sectionTitleRow}>
             <Text style={usStyles.sectionTitle}>Golf Information</Text>
@@ -281,6 +297,7 @@ export default class UserSetup extends Component<Props, State> {
             Used to pre-select your starting shot distances. Not required — a standard set will be chosen if left blank.
           </Text>
         </View>
+        )}
 
         {/* ── Section 2: Hand width ─────────────────────────────────────── */}
         <View style={[styles.card, usStyles.sectionCard]}>

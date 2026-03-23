@@ -86,6 +86,8 @@ export default class HomeScreen extends Component<Props, State> {
       this.loadClubCards();
     });
 
+    this.checkFistSetup(user);
+
     if (PITRAC_ENABLED) {
       this.unsubConnection = PiTracService.addConnectionListener((connected) => {
         this.setState({ piTracConnected: connected });
@@ -112,6 +114,19 @@ export default class HomeScreen extends Component<Props, State> {
     if (this.focusListener) this.focusListener();
     this.stopPulse();
   }
+
+  // ── Fist-setup redirect ──────────────────────────────────────────────────
+
+  /** Redirect to UserSetup (fist-only mode) when the user has a shot profile
+   *  but hasn't entered arm/hand measurements yet. */
+  private checkFistSetup = async (user: string) => {
+    const profile = await DB.getUserProfile(user);
+    if (!profile || (profile.handWidth && profile.armLength)) return;
+    const clubs = await DB.getShotProfileAsync(user);
+    if (clubs.length > 0) {
+      this.props.navigation.navigate('UserSetup', { user, fistOnly: true });
+    }
+  };
 
   // ── Club cards ──────────────────────────────────────────────────────────
 

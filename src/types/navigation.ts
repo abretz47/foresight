@@ -4,7 +4,7 @@ import { RouteProp } from '@react-navigation/native';
 export type RootStackParamList = {
   Login: undefined;
   Home: { user: string };
-  UserSetup: { user: string };
+  UserSetup: { user: string; fistOnly?: boolean };
   ShotProfile: { user: string; selectedClubId?: string };
   RecordDetails: { calledFrom: string; user: string };
   Analyze: {
