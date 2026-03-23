@@ -6,6 +6,7 @@ import { styles, COLORS } from '../styles/styles';
 import { LoginNavigationProp } from '../types/navigation';
 import { getUsers } from '../data/db';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import * as DB from '../data/db';
 import EmojiText from '../components/EmojiText';
 import * as SessionService from '../lib/sessionService';
 
@@ -78,18 +79,11 @@ class Login extends Component<Props, State> {
 
   async componentDidMount() {
     // Reset transient UI state every time this screen comes into focus.
-    // This handles the logout → Login navigation case where the component
-    // stays mounted and isLoading/cloudError from the previous sign-in are
-    // still set, leaving the button stuck in its disabled/spinning state.
-    // On the initial mount focus this is a no-op (both fields start at their
-    // default values), so there is no unnecessary re-render.
     this._focusUnsubscribe = this.props.navigation.addListener('focus', () => {
       this.setState({ isLoading: false, cloudError: '' });
     });
 
-    // If Supabase is configured, check whether a valid session is already
-    // stored in AsyncStorage (the sb-*-auth-token persisted by the SDK).
-    // Navigate straight to Home on success; any error falls through to local login.
+    // If Supabase is configured, check whether a valid session is already stored.
     if (supabase) {
       try {
         const { data } = await supabase.auth.getSession();
@@ -103,8 +97,6 @@ class Login extends Component<Props, State> {
           return;
         }
       } catch (e) {
-        // Supabase host unreachable or token refresh failed – fall through to
-        // show the normal login form so Local mode still works.
         console.warn('[Foresight] Session restore failed, showing login form:', e);
       }
     }
@@ -124,7 +116,13 @@ class Login extends Component<Props, State> {
       alert('Please enter your name to continue.');
       return;
     }
-    // Ensure a session is always active so every shot is tagged automatically.
+    // Check whether the user has already completed the profile setup.
+    const hasProfile = await DB.hasUserProfile(username);
+    if (!hasProfile) {
+      this.props.navigation.navigate('UserSetup', { user: username });
+      return;
+    }
+    // Returning user: continue/start session and go straight to Home.
     await SessionService.continueOrStartSession(username);
     this.props.navigation.navigate('Home', { user: username });
   };
