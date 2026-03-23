@@ -5,6 +5,7 @@ import { getUser } from '../../reducer';
 import { styles, COLORS } from '../styles/styles';
 import { LoginNavigationProp } from '../types/navigation';
 import { getUsers } from '../data/db';
+import * as DB from '../data/db';
 import EmojiText from '../components/EmojiText';
 import * as SessionService from '../lib/sessionService';
 
@@ -44,7 +45,15 @@ class Login extends Component<Props, State> {
       alert('Please enter your name to continue.');
       return;
     }
-    // Ensure a session is always active so every shot is tagged automatically.
+    // Check whether the user has already completed the profile setup.
+    const hasProfile = await DB.hasUserProfile(username);
+    if (!hasProfile) {
+      // First-time user: send to the profile setup screen.
+      // Session will be started after profile setup completes.
+      this.props.navigation.navigate('UserSetup', { user: username });
+      return;
+    }
+    // Returning user: continue/start session and go straight to Home.
     await SessionService.continueOrStartSession(username);
     this.props.navigation.navigate('Home', { user: username });
   };

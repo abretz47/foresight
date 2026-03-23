@@ -3,7 +3,7 @@ import { Text, View, TextInput, Alert, TouchableOpacity, StyleSheet } from 'reac
 import { Picker } from '@react-native-picker/picker';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import * as DB from '../data/db';
-import { ShotProfile as ShotProfileData } from '../data/db';
+import { ShotProfile as ShotProfileData, UserProfile } from '../data/db';
 import { styles, COLORS } from '../styles/styles';
 import { ShotProfileNavigationProp, ShotProfileRouteProp } from '../types/navigation';
 
@@ -21,6 +21,8 @@ interface State {
   targetDistance: string;
   targetRadius: string;
   missRadius: string;
+  handWidth: string;
+  armLength: string;
 }
 
 export default class ShotProfile extends Component<Props, State> {
@@ -36,6 +38,8 @@ export default class ShotProfile extends Component<Props, State> {
       targetDistance: '',
       targetRadius: '',
       missRadius: '',
+      handWidth: '',
+      armLength: '',
     };
   }
 
@@ -43,6 +47,7 @@ export default class ShotProfile extends Component<Props, State> {
     const { navigation } = this.props;
     this.focusListener = navigation.addListener('focus', () => {
       this.getShotProfile();
+      this.loadUserProfile();
     });
   }
 
@@ -139,6 +144,28 @@ export default class ShotProfile extends Component<Props, State> {
     this.setState({ id: '', shotName: '', targetDistance: '', targetRadius: '', missRadius: '' });
   };
 
+  loadUserProfile = async () => {
+    const user = this.props.route.params?.user ?? '';
+    const profile = await DB.getUserProfile(user);
+    if (profile) {
+      this.setState({
+        handWidth: profile.handWidth ?? '',
+        armLength: profile.armLength ?? '',
+      });
+    }
+  };
+
+  saveMeasurements = async () => {
+    const user = this.props.route.params?.user ?? '';
+    const existing = (await DB.getUserProfile(user)) ?? {};
+    await DB.saveUserProfile(user, {
+      ...existing,
+      handWidth: this.state.handWidth.trim() || undefined,
+      armLength: this.state.armLength.trim() || undefined,
+    });
+    Alert.alert('Saved', 'Body measurements updated.');
+  };
+
   render() {
     return (
       <KeyboardAwareScrollView
@@ -230,6 +257,41 @@ export default class ShotProfile extends Component<Props, State> {
             <Text style={styles.buttonLabelLight}>Save Shot</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Body measurements card */}
+        <View style={[styles.card, spStyles.sectionCard]}>
+          <Text style={spStyles.sectionTitle}>Body Measurements</Text>
+          <Text style={spStyles.measureHint}>
+            Used to reference left/right distances from far away.
+          </Text>
+          <View style={spStyles.fieldRow}>
+            <View style={spStyles.fieldCol}>
+              <Text style={styles.label}>Hand Width (cm)</Text>
+              <TextInput
+                value={this.state.handWidth}
+                style={styles.textInput}
+                onChangeText={(text) => this.setState({ handWidth: text })}
+                placeholder="e.g. 7.5"
+                placeholderTextColor={COLORS.textMuted}
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={spStyles.fieldCol}>
+              <Text style={styles.label}>Arm Length (cm)</Text>
+              <TextInput
+                value={this.state.armLength}
+                style={styles.textInput}
+                onChangeText={(text) => this.setState({ armLength: text })}
+                placeholder="e.g. 60"
+                placeholderTextColor={COLORS.textMuted}
+                keyboardType="numeric"
+              />
+            </View>
+          </View>
+          <TouchableOpacity style={[styles.buttonPrimary, { marginHorizontal: 0 }]} onPress={this.saveMeasurements}>
+            <Text style={styles.buttonLabelLight}>Save Measurements</Text>
+          </TouchableOpacity>
+        </View>
       </KeyboardAwareScrollView>
     );
   }
@@ -267,5 +329,11 @@ const spStyles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 6,
     marginBottom: 12,
+  },
+  measureHint: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginBottom: 12,
+    lineHeight: 17,
   },
 });

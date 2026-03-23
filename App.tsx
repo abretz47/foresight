@@ -13,6 +13,7 @@ import RecordDetailsScreen from './src/pages/RecordDetailsScreen';
 import Default from './src/pages/Default';
 import HowToUse from './src/pages/HowToUse';
 import ShotDetails from './src/pages/ShotDetails';
+import UserSetup from './src/pages/UserSetup';
 import { COLORS } from './src/styles/styles';
 
 const store = createStore(reducer);
@@ -67,6 +68,11 @@ export default function App() {
             name="Home"
             component={HomeScreen}
             options={{ title: 'Foresight', headerLeft: () => null }}
+          />
+          <Stack.Screen
+            name="UserSetup"
+            component={UserSetup}
+            options={{ title: 'Player Profile', headerLeft: () => null }}
           />
           <Stack.Screen name="ShotProfile" component={ShotProfile} options={{ title: 'Shot Profile' }} />
           <Stack.Screen
