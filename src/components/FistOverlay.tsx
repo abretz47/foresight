@@ -20,39 +20,41 @@ import { View } from 'react-native';
 import Svg, { G, Path, Circle, Text as SvgText } from 'react-native-svg';
 import { COLORS } from '../styles/styles'
 
-// ── Tiny fist silhouette SVG ────────────────────────────────────────────────
-// Drawn in a 32×32 viewport, filled solid.
+// ── Fist silhouette SVG ─────────────────────────────────────────────────────
+// Drawn in a 40×52 viewport: four knuckled fingers + folded thumb + palm.
+// All four fingers share a flat top row (knuckle bumps) and taper to the palm.
 function FistSvg({ size, color }: { size: number; color: string }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 32 32">
-      {/* Palm base */}
+    <Svg width={size} height={size * 1.3} viewBox="0 0 40 52">
+      {/* ── Palm / base of hand ── */}
       <Path
-        d="M8,26 Q7,30 12,31 Q16,32 20,31 Q25,30 24,26"
+        d="M5,35 L5,45 Q5,50 10,50 L30,50 Q35,50 35,45 L35,35 Z"
         fill={color}
       />
-      {/* Index finger */}
+      {/* ── Four fingers as a single flat-top block with rounded knuckle bumps ── */}
+      {/* Index */}
       <Path
-        d="M11,26 L10,16 Q10,12 13,12 Q16,12 16,16 L16,26"
+        d="M7,35 L7,18 Q7,13 11,13 Q15,13 15,18 L15,35 Z"
         fill={color}
       />
-      {/* Middle finger */}
+      {/* Middle (tallest) */}
       <Path
-        d="M16,26 L15,13 Q15,9 18,9 Q21,9 21,13 L21,26"
+        d="M15,35 L15,14 Q15,9 19,9 Q23,9 23,14 L23,35 Z"
         fill={color}
       />
-      {/* Ring finger */}
+      {/* Ring */}
       <Path
-        d="M21,26 L20,15 Q20,11 23,11 Q26,11 26,15 L26,26"
+        d="M23,35 L23,17 Q23,12 27,12 Q31,12 31,17 L31,35 Z"
         fill={color}
       />
-      {/* Pinky finger */}
+      {/* Pinky */}
       <Path
-        d="M26,26 L24,19 Q24,15 27,15 Q30,15 30,19 L29,26"
+        d="M31,35 L31,21 Q31,17 34,17 Q37,17 37,21 L37,35 Z"
         fill={color}
       />
-      {/* Thumb (folded across) */}
+      {/* ── Thumb folded across the front of the fingers ── */}
       <Path
-        d="M8,26 Q6,22 8,18 Q10,14 13,14 Q14,16 12,18 L11,26"
+        d="M5,35 Q3,32 4,27 Q5,22 9,20 Q13,18 14,22 Q11,24 10,28 L9,35 Z"
         fill={color}
       />
     </Svg>
@@ -87,8 +89,8 @@ export interface FistOverlayProps {
 export const DEFAULT_HAND_WIDTH_CM = 8;
 export const DEFAULT_ARM_LENGTH_CM = 60;
 
-/** Pixel size of each fist icon. */
-const FIST_SIZE = 28;
+/** Pixel width of each fist icon (height = size * 1.3 to accommodate the taller viewport). */
+const FIST_SIZE = 56;
 /** Opacity of the fist icons. */
 const FIST_OPACITY = 0.55;
 /** Fist icon fill colour (semi-transparent dark). */
@@ -136,6 +138,11 @@ export default function FistOverlay({
 
   if (positions.length === 0) return null;
 
+  /** Height of the fist SVG in pixels (viewBox is taller than it is wide). */
+  const FIST_HEIGHT = FIST_SIZE * 1.3;
+  /** Height of the numeric label SVG below the fist. */
+  const LABEL_HEIGHT = 20;
+
   return (
     <>
       {positions.map(({ n, centerX: fx }) => (
@@ -145,9 +152,9 @@ export default function FistOverlay({
           style={{
             position: 'absolute',
             left: fx - FIST_SIZE / 2,
-            top: centerY - FIST_SIZE / 2,
+            top: centerY - FIST_HEIGHT / 2,
             width: FIST_SIZE,
-            height: FIST_SIZE,
+            height: FIST_HEIGHT + LABEL_HEIGHT,
             opacity: FIST_OPACITY,
             zIndex: 4,
             alignItems: 'center',
@@ -157,14 +164,13 @@ export default function FistOverlay({
           {/* Numeric label below the fist */}
           <Svg
             width={FIST_SIZE}
-            height={14}
-            style={{ position: 'absolute', top: FIST_SIZE - 2 }}
+            height={LABEL_HEIGHT}
           >
             <SvgText
               x={FIST_SIZE / 2}
-              y={11}
+              y={15}
               textAnchor="middle"
-              fontSize="10"
+              fontSize="14"
               fontWeight="700"
               fill={FIST_COLOR}
             >
