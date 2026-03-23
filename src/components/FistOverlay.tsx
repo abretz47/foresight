@@ -16,56 +16,17 @@
  * Negative relX = left side of circle.
  */
 import React from 'react';
-import { View } from 'react-native';
-import Svg, { G, Path, Circle, Text as SvgText } from 'react-native-svg';
+import { View, Text } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS } from '../styles/styles'
-
-// ── Fist silhouette SVG ─────────────────────────────────────────────────────
-// Drawn in a 40×52 viewport: four knuckled fingers + folded thumb + palm.
-// All four fingers share a flat top row (knuckle bumps) and taper to the palm.
-function FistSvg({ size, color }: { size: number; color: string }) {
-  return (
-    <Svg width={size} height={size * 1.3} viewBox="0 0 40 52">
-      {/* ── Palm / base of hand ── */}
-      <Path
-        d="M5,35 L5,45 Q5,50 10,50 L30,50 Q35,50 35,45 L35,35 Z"
-        fill={color}
-      />
-      {/* ── Four fingers as a single flat-top block with rounded knuckle bumps ── */}
-      {/* Index */}
-      <Path
-        d="M7,35 L7,18 Q7,13 11,13 Q15,13 15,18 L15,35 Z"
-        fill={color}
-      />
-      {/* Middle (tallest) */}
-      <Path
-        d="M15,35 L15,14 Q15,9 19,9 Q23,9 23,14 L23,35 Z"
-        fill={color}
-      />
-      {/* Ring */}
-      <Path
-        d="M23,35 L23,17 Q23,12 27,12 Q31,12 31,17 L31,35 Z"
-        fill={color}
-      />
-      {/* Pinky */}
-      <Path
-        d="M31,35 L31,21 Q31,17 34,17 Q37,17 37,21 L37,35 Z"
-        fill={color}
-      />
-      {/* ── Thumb folded across the front of the fingers ── */}
-      <Path
-        d="M5,35 Q3,32 4,27 Q5,22 9,20 Q13,18 14,22 Q11,24 10,28 L9,35 Z"
-        fill={color}
-      />
-    </Svg>
-  );
-}
 
 interface FistPosition {
   /** 1-based fist index */
   n: number;
   /** pixel X position of the fist CENTER within the container */
   centerX: number;
+  /** lateral distance in yards for this fist count */
+  lateralYards: number;
 }
 
 export interface FistOverlayProps {
@@ -133,52 +94,59 @@ export default function FistOverlay({
     // Stop once we've gone more than 10% beyond the miss circle edge
     if (relX < -1.1) break;
 
-    positions.push({ n, centerX: centerX + relX * missRadiusPx });
+    positions.push({ n, centerX: centerX + relX * missRadiusPx, lateralYards });
   }
 
   if (positions.length === 0) return null;
 
-  /** Height of the fist SVG in pixels (viewBox is taller than it is wide). */
-  const FIST_HEIGHT = FIST_SIZE * 1.3;
-  /** Height of the numeric label SVG below the fist. */
-  const LABEL_HEIGHT = 20;
+  /** Height of the fist icon in pixels. */
+  const FIST_HEIGHT = FIST_SIZE;
+  /** Width of the label container — wide enough for "8 fists = 99.9yds" */
+  const LABEL_WIDTH = 110;
+  /** Height of the label. */
+  const LABEL_HEIGHT = 18;
 
   return (
     <>
-      {positions.map(({ n, centerX: fx }) => (
-        <View
-          key={n}
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            left: fx - FIST_SIZE / 2,
-            top: centerY - FIST_HEIGHT / 2,
-            width: FIST_SIZE,
-            height: FIST_HEIGHT + LABEL_HEIGHT,
-            opacity: FIST_OPACITY,
-            zIndex: 4,
-            alignItems: 'center',
-          }}
-        >
-          <FistSvg size={FIST_SIZE} color={FIST_COLOR} />
-          {/* Numeric label below the fist */}
-          <Svg
-            width={FIST_SIZE}
-            height={LABEL_HEIGHT}
+      {positions.map(({ n, centerX: fx, lateralYards }) => {
+        const distLabel = `${lateralYards.toFixed(1)}yds`;
+        const label = n === 1
+          ? `1 fist = ${distLabel}`
+          : `${n} fists = ${distLabel}`;
+        return (
+          <View
+            key={n}
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              left: fx - LABEL_WIDTH / 2,
+              top: centerY - (FIST_HEIGHT + LABEL_HEIGHT) / 2,
+              width: LABEL_WIDTH,
+              height: FIST_HEIGHT + LABEL_HEIGHT,
+              opacity: FIST_OPACITY,
+              zIndex: 4,
+              alignItems: 'center',
+            }}
           >
-            <SvgText
-              x={FIST_SIZE / 2}
-              y={15}
-              textAnchor="middle"
-              fontSize="14"
-              fontWeight="700"
-              fill={FIST_COLOR}
+            <MaterialCommunityIcons
+              name="hand-back-right"
+              size={FIST_SIZE}
+              color={FIST_COLOR}
+            />
+            <Text
+              style={{
+                color: FIST_COLOR,
+                fontSize: 11,
+                fontWeight: '700',
+                textAlign: 'center',
+                lineHeight: LABEL_HEIGHT,
+              }}
             >
-              {n}
-            </SvgText>
-          </Svg>
-        </View>
-      ))}
+              {label}
+            </Text>
+          </View>
+        );
+      })}
     </>
   );
 }
