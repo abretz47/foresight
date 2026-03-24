@@ -1,0 +1,50 @@
+# Default shot profile for low-handicap golfers (handicap 10–18)
+shots:
+  - name: Driver
+    distance: "250"
+    targetRadius: "13"
+    missRadius: "42"
+  - name: 3 Wood
+    distance: "225"
+    targetRadius: "12"
+    missRadius: "36"
+  - name: 5 Wood
+    distance: "210"
+    targetRadius: "11"
+    missRadius: "32"
+  - name: 3 Iron
+    distance: "200"
+    targetRadius: "10"
+    missRadius: "30"
+  - name: 4 Iron
+    distance: "190"
+    targetRadius: "10"
+    missRadius: "28"
+  - name: 5 Iron
+    distance: "180"
+    targetRadius: "9"
+    missRadius: "25"
+  - name: 6 Iron
+    distance: "168"
+    targetRadius: "8"
+    missRadius: "22"
+  - name: 7 Iron
+    distance: "156"
+    targetRadius: "8"
+    missRadius: "20"
+  - name: 8 Iron
+    distance: "143"
+    targetRadius: "7"
+    missRadius: "18"
+  - name: 9 Iron
+    distance: "130"
+    targetRadius: "6"
+    missRadius: "16"
+  - name: PW
+    distance: "115"
+    targetRadius: "5"
+    missRadius: "14"
+  - name: SW
+    distance: "85"
+    targetRadius: "4"
+    missRadius: "12"
