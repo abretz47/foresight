@@ -13,6 +13,7 @@ import EmojiText from '../components/EmojiText';
 import * as SessionService from '../lib/sessionService';
 import { computeDispersionHull } from '../lib/dispersion';
 import DispersionPolygon from '../components/DispersionPolygon';
+import FistOverlay, { DEFAULT_HAND_WIDTH_CM, DEFAULT_ARM_LENGTH_CM } from '../components/FistOverlay';
 
 /** Metres to yards conversion factor */
 const M_TO_YD = 1.09361;
@@ -57,6 +58,12 @@ interface State {
   showDispersionOverlay: boolean;
   /** pre-computed dispersion hull for the current data set (overlay) */
   dispersionHull: import('../lib/dispersion').Point[];
+  /** User's hand width in cm (from profile, else DEFAULT_HAND_WIDTH_CM) */
+  userHandWidthCm: number;
+  /** User's arm length in cm (from profile, else DEFAULT_ARM_LENGTH_CM) */
+  userArmLengthCm: number;
+  /** Preferred unit system loaded from user profile */
+  units: 'imperial' | 'metric';
 }
 
 const CIRCLE_SIZE_RATIO = 0.7;
@@ -139,6 +146,9 @@ export default class Record extends Component<Props, State> {
       piTracConnected: PiTracService.isConnected(),
       showDispersionOverlay: false,
       dispersionHull: [],
+      userHandWidthCm: DEFAULT_HAND_WIDTH_CM,
+      userArmLengthCm: DEFAULT_ARM_LENGTH_CM,
+      units: 'imperial',
     };
   }
 
@@ -165,6 +175,7 @@ export default class Record extends Component<Props, State> {
         () => {
           this.loadData(shotId);
           this.loadShots();
+          this.loadUserProfile();
         }
       );
     });
@@ -231,26 +242,26 @@ export default class Record extends Component<Props, State> {
    *
    * Coordinate mapping
    * ------------------
-   *  PiTrac carry  (metres) → yards → relY = (targetDistance - carryYd) / missRadius
-   *  PiTrac side_angle (deg, +right) → lateral offset → relX = lateralYd / missRadius
+   *  PiTrac carry  (metres) → user unit → relY = (targetDistance - carry) / missRadius
+   *  PiTrac side_angle (deg, +right) → lateral offset → relX = lateral / missRadius
    */
   private handlePiTracShot = (shot: PiTracShot) => {
-    const { targetDistance, missRadius, missRadiusPx, containerWidth, containerHeight } = this.state;
+    const { targetDistance, missRadius, missRadiusPx, containerWidth, containerHeight, units } = this.state;
 
     const targetDist = Number(targetDistance);
     const missR = Number(missRadius);
 
-    // Convert carry from metres to yards, guarding against invalid values
+    // Convert carry from metres to the user's preferred unit
     const rawCarry = typeof shot.carry === 'number' && isFinite(shot.carry) ? shot.carry : 0;
-    const carryYd = rawCarry * M_TO_YD;
+    const carryDist = units === 'metric' ? rawCarry : rawCarry * M_TO_YD;
 
     // Lateral offset: carry × sin(sideAngle)
     const rawSide = typeof shot.side_angle === 'number' && isFinite(shot.side_angle) ? shot.side_angle : 0;
     const sideAngleRad = (rawSide * Math.PI) / 180;
-    const lateralYd = carryYd * Math.sin(sideAngleRad);
+    const lateralDist = carryDist * Math.sin(sideAngleRad);
 
-    const relX = missR > 0 ? lateralYd / missR : 0;
-    const relY = missR > 0 ? (targetDist - carryYd) / missR : 0;
+    const relX = missR > 0 ? lateralDist / missR : 0;
+    const relY = missR > 0 ? (targetDist - carryDist) / missR : 0;
 
     const distFromCenter = Math.sqrt(relX * relX + relY * relY);
     const offTarget = distFromCenter > 1;
@@ -264,8 +275,8 @@ export default class Record extends Component<Props, State> {
     const shotY = containerHeight / 2 + relY * missRadiusPx;
 
     this.setState({
-      shotDistance: carryYd.toFixed(0),
-      shotAccuracy: lateralYd.toFixed(0),
+      shotDistance: carryDist.toFixed(0),
+      shotAccuracy: lateralDist.toFixed(0),
       shotX,
       shotY,
       relX,
@@ -366,6 +377,24 @@ export default class Record extends Component<Props, State> {
     });
   };
 
+  loadUserProfile = async () => {
+    const user = this.props.route.params?.user ?? '';
+    const profile = await DB.getUserProfile(user);
+    if (profile) {
+      const hw = parseFloat(profile.handWidth ?? '');
+      const al = parseFloat(profile.armLength ?? '');
+      // Convert to cm: imperial users enter inches (1 in = 2.54 cm).
+      // Profiles without a units field were saved before this feature existed
+      // and already contain cm values, so treat them as metric.
+      const toCm = profile.units === 'imperial' ? 2.54 : 1;
+      this.setState({
+        userHandWidthCm: hw > 0 ? hw * toCm : DEFAULT_HAND_WIDTH_CM,
+        userArmLengthCm: al > 0 ? al * toCm : DEFAULT_ARM_LENGTH_CM,
+        units: profile.units ?? 'imperial',
+      });
+    }
+  };
+
   selectionChange = (index: number) => {
     const selection = this.state.shots[index];
     if (!selection) return;
@@ -392,8 +421,9 @@ export default class Record extends Component<Props, State> {
   };
 
   render() {
-    const { piTracConnected, calledFrom } = this.state;
+    const { piTracConnected, calledFrom, units } = this.state;
     const showPiTracIndicator = PITRAC_ENABLED && piTracConnected && calledFrom === 'Record';
+    const distUnit = units === 'metric' ? 'm' : 'yds';
 
     return (
       <View style={styles.template}>
@@ -409,7 +439,7 @@ export default class Record extends Component<Props, State> {
             </View>
           ) : (
             <Text style={recordStyles.shotDistanceText}>
-              Target: {this.state.targetDistance} yds
+              Target: {this.state.targetDistance} {distUnit}
             </Text>
           )}
         </View>
@@ -561,11 +591,11 @@ export default class Record extends Component<Props, State> {
                   </Text>
                   <Text style={recordStyles.infoModalBody}>
                     {this.state.statsInfoVisible === 'left' &&
-                      'Top: % of in-play shots that landed left of centre.\nBottom: average left deviation from centre (yards).'}
+                      `Top: % of in-play shots that landed left of centre.\nBottom: average left deviation from centre (${distUnit}).`}
                     {this.state.statsInfoVisible === 'inPlay' &&
-                      'Top: % of shots that landed within the miss radius (in play).\nBottom: average carry distance of in-play shots (yards). Coloured green ≥93 %, amber <=92 %, red <85 % of target distance.'}
+                      `Top: % of shots that landed within the miss radius (in play).\nBottom: average carry distance of in-play shots (${distUnit}). Coloured green ≥93 %, amber <=92 %, red <85 % of target distance.`}
                     {this.state.statsInfoVisible === 'right' &&
-                      'Top: % of in-play shots that landed right of centre.\nBottom: average right deviation from centre (yards).'}
+                      `Top: % of in-play shots that landed right of centre.\nBottom: average right deviation from centre (${distUnit}).`}
                   </Text>
                   <TouchableOpacity style={recordStyles.infoModalClose} onPress={() => this.setState({ statsInfoVisible: null })}>
                     <Text style={styles.buttonLabelLight}>Close</Text>
@@ -695,7 +725,7 @@ export default class Record extends Component<Props, State> {
               fontWeight: '600',
             }}
           >
-            {this.state.missRadius} yds
+            {this.state.missRadius} {distUnit}
           </Text>
           {/* Data points (Analyze mode) */}
           {this.state.calledFrom === 'Analyze' &&
@@ -732,6 +762,19 @@ export default class Record extends Component<Props, State> {
                 />
               </View>
             )}
+          {/* Fist reference overlay (Record mode only) */}
+          {this.state.calledFrom === 'Record' && this.state.missRadiusPx > 0 && (
+            <FistOverlay
+              containerWidth={this.state.containerWidth}
+              containerHeight={this.state.containerHeight}
+              missRadiusPx={this.state.missRadiusPx}
+              missRadius={Number(this.state.missRadius)}
+              targetDistance={Number(this.state.targetDistance)}
+              handWidthCm={this.state.userHandWidthCm}
+              armLengthCm={this.state.userArmLengthCm}
+              units={units}
+            />
+          )}
         </TouchableOpacity>
 
         {/* Floating draggable picker button */}
@@ -816,7 +859,7 @@ export default class Record extends Component<Props, State> {
             <View style={recordStyles.modalStats}>
               <View style={recordStyles.modalStatCell}>
                 <Text style={recordStyles.modalStatLabel}>Distance</Text>
-                <Text style={recordStyles.modalStatValue}>{this.state.shotDistance} yds</Text>
+                <Text style={recordStyles.modalStatValue}>{this.state.shotDistance} {distUnit}</Text>
               </View>
               <View style={recordStyles.modalDivider} />
               <View style={recordStyles.modalStatCell}>
