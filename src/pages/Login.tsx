@@ -93,7 +93,12 @@ class Login extends Component<Props, State> {
             session.user?.user_metadata,
             session.user?.email
           );
-          this.props.navigation.navigate('Home', { user: name });
+          const hasProfile = await DB.hasUserProfile(name);
+          if (!hasProfile) {
+            this.props.navigation.navigate('UserSetup', { user: name });
+          } else {
+            this.props.navigation.navigate('Home', { user: name });
+          }
           return;
         }
       } catch (e) {
@@ -167,7 +172,7 @@ class Login extends Component<Props, State> {
           this.setState({ cloudError: error.message, isLoading: false });
           return;
         }
-        this.props.navigation.navigate('Home', { user: displayName });
+        this.props.navigation.navigate('UserSetup', { user: displayName });
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
@@ -175,7 +180,12 @@ class Login extends Component<Props, State> {
           return;
         }
         const name = Login.userDisplayName(data.user?.user_metadata, email);
-        this.props.navigation.navigate('Home', { user: name });
+        const hasProfile = await DB.hasUserProfile(name);
+        if (!hasProfile) {
+          this.props.navigation.navigate('UserSetup', { user: name });
+        } else {
+          this.props.navigation.navigate('Home', { user: name });
+        }
       }
     } catch (err) {
       this.setState({ cloudError: 'An unexpected error occurred.', isLoading: false });
