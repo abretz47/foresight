@@ -5,7 +5,7 @@
  * `headerRight` on any screen in the navigation stack.  It accepts optional
  * `user` and `navigation` props so menu actions work from any screen.
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,8 +16,10 @@ import {
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as DB from '../data/db';
+import { signOut, isSupabaseConfigured } from '../lib/supabase';
 import { COLORS } from '../styles/styles';
 import EmojiText from './EmojiText';
+import MigrateModal from './MigrateModal';
 import type { RootStackParamList } from '../types/navigation';
 
 interface Props {
@@ -27,7 +29,17 @@ interface Props {
 
 export default function HamburgerMenu({ navigation, user }: Props) {
   const [menuVisible, setMenuVisible] = useState(false);
+  const [migrateVisible, setMigrateVisible] = useState(false);
+  const [localUsers, setLocalUsers] = useState<string[]>([]);
   const { navigate } = navigation;
+
+  // Refresh the local-user list whenever the menu opens so the migrate item
+  // appears/disappears in sync with the actual data.
+  useEffect(() => {
+    if (menuVisible && DB.isCloudMode()) {
+      DB.getUsers().then(setLocalUsers).catch(() => setLocalUsers([]));
+    }
+  }, [menuVisible]);
 
   const navigateToRecord = (calledFrom: 'Record' | 'Analyze') => {
     if (!user) return;
@@ -81,10 +93,21 @@ export default function HamburgerMenu({ navigation, user }: Props) {
       label: 'How To Use',
       onPress: () => { setMenuVisible(false); navigate('HowToUse'); },
     },
+    DB.isCloudMode() && localUsers.length > 0 && {
+      icon: '☁️',
+      label: 'Migrate to Cloud',
+      onPress: () => { setMenuVisible(false); setMigrateVisible(true); },
+    },
     {
       icon: '🚪',
       label: 'Log Out',
-      onPress: () => { setMenuVisible(false); navigate('Login'); },
+      onPress: async () => {
+        setMenuVisible(false);
+        if (isSupabaseConfigured()) {
+          try { await signOut(); } catch (_) {}
+        }
+        navigate('Login');
+      },
     },
   ].filter(Boolean) as { icon: string; label: string; onPress: () => void }[];
 
@@ -127,6 +150,12 @@ export default function HamburgerMenu({ navigation, user }: Props) {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      <MigrateModal
+        visible={migrateVisible}
+        localUsers={localUsers}
+        onClose={() => setMigrateVisible(false)}
+      />
     </>
   );
 }
