@@ -114,7 +114,6 @@ class Login extends Component<Props, State> {
     this._focusUnsubscribe?.();
   }
 
-
   handleLogin = async () => {
     const username = this.state.username.trim();
     if (!username) {
@@ -124,6 +123,8 @@ class Login extends Component<Props, State> {
     // Check whether the user has already completed the profile setup.
     const hasProfile = await DB.hasUserProfile(username);
     if (!hasProfile) {
+      // First-time user: send to the profile setup screen.
+      // Session will be started after profile setup completes.
       this.props.navigation.navigate('UserSetup', { user: username });
       return;
     }
