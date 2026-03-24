@@ -308,7 +308,7 @@ export async function hasShotData(id: string): Promise<boolean> {
 export async function initializeDefaultProfiles(user: string, handicap?: number | null, age?: number | null, units?: 'imperial' | 'metric' | null): Promise<void> {
   if (isCloudMode()) {
     try {
-      return await SupabaseDB.initializeDefaultProfiles();
+      return await SupabaseDB.initializeDefaultProfiles(handicap, age, units);
     } catch (e) {
       console.warn('[Foresight] Cloud initializeDefaultProfiles failed, using local:', e);
     }

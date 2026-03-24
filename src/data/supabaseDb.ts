@@ -5,7 +5,7 @@
  */
 import { supabase } from '../lib/supabase';
 import { ShotProfile, DataPoint } from './db';
-import defaultShotProfiles from './defaultShotProfiles';
+import { getDefaultProfilesForPlayer } from './defaultShotProfiles';
 
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -273,7 +273,7 @@ export async function insertDataPointForProfile(
   if (error) console.error('Supabase insertDataPointForProfile error:', error.message);
 }
 
-export async function initializeDefaultProfiles(): Promise<void> {
+export async function initializeDefaultProfiles(handicap?: number | null, age?: number | null, units?: 'imperial' | 'metric' | null): Promise<void> {
   if (!supabase) return;
   const userId = await getAuthUserId();
   if (!userId) return;
@@ -287,7 +287,8 @@ export async function initializeDefaultProfiles(): Promise<void> {
   }
   if ((count ?? 0) > 0) return;
 
-  for (const shot of defaultShotProfiles) {
+  const profiles = getDefaultProfilesForPlayer(handicap, age, units);
+  for (const shot of profiles) {
     const id = generateId();
     const { error: insertError } = await supabase.from('shot_profiles').insert({
       id,
