@@ -119,8 +119,8 @@ export default function FistOverlay({
       {positions.map(({ n, centerX: fx, lateralDist }) => {
         const distLabel = `${lateralDist.toFixed(1)}${distUnit}`;
         const label = n === 1
-          ? `1 fist = ${distLabel}`
-          : `${n} fists = ${distLabel}`;
+          ? `1 fist \n ${distLabel}`
+          : `${n} fists \n ${distLabel}`;
         return (
           <View
             key={n}
