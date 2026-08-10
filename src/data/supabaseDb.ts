@@ -4,7 +4,7 @@
  * the user_id is derived directly from the authenticated session.
  */
 import { supabase } from '../lib/supabase';
-import { ShotProfile, DataPoint } from './db';
+import { ShotProfile, DataPoint, UserProfile } from './db';
 import { getDefaultProfilesForPlayer } from './defaultShotProfiles';
 
 function generateId(): string {
@@ -181,6 +181,68 @@ export async function deleteAllUserProfiles(): Promise<void> {
   // Cascade delete removes associated data_points rows via FK constraint.
   const { error } = await supabase.from('shot_profiles').delete().eq('user_id', userId);
   if (error) console.error('Supabase deleteAllUserProfiles error:', error.message);
+}
+
+export async function getUserProfile(): Promise<UserProfile | null> {
+  if (!supabase) return null;
+  const userId = await getAuthUserId();
+  if (!userId) return null;
+
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select('age, handicap, units, hand_width, arm_length')
+    .eq('user_id', userId)
+    .limit(1);
+  if (error) {
+    console.error('Supabase getUserProfile error:', error.message);
+    return null;
+  }
+  if (!data || data.length === 0) return null;
+  const row = data[0];
+  return {
+    age: (row.age as string | null) ?? undefined,
+    handicap: (row.handicap as string | null) ?? undefined,
+    units: ((row.units as 'imperial' | 'metric' | null) ?? undefined),
+    handWidth: (row.hand_width as string | null) ?? undefined,
+    armLength: (row.arm_length as string | null) ?? undefined,
+  };
+}
+
+export async function saveUserProfile(profile: UserProfile): Promise<void> {
+  if (!supabase) return;
+  const userId = await getAuthUserId();
+  if (!userId) return;
+  const { error } = await supabase
+    .from('user_profiles')
+    .upsert(
+      {
+        user_id: userId,
+        age: profile.age ?? null,
+        handicap: profile.handicap ?? null,
+        units: profile.units ?? 'imperial',
+        hand_width: profile.handWidth ?? null,
+        arm_length: profile.armLength ?? null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' }
+    );
+  if (error) console.error('Supabase saveUserProfile error:', error.message);
+}
+
+export async function hasUserProfile(): Promise<boolean> {
+  if (!supabase) return false;
+  const userId = await getAuthUserId();
+  if (!userId) return false;
+
+  const { count, error } = await supabase
+    .from('user_profiles')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId);
+  if (error) {
+    console.error('Supabase hasUserProfile error:', error.message);
+    return false;
+  }
+  return (count ?? 0) > 0;
 }
 
 export async function insertProfile(profile: {
