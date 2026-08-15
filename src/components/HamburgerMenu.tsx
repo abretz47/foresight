@@ -20,6 +20,7 @@ import { signOut, isSupabaseConfigured } from '../lib/supabase';
 import { COLORS } from '../styles/styles';
 import EmojiText from './EmojiText';
 import MigrateModal from './MigrateModal';
+import TrainingAccessGate from './TrainingAccessGate';
 import type { RootStackParamList } from '../types/navigation';
 
 interface Props {
@@ -30,6 +31,7 @@ interface Props {
 export default function HamburgerMenu({ navigation, user }: Props) {
   const [menuVisible, setMenuVisible] = useState(false);
   const [migrateVisible, setMigrateVisible] = useState(false);
+  const [trainingGateVisible, setTrainingGateVisible] = useState(false);
   const [localUsers, setLocalUsers] = useState<string[]>([]);
   const { navigate } = navigation;
 
@@ -92,6 +94,11 @@ export default function HamburgerMenu({ navigation, user }: Props) {
       icon: '❓',
       label: 'How To Use',
       onPress: () => { setMenuVisible(false); navigate('HowToUse'); },
+    },
+    {
+      icon: '🏆',
+      label: 'Training Modules',
+      onPress: () => { setMenuVisible(false); setTrainingGateVisible(true); },
     },
     DB.isCloudMode() && localUsers.length > 0 && {
       icon: '☁️',
@@ -156,6 +163,14 @@ export default function HamburgerMenu({ navigation, user }: Props) {
         localUsers={localUsers}
         onClose={() => setMigrateVisible(false)}
       />
+
+      {trainingGateVisible && (
+        <TrainingAccessGate
+          navigation={navigation}
+          user={user}
+          onClose={() => setTrainingGateVisible(false)}
+        />
+      )}
     </>
   );
 }

@@ -32,6 +32,10 @@ export type RootStackParamList = {
     clubId: string;
     clubName: string;
   };
+  TrainingHome: { user: string };
+  TrainingModule: { user: string; slug: string };
+  DrillRunner: { user: string; slug: string; componentKey: string };
+  PurchasePage: Record<string, never>;
 };
 
 export type LoginNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
