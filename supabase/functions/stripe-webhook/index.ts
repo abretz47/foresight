@@ -102,7 +102,7 @@ serve(async (req: Request) => {
   if (grants.length > 0) {
     const { error } = await adminClient
       .from('user_entitlements')
-      .upsert(grants, { onConflict: 'stripe_event_id', ignoreDuplicates: true });
+      .upsert(grants, { onConflict: 'user_id,entitlement_key', ignoreDuplicates: true });
     if (error) {
       console.error('[stripe-webhook] Failed to insert entitlements:', error);
       return new Response(JSON.stringify({ error: 'Failed to grant entitlements.' }), { status: 500 });

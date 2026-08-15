@@ -34,9 +34,13 @@ function cacheKey(slug: string, version: number): string {
   return `${CACHE_PREFIX}${slug}_v${version}`;
 }
 
-async function readCached(slug: string, version: number): Promise<DrillManifest | null> {
+async function readCached(slug: string): Promise<DrillManifest | null> {
   try {
-    const raw = await AsyncStorage.getItem(cacheKey(slug, version));
+    const keys = await AsyncStorage.getAllKeys();
+    const matchingKeys = keys.filter((k) => k.startsWith(`${CACHE_PREFIX}${slug}_v`));
+    if (matchingKeys.length === 0) return null;
+    matchingKeys.sort();
+    const raw = await AsyncStorage.getItem(matchingKeys[matchingKeys.length - 1]);
     if (!raw) return null;
     return JSON.parse(raw) as DrillManifest;
   } catch {
@@ -99,16 +103,8 @@ export async function fetchManifest(slug: string): Promise<DrillManifest> {
     return manifest;
   } catch (networkError) {
     // Fall back to any previously cached version for this slug.
-    const keys = await AsyncStorage.getAllKeys();
-    const matchingKeys = keys.filter((k) => k.startsWith(`${CACHE_PREFIX}${slug}_v`));
-    if (matchingKeys.length > 0) {
-      // Use the highest version cached.
-      matchingKeys.sort();
-      const raw = await AsyncStorage.getItem(matchingKeys[matchingKeys.length - 1]);
-      if (raw) {
-        return JSON.parse(raw) as DrillManifest;
-      }
-    }
+    const cached = await readCached(slug);
+    if (cached) return cached;
     throw networkError;
   }
 }

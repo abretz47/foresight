@@ -13,6 +13,8 @@
  *   - `hostContext`  — TrainingHostContextValue giving access to host APIs
  */
 import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { COLORS } from '../styles/styles';
 import type { DrillManifest } from './trainingConfigService';
 import type { TrainingHostContextValue } from './trainingHostContext';
 
@@ -39,36 +41,33 @@ export function resolveModule(key: string): TrainingModuleComponent | undefined 
 // ── Stub / test module ────────────────────────────────────────────────────────
 // Validates the purchase and config pipeline without shipping real content.
 
+const testDrillStyles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: COLORS.background, padding: 24, justifyContent: 'center' },
+  title: { fontSize: 22, fontWeight: '800', color: COLORS.textLight, marginBottom: 12 },
+  desc: { fontSize: 15, color: COLORS.textMuted, marginBottom: 24 },
+  steps: { marginBottom: 32 },
+  step: { fontSize: 14, color: COLORS.textLight, marginBottom: 8 },
+  btn: {
+    backgroundColor: COLORS.accent,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center' as const,
+  },
+  btnLabel: { fontWeight: '700', fontSize: 16, color: COLORS.textPrimary },
+});
+
 function TestDrillModule({ manifest, onComplete }: TrainingModuleProps) {
-  const { View, Text, TouchableOpacity, StyleSheet } = require('react-native') as typeof import('react-native');
-  const { COLORS } = require('../styles/styles') as typeof import('../styles/styles');
-
-  const s = StyleSheet.create({
-    container: { flex: 1, backgroundColor: COLORS.background, padding: 24, justifyContent: 'center' },
-    title: { fontSize: 22, fontWeight: '800', color: COLORS.textLight, marginBottom: 12 },
-    desc: { fontSize: 15, color: COLORS.textMuted, marginBottom: 24 },
-    steps: { marginBottom: 32 },
-    step: { fontSize: 14, color: COLORS.textLight, marginBottom: 8 },
-    btn: {
-      backgroundColor: COLORS.accent,
-      borderRadius: 14,
-      paddingVertical: 14,
-      alignItems: 'center' as const,
-    },
-    btnLabel: { fontWeight: '700', fontSize: 16, color: COLORS.textPrimary },
-  });
-
   return (
-    <View style={s.container}>
-      <Text style={s.title}>{manifest.title}</Text>
-      <Text style={s.desc}>{manifest.description}</Text>
-      <View style={s.steps}>
+    <View style={testDrillStyles.container}>
+      <Text style={testDrillStyles.title}>{manifest.title}</Text>
+      <Text style={testDrillStyles.desc}>{manifest.description}</Text>
+      <View style={testDrillStyles.steps}>
         {manifest.steps.map((step, i) => (
-          <Text key={step.id} style={s.step}>{i + 1}. {step.instruction}</Text>
+          <Text key={step.id} style={testDrillStyles.step}>{i + 1}. {step.instruction}</Text>
         ))}
       </View>
-      <TouchableOpacity style={s.btn} onPress={onComplete}>
-        <Text style={s.btnLabel}>Complete Drill</Text>
+      <TouchableOpacity style={testDrillStyles.btn} onPress={onComplete}>
+        <Text style={testDrillStyles.btnLabel}>Complete Drill</Text>
       </TouchableOpacity>
     </View>
   );
