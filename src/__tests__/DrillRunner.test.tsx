@@ -1,8 +1,10 @@
-import React from 'react';
-import { Text } from 'react-native';
-import { render, waitFor } from '@testing-library/react-native';
-import DrillRunner from '../pages/DrillRunner';
-import { useTrainingHostContext } from '../lib/trainingHostContext';
+(globalThis as any).__DEV__ = true;
+
+const React = require('react');
+const { Text } = require('react-native');
+const { render, waitFor } = require('@testing-library/react-native');
+const DrillRunner = require('../pages/DrillRunner').default;
+const { useTrainingHostContext } = require('../lib/trainingHostContext');
 
 const mockFetchManifest = jest.fn();
 const mockResolveModule = jest.fn();
