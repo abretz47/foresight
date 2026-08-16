@@ -56,18 +56,30 @@ const testDrillStyles = StyleSheet.create({
   btnLabel: { fontWeight: '700', fontSize: 16, color: COLORS.textPrimary },
 });
 
-function TestDrillModule({ manifest, onComplete }: TrainingModuleProps) {
+function TestDrillModule({ manifest, onComplete, hostContext }: TrainingModuleProps) {
+  const startSession = (screen: string, shotName: string) => {
+    const shot = hostContext.shotProfiles.find((p) => p.name === '7 Iron');
+    hostContext.navigation.navigate('Record', {user: hostContext.user, id: shot.id, shotName: shot.name, targetDistance: shot.distance, targetRadius: shot.targetRadius, missRadius: shot.missRadius, calledFrom: 'DrillRunner'});
+  }
   return (
     <View style={testDrillStyles.container}>
       <Text style={testDrillStyles.title}>{manifest.title}</Text>
       <Text style={testDrillStyles.desc}>{manifest.description}</Text>
       <View style={testDrillStyles.steps}>
         {manifest.steps.map((step, i) => (
-          <Text key={step.id} style={testDrillStyles.step}>{i + 1}. {step.instruction}</Text>
+          <React.Fragment key={step.id}>
+            <Text style={testDrillStyles.step}>{i + 1}. {step.instruction}</Text>
+            { step.screen != null ?
+              (<TouchableOpacity style={testDrillStyles.btn} onPress={() => startSession(step.screen, step.club)}>
+                <Text style={testDrillStyles.btnLabel}>Start Session</Text>
+              </TouchableOpacity>)
+            : null
+          }
+          </React.Fragment>
         ))}
       </View>
       <TouchableOpacity style={testDrillStyles.btn} onPress={onComplete}>
-        <Text style={testDrillStyles.btnLabel}>Complete Drill</Text>
+        <Text style={testDrillStyles.btnLabel}>Complete</Text>
       </TouchableOpacity>
     </View>
   );
