@@ -13,6 +13,10 @@ jest.mock('react-native', () => {
     Text: createPrimitive('Text'),
     TouchableOpacity: createPrimitive('TouchableOpacity'),
     ActivityIndicator: createPrimitive('ActivityIndicator'),
+    Platform: {
+      OS: 'ios',
+      select: (options: Record<string, unknown>) => options.ios ?? options.default,
+    },
     StyleSheet: { create: (styles: unknown) => styles },
   };
 });
