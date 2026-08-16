@@ -6,7 +6,7 @@
  *
  * Philosophy (from PRD): test external behavior only.  Mocks:
  *   - ../data/db: isCloudMode()
- *   - ../lib/entitlementService: hasEntitlement(), refreshSession()
+ *   - ../lib/entitlementService: hasAnyEntitlementOfType(), refreshSession()
  *   - react-native Platform.OS
  *   - react-native Alert
  */
@@ -18,7 +18,7 @@ jest.mock('../data/db', () => ({
 }));
 
 jest.mock('../lib/entitlementService', () => ({
-  hasEntitlement: jest.fn(),
+  hasAnyEntitlementOfType: jest.fn(),
   refreshSession: jest.fn().mockResolvedValue(undefined),
 }));
 
@@ -37,7 +37,7 @@ import * as DB from '../data/db';
 import * as EntitlementService from '../lib/entitlementService';
 
 const mockIsCloudMode = DB.isCloudMode as jest.MockedFunction<typeof DB.isCloudMode>;
-const mockHasEntitlement = EntitlementService.hasEntitlement as jest.MockedFunction<typeof EntitlementService.hasEntitlement>;
+const mockHasAnyEntitlementOfType = EntitlementService.hasAnyEntitlementOfType as jest.MockedFunction<typeof EntitlementService.hasAnyEntitlementOfType>;
 
 // ── Unit: gating logic extracted from TrainingAccessGate ─────────────────────
 //
@@ -47,7 +47,7 @@ const mockHasEntitlement = EntitlementService.hasEntitlement as jest.MockedFunct
 
 async function trainingAccessDecision(
   isCloud: boolean,
-  hasPaidAccess: boolean,
+  hasTrainingAccess: boolean,
   platform: typeof Platform.OS,
   navigate: (screen: string, params: unknown) => void,
   onClose: () => void,
@@ -57,13 +57,13 @@ async function trainingAccessDecision(
     mockAlertFn('Cloud Account Required', expect.any(String), expect.any(Array));
     return;
   }
-  if (!hasPaidAccess) {
-    if (platform === 'web') {
-      onClose();
-      navigate('PurchasePage', {});
-    } else {
-      showPurchaseModal(true);
-    }
+  if (platform === 'web') {
+    onClose();
+    navigate('TrainingHome', { user: 'alice' });
+    return;
+  }
+  if (!hasTrainingAccess) {
+    showPurchaseModal(true);
     return;
   }
   onClose();
@@ -88,19 +88,21 @@ describe('TrainingAccessGate — navigation gating logic', () => {
     });
   });
 
-  describe('when cloud mode, no paid-content-user entitlement', () => {
-    it('navigates to PurchasePage on web', async () => {
+  describe('when cloud mode, web platform', () => {
+    it('navigates to TrainingHome on web regardless of entitlements', async () => {
       const navigate = jest.fn();
       const onClose = jest.fn();
       const showModal = jest.fn();
 
       await trainingAccessDecision(true, false, 'web', navigate, onClose, showModal);
 
-      expect(navigate).toHaveBeenCalledWith('PurchasePage', {});
+      expect(navigate).toHaveBeenCalledWith('TrainingHome', { user: 'alice' });
       expect(onClose).toHaveBeenCalled();
       expect(showModal).not.toHaveBeenCalled();
     });
+  });
 
+  describe('when cloud mode, native, no training entitlements', () => {
     it('shows purchase modal on native (iOS)', async () => {
       const navigate = jest.fn();
       const onClose = jest.fn();
@@ -124,7 +126,7 @@ describe('TrainingAccessGate — navigation gating logic', () => {
     });
   });
 
-  describe('when cloud mode with paid-content-user entitlement', () => {
+  describe('when cloud mode, native, with at least one training entitlement', () => {
     it('navigates to TrainingHome', async () => {
       const navigate = jest.fn();
       const onClose = jest.fn();
@@ -148,20 +150,19 @@ describe('TrainingAccessGate — with mocked services', () => {
 
   it('uses isCloudMode() to determine cloud state', async () => {
     mockIsCloudMode.mockReturnValue(false);
-    mockHasEntitlement.mockResolvedValue(false);
+    mockHasAnyEntitlementOfType.mockResolvedValue(false);
 
     const isCloud = mockIsCloudMode();
     expect(isCloud).toBe(false);
   });
 
-  it('uses hasEntitlement("paid-content-user") for access check', async () => {
+  it('uses hasAnyEntitlementOfType("training") for native access check', async () => {
     mockIsCloudMode.mockReturnValue(true);
-    mockHasEntitlement.mockResolvedValue(true);
+    mockHasAnyEntitlementOfType.mockResolvedValue(true);
 
-    const hasPaid = await mockHasEntitlement('paid-content-user');
-    expect(hasPaid).toBe(true);
-    expect(mockHasEntitlement).toHaveBeenCalledWith('paid-content-user');
+    const hasAccess = await mockHasAnyEntitlementOfType('training');
+    expect(hasAccess).toBe(true);
+    expect(mockHasAnyEntitlementOfType).toHaveBeenCalledWith('training');
   });
 });
-
 

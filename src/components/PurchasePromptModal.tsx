@@ -44,11 +44,10 @@ export default function PurchasePromptModal({ visible, onClose }: Props) {
       <TouchableOpacity style={s.overlay} activeOpacity={1} onPress={onClose}>
         <View style={s.box}>
           <EmojiText style={s.icon}>🏆</EmojiText>
-          <Text style={s.title}>Unlock Training Modules</Text>
+          <Text style={s.title}>Purchase Training Module</Text>
           <Text style={s.body}>
-            Training Modules require a Platform Access subscription. Purchases are completed
-            on the Foresight website — your entitlements will sync automatically when you
-            return to the app.
+            Individual training modules are purchased on the Foresight website. Your entitlements
+            will sync automatically when you return to the app.
           </Text>
           {purchaseUrl ? (
             <TouchableOpacity style={s.primaryBtn} onPress={handleOpenBrowser}>

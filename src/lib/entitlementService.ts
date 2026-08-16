@@ -49,11 +49,21 @@ async function getEntitlements(): Promise<string[]> {
 
 /**
  * Returns true when the current JWT includes the given entitlement key.
- * @param key  e.g. `'paid-content-user'` or `'training:putting-gate-drill'`
+ * @param key  e.g. `'training:putting-gate-drill'`
  */
 export async function hasEntitlement(key: string): Promise<boolean> {
   const entitlements = await getEntitlements();
   return entitlements.includes(key);
+}
+
+/**
+ * Returns true when the user has at least one entitlement of the given type.
+ * Training entitlements use the `training:{slug}` key pattern.
+ * @param type  e.g. `'training'`
+ */
+export async function hasAnyEntitlementOfType(type: string): Promise<boolean> {
+  const entitlements = await getEntitlements();
+  return entitlements.some((k) => k.startsWith(type + ':'));
 }
 
 /**
