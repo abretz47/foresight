@@ -1,5 +1,6 @@
 const React = require('react');
 const TestRenderer = require('react-test-renderer');
+globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 const mockFetchManifest = jest.fn();
 const mockResolveModule = jest.fn();
@@ -48,8 +49,11 @@ function MockModule({ hostContext, manifest }: { hostContext: { user: string; sh
 }
 
 describe('DrillRunner', () => {
+  let consoleErrorSpy: jest.SpyInstance;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     mockFetchManifest.mockResolvedValue({
       title: 'Test Drill',
       description: 'desc',
@@ -63,6 +67,10 @@ describe('DrillRunner', () => {
       { id: '2', name: 'Wedge', distance: '100', targetRadius: '8', missRadius: '15' },
     ]);
     mockResolveModule.mockReturnValue(MockModule);
+  });
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore();
   });
 
   it('provides the user shot profiles to the module host context', async () => {
