@@ -67,3 +67,24 @@ create trigger sync_user_entitlements_to_auth_metadata
 after insert or update or delete on public.user_entitlements
 for each row
 execute function public.sync_user_entitlements_to_auth_metadata();
+
+update auth.users as u
+set raw_app_meta_data = jsonb_set(
+  coalesce(u.raw_app_meta_data, '{}'::jsonb),
+  '{entitlements}',
+  coalesce((
+    select jsonb_agg(entitlement_key order by entitlement_key)
+    from (
+      select distinct ue.entitlement_key
+      from public.user_entitlements ue
+      where ue.user_id = u.id
+    ) entitlements
+  ), '[]'::jsonb),
+  true
+)
+where exists (
+  select 1
+  from public.user_entitlements ue
+  where ue.user_id = u.id
+)
+or coalesce(u.raw_app_meta_data, '{}'::jsonb) ? 'entitlements';
