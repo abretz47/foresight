@@ -68,23 +68,33 @@ after insert or delete or update of user_id, entitlement_key on public.user_enti
 for each row
 execute function public.sync_user_entitlements_to_auth_metadata();
 
+with aggregated_entitlements as (
+  select ue.user_id,
+         jsonb_agg(ue.entitlement_key order by ue.entitlement_key) as entitlements
+  from (
+    select distinct user_id, entitlement_key
+    from public.user_entitlements
+  ) ue
+  group by ue.user_id
+),
+users_to_sync as (
+  select id as user_id
+  from auth.users
+  where coalesce(raw_app_meta_data, '{}'::jsonb) ? 'entitlements'
+
+  union
+
+  select user_id
+  from aggregated_entitlements
+)
 update auth.users as u
 set raw_app_meta_data = jsonb_set(
   coalesce(u.raw_app_meta_data, '{}'::jsonb),
   '{entitlements}',
-  coalesce((
-    select jsonb_agg(entitlement_key order by entitlement_key)
-    from (
-      select distinct ue.entitlement_key
-      from public.user_entitlements ue
-      where ue.user_id = u.id
-    ) entitlements
-  ), '[]'::jsonb),
+  coalesce(a.entitlements, '[]'::jsonb),
   true
 )
-where exists (
-  select 1
-  from public.user_entitlements ue
-  where ue.user_id = u.id
-)
-or coalesce(u.raw_app_meta_data, '{}'::jsonb) ? 'entitlements';
+from users_to_sync s
+left join aggregated_entitlements a
+  on a.user_id = s.user_id
+where u.id = s.user_id;
