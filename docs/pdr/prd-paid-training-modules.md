@@ -8,12 +8,12 @@ Users who want structured, interactive training drills cannot access them today.
 
 ## Solution
 
-Add a **Training Modules** feature accessible from a new hamburger menu entry. Access requires a Supabase cloud account and a base `paid-content-user` entitlement. Individual training modules each require their own entitlement (`training:{slug}`).
+Add a **Training Modules** feature accessible from a new hamburger menu entry. Access requires a Supabase cloud account. Individual training modules each require their own entitlement (`training:{slug}`); there is no separate base platform-access gate.
 
-- **Web users without base entitlement** → navigate to a **Purchase Page** listing platform access and all available modules with Stripe Checkout.
-- **Native users without base entitlement** → see a modal with a link to the web Purchase Page; after purchase, deep link back to the app with session refresh on focus as fallback.
-- **Users with base entitlement** → open **Training Home**, a card-style grid (similar to the club home screen) showing all published modules. Unpurchased modules appear locked and are not tappable.
-- **Users with a module entitlement** → tap an unlocked card to open **Training Module** overview, then start the drill.
+- **Web users** → navigate directly to **Training Home**, a card-style grid showing all published modules. Modules the user owns show a **View** button; modules they do not own show a **Buy** button that opens Stripe Checkout.
+- **Native users with at least one training entitlement** → navigate to **Training Home**. Owned modules show a **View** button; unowned modules show a **Buy** button that opens a modal to redirect to the web purchase page.
+- **Native users with no training entitlements** → see a modal with a link to the web Purchase Page; after purchase, deep link back to the app with session refresh on focus as fallback.
+- **Users with a module entitlement** → tap **View** on a module card to open **Training Module** overview, then start the drill.
 
 **Content delivery (simplified):**
 
@@ -26,21 +26,21 @@ Purchases are processed via **Stripe one-time payments**. A Supabase Edge Functi
 ## User Stories
 
 1. As a local-only user, I want to see a clear prompt to sign in or create a cloud account when I tap Training Modules, so that I understand why paid content requires cloud auth.
-2. As a cloud user without paid content access, I want the app to direct me to purchase options, so that I can unlock training features.
-3. As a web user without `paid-content-user`, I want to land on a Purchase Page when I tap Training Modules, so that I can browse and buy modules in my browser.
-4. As a native user without `paid-content-user`, I want a modal with a link to the web Purchase Page, so that I can complete purchase in my device browser.
+2. As a cloud user without any training entitlements, I want the app to direct me to purchase options on native, so that I can unlock training features.
+3. As a web user, I want to land on Training Home when I tap Training Modules, so that I can browse all modules and buy the ones I want.
+4. As a native user without any training entitlements, I want a modal with a link to the web Purchase Page, so that I can complete purchase in my device browser.
 5. As a native user who just purchased on web, I want the app to deep link back to Training Home and refresh my session, so that my new entitlements appear without manual logout.
-6. As a cloud user with `paid-content-user`, I want to open Training Home from the menu, so that I can see all available training modules.
-7. As a paid user browsing Training Home, I want to see all modules in a familiar card grid, so that I can discover content even before purchasing individual modules.
-8. As a paid user, I want unpurchased modules to appear visually locked and not tappable, so that I am not confused about what I own.
-9. As a user who owns a module, I want to tap its card and see a Training Module overview screen, so that I understand what the drill covers before starting.
-10. As a user who owns a module, I want to tap Start Drill and have the app load the module manifest and render the drill, so that I get the full interactive experience.
-11. As a user on any platform, I want drills to run as native React screens (not WebViews), so that the experience is consistent with the rest of the app.
-12. As a user who purchased a module, I want the manifest cached after first fetch, so that repeat sessions start quickly.
-13. As a user browsing the Purchase Page, I want to see platform access and all published modules with title, description, and price, so that I can compare before buying.
+6. As a cloud user with at least one training entitlement on native, I want to open Training Home from the menu, so that I can see all available training modules.
+7. As a user browsing Training Home, I want to see all modules in a familiar card grid with View or Buy buttons, so that I can discover and purchase content easily.
+8. As a user on web, I want unowned modules to show a Buy button that opens Stripe Checkout, so that I can purchase directly in the browser.
+9. As a native user, I want unowned modules to show a Buy button that opens a purchase modal, so that I am directed to the web to complete purchase.
+10. As a user who owns a module, I want to tap its View button and see a Training Module overview screen, so that I understand what the drill covers before starting.
+11. As a user who owns a module, I want to tap Start Drill and have the app load the module manifest and render the drill, so that I get the full interactive experience.
+12. As a user on any platform, I want drills to run as native React screens (not WebViews), so that the experience is consistent with the rest of the app.
+13. As a user who purchased a module, I want the manifest cached after first fetch, so that repeat sessions start quickly.
 14. As an anonymous web visitor, I want to browse the Purchase Page catalog without logging in, so that I can evaluate offerings before creating an account.
 15. As a web visitor ready to buy, I want to be prompted to log in or sign up at checkout, so that the purchase is tied to my Supabase account.
-16. As a buyer, I want to pay via Stripe Checkout with a one-time payment per product, so that I can buy platform access and individual modules as needed.
+16. As a buyer, I want to pay via Stripe Checkout with a one-time payment per module, so that I can buy individual modules as needed.
 17. As a buyer, I want my entitlements granted automatically after successful payment, so that I can access content immediately after session refresh.
 18. As a returning user, I want my JWT to include all my entitlements, so that the app can gate content without extra round trips.
 19. As a content maintainer, I want module React components in a private package repo, so that UI IP stays out of the open-source codebase.
@@ -55,20 +55,16 @@ Purchases are processed via **Stripe one-time payments**. A Supabase Edge Functi
 28. As a cloud user, I want Training Modules gated consistently across web and native, so that behavior is predictable on every platform.
 29. As a security-conscious operator, I want Stripe webhooks verified and idempotent, so that duplicate events do not double-grant entitlements.
 30. As a security-conscious operator, I want the config API to reject requests without the correct module entitlement, so that manifests are not leaked to unpaid users.
-31. As a user purchasing platform access, I want a clear product on the Purchase Page that grants `paid-content-user`, so that I can enter Training Home before buying individual modules.
-32. As a user who owns platform access but no modules, I want Training Home to show all modules as locked, so that I know what is available to purchase on web.
-33. As a native user who owns platform access, I want locked modules to indicate that purchase happens on web, so that I know where to go.
-34. As an open-source contributor, I want to build and run the app without private module packages, so that the public repo remains fully functional with stub/test content only.
-35. As a release engineer, I want proprietary builds to install private packages via CI secrets, so that paid modules are included in store builds but not in the public repo.
+31. As an open-source contributor, I want to build and run the app without private module packages, so that the public repo remains fully functional with stub/test content only.
+32. As a release engineer, I want proprietary builds to install private packages via CI secrets, so that paid modules are included in store builds but not in the public repo.
 
 ## Implementation Decisions
 
 ### Entitlement model
 
-- **Base gate:** `paid-content-user` — required to enter Training Home. Separate product from individual modules (gate-only model).
-- **Per-module gate:** `training:{slug}` where slug matches the module slug in `training_modules` (e.g. `training:putting-gate-drill`).
-- Entitlements stored in a `user_entitlements` table: `user_id`, `entitlement_key`, `granted_at`, `source`, `stripe_event_id` (unique for idempotency).
-- Supabase **Custom Access Token Auth Hook** reads `user_entitlements` and injects an `entitlements` array claim into the JWT at token issue/refresh.
+- **Per-module gate:** `training:{slug}` where slug matches the module slug in `training_modules` (e.g. `training:putting-gate-drill`). No separate base platform-access entitlement.
+- Entitlements stored in a `user_entitlements` table: `user_id`, `entitlement_key`, `type`, `granted_at`, `source`, `stripe_event_id` (unique for idempotency). The `type` column categorises entitlements (e.g. `'training'`) and enables efficient queries such as "does this user have any training entitlement?".
+- A database trigger syncs `user_entitlements` into `auth.users.raw_app_meta_data.entitlements`, making the claim available on token issue/refresh.
 - App reads entitlements from JWT via **EntitlementService**; triggers `refreshSession()` on app focus after purchase (native fallback when deep link fails).
 
 ### Navigation and gating
@@ -76,17 +72,18 @@ Purchases are processed via **Stripe one-time payments**. A Supabase Edge Functi
 - New hamburger menu item: **Training Modules**.
 - **TrainingAccessGate** (single entry point):
   1. If not cloud mode → prompt to sign in / create cloud account.
-  2. If cloud but no `paid-content-user` → web: navigate to Purchase Page; native: show PurchasePromptModal with web URL.
-  3. If has `paid-content-user` → navigate to Training Home.
+  2. If cloud, web → navigate to Training Home (per-module Buy buttons handle gating).
+  3. If cloud, native, no training entitlements → show PurchasePromptModal with web URL.
+  4. If cloud, native, has any training entitlement → navigate to Training Home.
 - Purchase Page is **web-only** (native users reach it via browser link from modal).
 - Native PurchasePromptModal opens device browser to `{WEB_APP_URL}/purchase`.
 
 ### Screens
 
-- **TrainingHome** — 2-column FlatList card grid patterned after HomeScreen; fetches catalog metadata from Supabase; locked cards rendered with visual lock state, no tap handler, no inline purchase CTA.
+- **TrainingHome** — 2-column FlatList card grid patterned after HomeScreen; fetches catalog metadata from Supabase; each card shows a **View** button (owned) or **Buy** button (unowned). On native, Buy opens PurchasePromptModal; on web, Buy opens Stripe Checkout.
 - **TrainingModule** — overview (title, description, thumbnail from catalog); Start Drill button for owned modules only.
 - **DrillRunner** — resolves registered React component for slug, fetches manifest from config API, renders drill.
-- **PurchasePage** (web) — lists Platform Access product + all published modules; anonymous browse; login required at Buy/Checkout; Stripe Checkout Session per product.
+- **PurchasePage** (web) — lists all published modules with title, description, and price; anonymous browse; login required at Buy/Checkout; Stripe Checkout Session per module.
 - **PurchasePromptModal** (native) — informational modal + link to web Purchase Page.
 
 ### Content delivery (build-time components + REST config)
@@ -122,7 +119,6 @@ Purchases are processed via **Stripe one-time payments**. A Supabase Edge Functi
 
 - Stripe Products/Prices managed in Stripe Dashboard.
 - `training_modules.stripe_price_id` references Stripe Price ID per module.
-- Separate Stripe Price for Platform Access (`paid-content-user`).
 - Edge Function **stripe-webhook**: verify signature, handle `checkout.session.completed`, insert `user_entitlements` rows idempotently.
 - Post-checkout: web redirect to success page; native deep link `foresight://training` (or universal link) + session refresh on focus.
 
@@ -130,13 +126,13 @@ Purchases are processed via **Stripe one-time payments**. A Supabase Edge Functi
 
 - `training_modules`: id, slug (unique), title, description, thumbnail_url, stripe_price_id, component_key, sort_order, is_published, created_at, updated_at
 - `training_module_configs`: id, module_slug (FK), version, manifest (jsonb), published_at, is_active
-- `user_entitlements`: user_id, entitlement_key, granted_at, source, stripe_event_id (unique)
+- `user_entitlements`: user_id, entitlement_key, **type** (text, default `'training'`), granted_at, source, stripe_event_id (unique)
 
 Note: `component_key` maps to an entry in TrainingModuleRegistry (allows multiple slugs to share one component if needed).
 
 ### Modules to build/modify
 
-1. **EntitlementService** (deep) — parse JWT claims, `hasEntitlement(key)`, `refreshSession()`
+1. **EntitlementService** (deep) — parse JWT claims, `hasEntitlement(key)`, `hasAnyEntitlementOfType(type)`, `refreshSession()`
 2. **TrainingAccessGate** (deep) — platform-aware routing for menu entry
 3. **TrainingCatalogService** — fetch published module list from Supabase
 4. **TrainingConfigService** (deep) — fetch + cache entitlement-gated manifests from Edge Function
@@ -145,10 +141,10 @@ Note: `component_key` maps to an entry in TrainingModuleRegistry (allows multipl
 7. **DrillRunner** — orchestrates registry lookup + config fetch + render
 8. **StripeWebhookHandler** (Edge Function) — idempotent entitlement grants
 9. **TrainingModuleConfigHandler** (Edge Function) — JWT + entitlement check, return manifest
-10. **EntitlementAuthHook** — JWT claim injection from `user_entitlements`
-11. UI: TrainingHome, TrainingModule, DrillRunner screen, PurchasePage, PurchasePromptModal
+10. **EntitlementMetadataSync** — trigger-driven sync from `user_entitlements` into `auth.users.raw_app_meta_data`
+11. UI: TrainingHome (View/Buy cards), TrainingModule, DrillRunner screen, PurchasePage, PurchasePromptModal
 12. HamburgerMenu + stack navigator registration
-13. Supabase migrations: tables, Auth Hook config
+13. Supabase migrations: tables (including `type` column on `user_entitlements`), Auth Hook config
 
 ### Build pipeline (proprietary)
 
@@ -160,7 +156,7 @@ Note: `component_key` maps to an entry in TrainingModuleRegistry (allows multipl
 
 - **Philosophy:** Test external behavior only. Given auth state, platform, and entitlements, assert the correct navigation target and config access behavior. Do not test internal JWT parsing beyond the public EntitlementService API.
 - **Modules tested in v1:**
-  - **TrainingAccessGate** — navigation gating with mocked EntitlementService, cloud mode, and Platform.
+  - **TrainingAccessGate** — navigation gating with mocked EntitlementService (`hasAnyEntitlementOfType`), cloud mode, and Platform.
 - **Prior art:** Mirror existing app test patterns where available.
 - **Deferred (manual QA in v1):** Stripe webhook, Auth Hook, Edge Function config endpoint, proprietary package integration.
 
@@ -188,6 +184,7 @@ Note: `component_key` maps to an entry in TrainingModuleRegistry (allows multipl
 | Signed URLs + Storage RLS for code | Edge Function returns JSON manifest |
 | Private repo CI uploads bundles | Private npm packages in proprietary CI build |
 | ModuleLoader runtime complexity | TrainingModuleRegistry + TrainingConfigService |
+| Separate paid-content-user base gate | Per-module entitlements only; no base gate |
 
 ### When an app release is required
 
@@ -205,5 +202,5 @@ Note: `component_key` maps to an entry in TrainingModuleRegistry (allows multipl
 
 - Stub registry component (`test-drill`) in open-source repo
 - Test manifest in `training_module_configs` for `test-drill`
-- Stripe test mode Price IDs for platform access + test module
+- Stripe test mode Price IDs for test module
 - QA entitlements grantable via webhook or admin SQL

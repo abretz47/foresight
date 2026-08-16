@@ -2,10 +2,11 @@
  * TrainingHome
  *
  * Card-grid screen showing all published training modules.
- * Requires `paid-content-user` entitlement (enforced by TrainingAccessGate).
  *
- * - Owned modules: tappable → TrainingModule overview
- * - Unowned modules: visually locked, not tappable
+ * - Owned modules: "View" button → TrainingModule overview
+ * - Unowned modules: "Buy" button →
+ *     native: PurchasePromptModal (redirects to web)
+ *     web:    Stripe Checkout
  */
 import React, { useEffect, useState, useCallback } from 'react';
 import {
@@ -16,13 +17,16 @@ import {
   StyleSheet,
   ActivityIndicator,
   ListRenderItemInfo,
+  Platform,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { COLORS } from '../styles/styles';
 import EmojiText from '../components/EmojiText';
+import PurchasePromptModal from '../components/PurchasePromptModal';
 import { fetchPublishedModules, TrainingModuleMeta } from '../lib/trainingCatalogService';
 import { hasEntitlement } from '../lib/entitlementService';
+import { openCheckout } from '../lib/checkoutService';
 import type { RootStackParamList } from '../types/navigation';
 
 interface Props {
@@ -39,6 +43,7 @@ export default function TrainingHome({ navigation, route }: Props) {
   const [modules, setModules] = useState<ModuleCardData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [purchaseModalVisible, setPurchaseModalVisible] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -61,31 +66,42 @@ export default function TrainingHome({ navigation, route }: Props) {
 
   useEffect(() => { void load(); }, [load]);
 
-  const renderItem = ({ item }: ListRenderItemInfo<ModuleCardData>) => {
-    const card = (
-      <View style={[s.card, item.owned ? s.cardOwned : s.cardLocked]}>
-        <View style={s.cardTop}>
-          <EmojiText style={s.cardIcon}>{item.owned ? '🏌️' : '🔒'}</EmojiText>
-          {!item.owned && <View style={s.lockBadge}><Text style={s.lockBadgeText}>Locked</Text></View>}
-        </View>
-        <Text style={[s.cardTitle, !item.owned && s.cardTitleLocked]} numberOfLines={2}>
-          {item.title}
-        </Text>
-        <Text style={s.cardDesc} numberOfLines={3}>{item.description}</Text>
-      </View>
-    );
-
-    if (!item.owned) return card;
-
-    return (
-      <TouchableOpacity
-        onPress={() => navigation.navigate('TrainingModule', { user, slug: item.slug })}
-        activeOpacity={0.85}
-      >
-        {card}
-      </TouchableOpacity>
-    );
+  const handleBuy = (item: ModuleCardData) => {
+    if (Platform.OS === 'web') {
+      openCheckout(item.stripe_price_id ?? '');
+    } else {
+      setPurchaseModalVisible(true);
+    }
   };
+
+  const renderItem = ({ item }: ListRenderItemInfo<ModuleCardData>) => (
+    <View style={[s.card, item.owned ? s.cardOwned : s.cardLocked]}>
+      <View style={s.cardTop}>
+        <EmojiText style={s.cardIcon}>{item.owned ? '🏌️' : '🔒'}</EmojiText>
+      </View>
+      <Text style={[s.cardTitle, !item.owned && s.cardTitleLocked]} numberOfLines={2}>
+        {item.title}
+      </Text>
+      <Text style={s.cardDesc} numberOfLines={3}>{item.description}</Text>
+      {item.owned ? (
+        <TouchableOpacity
+          style={s.viewBtn}
+          onPress={() => navigation.navigate('TrainingModule', { user, slug: item.slug })}
+          activeOpacity={0.85}
+        >
+          <Text style={s.viewBtnLabel}>View</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={s.buyBtn}
+          onPress={() => handleBuy(item)}
+          activeOpacity={0.85}
+        >
+          <Text style={s.buyBtnLabel}>Buy</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
 
   if (loading) {
     return (
@@ -108,19 +124,25 @@ export default function TrainingHome({ navigation, route }: Props) {
   }
 
   return (
-    <FlatList
-      style={s.list}
-      contentContainerStyle={s.listContent}
-      data={modules}
-      keyExtractor={(item) => item.slug}
-      numColumns={2}
-      renderItem={renderItem}
-      ListEmptyComponent={
-        <View style={s.centered}>
-          <Text style={s.emptyText}>No training modules available yet.</Text>
-        </View>
-      }
-    />
+    <>
+      <FlatList
+        style={s.list}
+        contentContainerStyle={s.listContent}
+        data={modules}
+        keyExtractor={(item) => item.slug}
+        numColumns={2}
+        renderItem={renderItem}
+        ListEmptyComponent={
+          <View style={s.centered}>
+            <Text style={s.emptyText}>No training modules available yet.</Text>
+          </View>
+        }
+      />
+      <PurchasePromptModal
+        visible={purchaseModalVisible}
+        onClose={() => setPurchaseModalVisible(false)}
+      />
+    </>
   );
 }
 
@@ -136,19 +158,28 @@ const s = StyleSheet.create({
     minHeight: 160,
   },
   cardOwned: { backgroundColor: COLORS.surface },
-  cardLocked: { backgroundColor: COLORS.surfaceAlt, opacity: 0.7 },
+  cardLocked: { backgroundColor: COLORS.surfaceAlt, opacity: 0.85 },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   cardIcon: { fontSize: 28 },
-  lockBadge: {
-    backgroundColor: COLORS.textSecondary,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  lockBadgeText: { color: COLORS.textLight, fontSize: 10, fontWeight: '700' },
   cardTitle: { fontSize: 15, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 6 },
   cardTitleLocked: { color: COLORS.textSecondary },
-  cardDesc: { fontSize: 12, color: COLORS.textSecondary, lineHeight: 17 },
+  cardDesc: { fontSize: 12, color: COLORS.textSecondary, lineHeight: 17, marginBottom: 12 },
+  viewBtn: {
+    backgroundColor: COLORS.accent,
+    borderRadius: 10,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  viewBtnLabel: { fontWeight: '700', color: COLORS.textPrimary, fontSize: 13 },
+  buyBtn: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 10,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+  },
+  buyBtnLabel: { fontWeight: '700', color: COLORS.accent, fontSize: 13 },
   errorIcon: { fontSize: 36, marginBottom: 12 },
   errorText: { color: COLORS.textLight, fontSize: 15, textAlign: 'center', marginBottom: 20 },
   retryBtn: {

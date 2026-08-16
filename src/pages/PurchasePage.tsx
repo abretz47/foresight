@@ -19,31 +19,18 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Linking,
 } from 'react-native';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { COLORS } from '../styles/styles';
 import EmojiText from '../components/EmojiText';
 import { fetchPublishedModules, TrainingModuleMeta } from '../lib/trainingCatalogService';
+import { openCheckout } from '../lib/checkoutService';
 import type { RootStackParamList } from '../types/navigation';
 
 interface Props {
   navigation: StackNavigationProp<RootStackParamList>;
   route: RouteProp<RootStackParamList, 'PurchasePage'>;
-}
-
-const PLATFORM_ACCESS_PRICE_ID = process.env.EXPO_PUBLIC_STRIPE_PLATFORM_PRICE_ID ?? '';
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
-
-/** Opens Stripe Checkout for the given Stripe Price ID. */
-function openCheckout(priceId: string): void {
-  if (!priceId) {
-    console.warn('[PurchasePage] No Stripe Price ID configured for this product.');
-    return;
-  }
-  const checkoutUrl = SUPABASE_URL + '/functions/v1/create-checkout-session?price_id=' + priceId;
-  void Linking.openURL(checkoutUrl);
 }
 
 export default function PurchasePage({ navigation }: Props) {
@@ -79,26 +66,8 @@ export default function PurchasePage({ navigation }: Props) {
     <ScrollView style={s.scroll} contentContainerStyle={s.content}>
       <Text style={s.pageTitle}>Training Modules</Text>
       <Text style={s.pageSubtitle}>
-        Purchase Platform Access to unlock Training Home, then add individual modules.
+        Purchase individual training modules below. Your entitlements apply across web and native.
       </Text>
-
-      {/* Platform Access product */}
-      <View style={s.productCard}>
-        <View style={s.productTop}>
-          <EmojiText style={s.productIcon}>🏆</EmojiText>
-          <Text style={s.productTitle}>Platform Access</Text>
-        </View>
-        <Text style={s.productDesc}>
-          Unlocks Training Home on web and native. Required before purchasing individual modules.
-        </Text>
-        <TouchableOpacity
-          style={s.buyBtn}
-          onPress={() => openCheckout(PLATFORM_ACCESS_PRICE_ID)}
-          activeOpacity={0.85}
-        >
-          <Text style={s.buyBtnLabel}>Buy Access</Text>
-        </TouchableOpacity>
-      </View>
 
       {/* Individual modules */}
       {modules.map((m) => (
