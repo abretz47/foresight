@@ -4,20 +4,20 @@ import { render, waitFor } from '@testing-library/react-native';
 import DrillRunner from '../pages/DrillRunner';
 import { useTrainingHostContext } from '../lib/trainingHostContext';
 
-const fetchManifest = jest.fn();
-const resolveModule = jest.fn();
-const getShotProfileAsync = jest.fn();
+const mockFetchManifest = jest.fn();
+const mockResolveModule = jest.fn();
+const mockGetShotProfileAsync = jest.fn();
 
 jest.mock('../lib/trainingConfigService', () => ({
-  fetchManifest: (...args: unknown[]) => fetchManifest(...args),
+  fetchManifest: (...args: unknown[]) => mockFetchManifest(...args),
 }));
 
 jest.mock('../lib/trainingModuleRegistry', () => ({
-  resolveModule: (...args: unknown[]) => resolveModule(...args),
+  resolveModule: (...args: unknown[]) => mockResolveModule(...args),
 }));
 
 jest.mock('../data/db', () => ({
-  getShotProfileAsync: (...args: unknown[]) => getShotProfileAsync(...args),
+  getShotProfileAsync: (...args: unknown[]) => mockGetShotProfileAsync(...args),
 }));
 
 function MockModule({ hostContext, manifest }: { hostContext: { user: string; shotProfiles: Array<{ name: string }> }; manifest: { title: string } }) {
@@ -33,7 +33,7 @@ function MockModule({ hostContext, manifest }: { hostContext: { user: string; sh
 describe('DrillRunner', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    fetchManifest.mockResolvedValue({
+    mockFetchManifest.mockResolvedValue({
       title: 'Test Drill',
       description: 'desc',
       version: 1,
@@ -41,11 +41,11 @@ describe('DrillRunner', () => {
       parameters: {},
       assets: {},
     });
-    getShotProfileAsync.mockResolvedValue([
+    mockGetShotProfileAsync.mockResolvedValue([
       { id: '1', name: 'Driver', distance: '250', targetRadius: '15', missRadius: '30' },
       { id: '2', name: 'Wedge', distance: '100', targetRadius: '8', missRadius: '15' },
     ]);
-    resolveModule.mockReturnValue(MockModule);
+    mockResolveModule.mockReturnValue(MockModule);
   });
 
   it('provides the user shot profiles to the module host context', async () => {
@@ -60,7 +60,7 @@ describe('DrillRunner', () => {
       expect(screen.getByText('Test Drill|user-1|Driver,Wedge|Driver,Wedge')).toBeTruthy();
     });
 
-    expect(fetchManifest).toHaveBeenCalledWith('test-drill');
-    expect(getShotProfileAsync).toHaveBeenCalledWith('user-1');
+    expect(mockFetchManifest).toHaveBeenCalledWith('test-drill');
+    expect(mockGetShotProfileAsync).toHaveBeenCalledWith('user-1');
   });
 });
