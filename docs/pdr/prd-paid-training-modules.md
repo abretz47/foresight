@@ -64,7 +64,7 @@ Purchases are processed via **Stripe one-time payments**. A Supabase Edge Functi
 
 - **Per-module gate:** `training:{slug}` where slug matches the module slug in `training_modules` (e.g. `training:putting-gate-drill`). No separate base platform-access entitlement.
 - Entitlements stored in a `user_entitlements` table: `user_id`, `entitlement_key`, `type`, `granted_at`, `source`, `stripe_event_id` (unique for idempotency). The `type` column categorises entitlements (e.g. `'training'`) and enables efficient queries such as "does this user have any training entitlement?".
-- Supabase **Custom Access Token Auth Hook** reads `user_entitlements` and injects an `entitlements` array claim into the JWT at token issue/refresh.
+- A database trigger syncs `user_entitlements` into `auth.users.raw_app_meta_data.entitlements`, making the claim available on token issue/refresh.
 - App reads entitlements from JWT via **EntitlementService**; triggers `refreshSession()` on app focus after purchase (native fallback when deep link fails).
 
 ### Navigation and gating
@@ -141,7 +141,7 @@ Note: `component_key` maps to an entry in TrainingModuleRegistry (allows multipl
 7. **DrillRunner** — orchestrates registry lookup + config fetch + render
 8. **StripeWebhookHandler** (Edge Function) — idempotent entitlement grants
 9. **TrainingModuleConfigHandler** (Edge Function) — JWT + entitlement check, return manifest
-10. **EntitlementAuthHook** — JWT claim injection from `user_entitlements`
+10. **EntitlementMetadataSync** — trigger-driven sync from `user_entitlements` into `auth.users.raw_app_meta_data`
 11. UI: TrainingHome (View/Buy cards), TrainingModule, DrillRunner screen, PurchasePage, PurchasePromptModal
 12. HamburgerMenu + stack navigator registration
 13. Supabase migrations: tables (including `type` column on `user_entitlements`), Auth Hook config
@@ -204,4 +204,3 @@ Note: `component_key` maps to an entry in TrainingModuleRegistry (allows multipl
 - Test manifest in `training_module_configs` for `test-drill`
 - Stripe test mode Price IDs for test module
 - QA entitlements grantable via webhook or admin SQL
-
