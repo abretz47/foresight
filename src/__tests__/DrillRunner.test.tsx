@@ -38,12 +38,16 @@ const { Text } = require('react-native');
 const DrillRunner = require('../pages/DrillRunner').default;
 const { useTrainingHostContext } = require('../lib/trainingHostContext');
 
+let capturedPropContext: { user: string; shotProfiles: Array<{ name: string }> } | null = null;
+let capturedProviderContext: { user: string; shotProfiles: Array<{ name: string }> } | null = null;
+
 function MockModule({ hostContext, manifest }: { hostContext: { user: string; shotProfiles: Array<{ name: string }> }; manifest: { title: string } }) {
   const ctx = useTrainingHostContext();
+  capturedPropContext = hostContext;
+  capturedProviderContext = ctx;
   return (
     <Text>
-      {manifest.title}|{hostContext.user}|{hostContext.shotProfiles.map((shot) => shot.name).join(',')}|
-      {ctx.shotProfiles.map((shot) => shot.name).join(',')}
+      {manifest.title}
     </Text>
   );
 }
@@ -54,6 +58,8 @@ describe('DrillRunner', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    capturedPropContext = null;
+    capturedProviderContext = null;
     mockFetchManifest.mockResolvedValue({
       title: 'Test Drill',
       description: 'desc',
@@ -84,8 +90,15 @@ describe('DrillRunner', () => {
       tree = TestRenderer.create(<DrillRunner navigation={navigation} route={route} />);
     });
 
-    const textNodes = tree.root.findAllByType('Text');
-    expect(textNodes.some((node: any) => node.props.children.join('') === 'Test Drill|user-1|Driver,Wedge|Driver,Wedge')).toBe(true);
+    expect(tree.root.findAllByType('Text').some((node: any) => node.props.children === 'Test Drill')).toBe(true);
+    expect(capturedPropContext).toMatchObject({
+      user: 'user-1',
+      shotProfiles: [{ name: 'Driver' }, { name: 'Wedge' }],
+    });
+    expect(capturedProviderContext).toMatchObject({
+      user: 'user-1',
+      shotProfiles: [{ name: 'Driver' }, { name: 'Wedge' }],
+    });
 
     expect(mockFetchManifest).toHaveBeenCalledWith('test-drill');
     expect(mockGetShotProfileAsync).toHaveBeenCalledWith('user-1');
