@@ -11,12 +11,15 @@
 import React, { createContext, useContext } from 'react';
 import { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../types/navigation';
+import type { ShotProfile } from '../data/db';
 
 export interface TrainingHostContextValue {
   /** The React Navigation stack prop for navigating out of a drill. */
   navigation: StackNavigationProp<RootStackParamList>;
   /** The username of the current user. */
   user: string;
+  /** All shot profiles available for the current user. */
+  shotProfiles: ShotProfile[];
 }
 
 const TrainingHostContext = createContext<TrainingHostContextValue | null>(null);

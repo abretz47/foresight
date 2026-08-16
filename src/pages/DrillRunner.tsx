@@ -17,6 +17,7 @@ import EmojiText from '../components/EmojiText';
 import { fetchManifest, DrillManifest } from '../lib/trainingConfigService';
 import { resolveModule } from '../lib/trainingModuleRegistry';
 import { TrainingHostContextProvider } from '../lib/trainingHostContext';
+import { getShotProfileAsync, ShotProfile } from '../data/db';
 import type { RootStackParamList } from '../types/navigation';
 
 // Ensure the registry is populated for OSS/stub builds.
@@ -30,14 +31,21 @@ interface Props {
 export default function DrillRunner({ navigation, route }: Props) {
   const { user, slug, componentKey } = route.params;
   const [manifest, setManifest] = useState<DrillManifest | null>(null);
+  const [shotProfiles, setShotProfiles] = useState<ShotProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const load = () => {
     setLoading(true);
     setError(null);
-    fetchManifest(slug)
-      .then(setManifest)
+    Promise.all([
+      fetchManifest(slug),
+      getShotProfileAsync(user),
+    ])
+      .then(([nextManifest, nextShotProfiles]) => {
+        setManifest(nextManifest);
+        setShotProfiles(nextShotProfiles);
+      })
       .catch((e: unknown) => {
         const msg = e instanceof Error ? e.message : 'Failed to load drill content.';
         setError(msg);
@@ -45,7 +53,7 @@ export default function DrillRunner({ navigation, route }: Props) {
       .finally(() => setLoading(false));
   };
 
-  useEffect(load, [slug]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(load, [slug, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
     return (
@@ -87,10 +95,10 @@ export default function DrillRunner({ navigation, route }: Props) {
   }
 
   return (
-    <TrainingHostContextProvider value={{ navigation, user }}>
+    <TrainingHostContextProvider value={{ navigation, user, shotProfiles }}>
       <ModuleComponent
         manifest={manifest}
-        hostContext={{ navigation, user }}
+        hostContext={{ navigation, user, shotProfiles }}
         onComplete={() => navigation.goBack()}
       />
     </TrainingHostContextProvider>
