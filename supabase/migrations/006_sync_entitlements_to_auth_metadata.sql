@@ -14,12 +14,12 @@ create or replace function public.sync_user_entitlements_to_auth_metadata()
 returns trigger
 language plpgsql
 security definer
-set search_path = public, auth
+set search_path = public
 as $$
 declare
   new_entitlements jsonb := '[]'::jsonb;
 begin
-  if tg_op in ('INSERT', 'UPDATE') then
+  if tg_op = 'INSERT' then
     select coalesce(jsonb_agg(entitlement_key order by entitlement_key), '[]'::jsonb)
       into new_entitlements
     from (
@@ -36,9 +36,7 @@ begin
       true
     )
     where id = new.user_id;
-  end if;
-
-  if tg_op in ('DELETE', 'UPDATE') then
+  elsif tg_op = 'DELETE' then
     select coalesce(jsonb_agg(entitlement_key order by entitlement_key), '[]'::jsonb)
       into new_entitlements
     from (
@@ -55,6 +53,42 @@ begin
       true
     )
     where id = old.user_id;
+  elsif tg_op = 'UPDATE' then
+    select coalesce(jsonb_agg(entitlement_key order by entitlement_key), '[]'::jsonb)
+      into new_entitlements
+    from (
+      select distinct ue.entitlement_key
+      from public.user_entitlements ue
+      where ue.user_id = new.user_id
+    ) entitlements;
+
+    update auth.users
+    set raw_app_meta_data = jsonb_set(
+      coalesce(raw_app_meta_data, '{}'::jsonb),
+      '{entitlements}',
+      new_entitlements,
+      true
+    )
+    where id = new.user_id;
+
+    if old.user_id <> new.user_id then
+      select coalesce(jsonb_agg(entitlement_key order by entitlement_key), '[]'::jsonb)
+        into new_entitlements
+      from (
+        select distinct ue.entitlement_key
+        from public.user_entitlements ue
+        where ue.user_id = old.user_id
+      ) entitlements;
+
+      update auth.users
+      set raw_app_meta_data = jsonb_set(
+        coalesce(raw_app_meta_data, '{}'::jsonb),
+        '{entitlements}',
+        new_entitlements,
+        true
+      )
+      where id = old.user_id;
+    end if;
   end if;
 
   return coalesce(new, old);
