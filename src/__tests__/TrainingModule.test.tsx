@@ -35,7 +35,10 @@ jest.mock('../lib/trainingModuleRegistry', () => ({
 
 jest.mock('../components/TrainingModuleDetails', () => ({
   __esModule: true,
-  default: ({ module }: { module: { slug: string } }) => React.createElement('Text', null, `default:${module.slug}`),
+  default: ({ module }: { module: { slug: string } }) => {
+    const React = require('react');
+    return React.createElement('Text', null, `default:${module.slug}`);
+  },
 }));
 
 const TrainingModule = require('../pages/TrainingModule').default;
