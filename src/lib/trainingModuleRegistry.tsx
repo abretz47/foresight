@@ -19,6 +19,7 @@ import type { DrillManifest } from './trainingConfigService';
 import type { TrainingHostContextValue } from './trainingHostContext';
 import type { TrainingModuleMeta } from './trainingCatalogService';
 import { PuttingAssessmentModule } from '../modules/training/PuttingAssessmentModule';
+import PuttingAssessmentModuleDetails from '../components/PuttingAssessmentModuleDetails';
 
 export interface TrainingModuleProps {
   manifest: DrillManifest;
@@ -108,3 +109,6 @@ function TestDrillModule({ manifest, onComplete, hostContext }: TrainingModulePr
 
 registerModule('test-drill', TestDrillModule);
 registerModule('putting-assessment', PuttingAssessmentModule);
+registerModule('academy-putting-v2', PuttingAssessmentModule);
+registerModuleDetails('putting-assessment', PuttingAssessmentModuleDetails);
+registerModuleDetails('academy-putting-v2', PuttingAssessmentModuleDetails);
