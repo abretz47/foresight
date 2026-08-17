@@ -31,6 +31,7 @@ jest.mock('react-native', () => {
     View: prim('View'),
     Text: prim('Text'),
     ScrollView: prim('ScrollView'),
+    Image: prim('Image'),
     TouchableOpacity: prim('TouchableOpacity'),
     StyleSheet: { create: (s: unknown) => s },
     Platform: { OS: 'ios', select: (o: any) => o.ios ?? o.default },
@@ -75,7 +76,12 @@ const CHIPPING_MANIFEST: PuttingManifest = {
   estimatedDurationMinutes: 60,
   steps: [],
   parameters: {},
-  assets: {},
+  assets: {
+    header: 'https://example.com/header.png',
+    short: 'https://example.com/short.png',
+    long: 'https://example.com/long.png',
+  },
+  image: 'header',
   icon: '🏒',
   scheduledWeeks: [1, 4, 8],
   practiceNotes: ['Treat every chip as a competition shot.'],
@@ -83,6 +89,7 @@ const CHIPPING_MANIFEST: PuttingManifest = {
     {
       name: 'Short Chipping',
       description: 'SKILL – CHIPPING (Short) | 2 holes × 5 chips per hole at each distance',
+      image: 'short',
       drills: [
         { name: '5 Yards', holes: 2, puttsPerHole: 5 },
         { name: '10 Yards', holes: 2, puttsPerHole: 5 },
@@ -92,7 +99,7 @@ const CHIPPING_MANIFEST: PuttingManifest = {
       name: 'Long Chipping',
       description: 'SKILL – CHIPPING (Long) | 1 hole × 5 chips per hole | R = 2ft',
       drills: [
-        { name: '20 Yards', holes: 1, puttsPerHole: 5, targetRadius: 'R = 2ft' },
+        { name: '20 Yards', holes: 1, puttsPerHole: 5, targetRadius: 'R = 2ft', image: 'long' },
         { name: '30 Yards', holes: 1, puttsPerHole: 5, targetRadius: 'R = 2ft' },
       ],
     },
@@ -201,7 +208,24 @@ describe('PuttingAssessmentModule — Overview screen', () => {
 
     const texts = allTexts(tree);
     expect(texts).toContain('Chipping Assessment');
-    expect(texts).toContain('🏒');
+  });
+
+  it('renders overview images from manifest assets', async () => {
+    let tree: any;
+    await TestRenderer.act(async () => {
+      tree = TestRenderer.create(
+        <PuttingAssessmentModule
+          manifest={CHIPPING_MANIFEST}
+          hostContext={buildHostContext()}
+          onComplete={jest.fn()}
+        />
+      );
+    });
+
+    const images = tree.root.findAllByType('Image');
+    const uris = images.map((img: any) => img.props?.source?.uri).filter(Boolean);
+    expect(uris).toContain('https://example.com/header.png');
+    expect(uris).toContain('https://example.com/short.png');
   });
 
   it('shows the 8-Week Program subtitle', async () => {
@@ -469,6 +493,13 @@ describe('PuttingAssessmentModule — Session screen', () => {
     const texts = allTexts(tree);
     // 3/30 = 10%
     expect(texts.some((t) => t === '10%')).toBe(true);
+  });
+
+  it('renders drill image on session view when configured', async () => {
+    const { tree } = await openSession();
+    const images = tree.root.findAllByType('Image');
+    const uris = images.map((img: any) => img.props?.source?.uri).filter(Boolean);
+    expect(uris).toContain('https://example.com/long.png');
   });
 
   it('returns to overview when Cancel is pressed', async () => {

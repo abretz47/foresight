@@ -18,6 +18,7 @@ import {
   ActivityIndicator,
   ListRenderItemInfo,
   Platform,
+  Image,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
@@ -77,7 +78,13 @@ export default function TrainingHome({ navigation, route }: Props) {
   const renderItem = ({ item }: ListRenderItemInfo<ModuleCardData>) => (
     <View style={[s.card, item.owned ? s.cardOwned : s.cardLocked]}>
       <View style={s.cardTop}>
-        <EmojiText style={s.cardIcon}>{item.owned ? '🏌️' : '🔒'}</EmojiText>
+        {item.thumbnail_url ? (
+          <Image source={{ uri: item.thumbnail_url }} style={s.cardImage} resizeMode="cover" />
+        ) : (
+          <View style={s.cardImageFallback}>
+            <EmojiText style={s.cardIcon}>{item.owned ? '🏌️' : '🔒'}</EmojiText>
+          </View>
+        )}
       </View>
       <Text style={[s.cardTitle, !item.owned && s.cardTitleLocked]} numberOfLines={2}>
         {item.title}
@@ -160,6 +167,15 @@ const s = StyleSheet.create({
   cardOwned: { backgroundColor: COLORS.surface },
   cardLocked: { backgroundColor: COLORS.surfaceAlt, opacity: 0.85 },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  cardImage: { width: '100%', height: 84, borderRadius: 12 },
+  cardImageFallback: {
+    width: '100%',
+    height: 84,
+    borderRadius: 12,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   cardIcon: { fontSize: 28 },
   cardTitle: { fontSize: 15, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 6 },
   cardTitleLocked: { color: COLORS.textSecondary },

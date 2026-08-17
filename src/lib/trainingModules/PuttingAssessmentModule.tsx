@@ -31,6 +31,7 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
+  Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS } from '../../styles/styles';
@@ -45,16 +46,19 @@ export interface PuttingDrill {
   holes: number;
   puttsPerHole: number;
   targetRadius?: string;
+  image?: string;
 }
 
 export interface PuttingSection {
   name: string;
   description: string;
+  image?: string;
   drills: PuttingDrill[];
 }
 
 export interface PuttingManifest extends DrillManifest {
   icon?: string;
+  image?: string;
   scheduledWeeks?: number[];
   practiceNotes?: string[];
   sections?: PuttingSection[];
@@ -92,6 +96,14 @@ function sectionPossible(section: PuttingSection): number {
 
 function drillTotal(scores: number[][][], sectionIdx: number, drillIdx: number): number {
   return scores[sectionIdx]?.[drillIdx]?.reduce((s, v) => s + v, 0) ?? 0;
+}
+
+function resolveImageUri(manifest: PuttingManifest, value?: string): string | null {
+  if (!value) return null;
+  if (/^https?:\/\//i.test(value)) return value;
+  const fromAssets = manifest.assets?.[value];
+  if (typeof fromAssets === 'string' && fromAssets.length > 0) return fromAssets;
+  return null;
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -216,12 +228,17 @@ interface OverviewProps {
 function OverviewView({ manifest, sections, completedSessions, nextWeek, allComplete, onStart }: OverviewProps) {
   const totalWeeks = manifest.scheduledWeeks?.length ?? 0;
   const weekLabel = totalWeeks > 0 ? `${Math.max(...(manifest.scheduledWeeks ?? [totalWeeks]))}-Week Program` : 'Training Program';
+  const headerImage = resolveImageUri(manifest, manifest.image);
 
   return (
     <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent}>
       {/* Module header */}
       <View style={s.moduleHeader}>
-        <EmojiText style={s.headerIcon}>{manifest.icon ?? '🏌️'}</EmojiText>
+        {headerImage ? (
+          <Image source={{ uri: headerImage }} style={s.headerImage} resizeMode="cover" />
+        ) : (
+          <EmojiText style={s.headerIcon}>{manifest.icon ?? '🏌️'}</EmojiText>
+        )}
         <View>
           <Text style={s.headerTitle}>{manifest.title}</Text>
           <Text style={s.headerSubtitle}>{weekLabel}</Text>
@@ -273,12 +290,16 @@ function OverviewView({ manifest, sections, completedSessions, nextWeek, allComp
 
       {sections.map((sec) => {
         const possible = sectionPossible(sec);
+        const sectionImage = resolveImageUri(manifest, sec.image);
         return (
           <View key={sec.name} style={s.sectionOverview}>
             <View style={s.sectionOverviewHeader}>
               <Text style={s.sectionOverviewName}>{sec.name}</Text>
               <Text style={s.sectionOverviewPossible}>{`${possible} putts / session`}</Text>
             </View>
+            {sectionImage && (
+              <Image source={{ uri: sectionImage }} style={s.sectionOverviewImage} resizeMode="cover" />
+            )}
             <Text style={s.sectionOverviewDesc}>{sec.description}</Text>
             {sec.drills.map((drill) => {
               const label = drill.targetRadius
@@ -385,6 +406,7 @@ function SessionView({
             {sec.drills.map((drill, di) => {
               const total = drillTotal(sessionScores, activeSection, di);
               const possible = drill.holes * drill.puttsPerHole;
+              const drillImage = resolveImageUri(manifest, drill.image);
               return (
                 <View key={drill.name} style={s.drillCard}>
                   <View style={s.drillCardHeader}>
@@ -393,6 +415,9 @@ function SessionView({
                       {`${total} / ${possible}`}
                     </Text>
                   </View>
+                  {drillImage && (
+                    <Image source={{ uri: drillImage }} style={s.drillImage} resizeMode="cover" />
+                  )}
                   <View style={s.holesRow}>
                     {Array.from({ length: drill.holes }, (_, hi) => {
                       const val = sessionScores[activeSection]?.[di]?.[hi] ?? 0;
@@ -453,6 +478,7 @@ const s = StyleSheet.create({
     paddingVertical: 18,
     gap: 14,
   },
+  headerImage: { width: 56, height: 56, borderRadius: 10 },
   headerIcon: { fontSize: 38 },
   headerTitle: { fontSize: 22, fontWeight: '800', color: COLORS.textLight },
   headerSubtitle: { fontSize: 13, color: COLORS.textMuted, marginTop: 2 },
@@ -535,6 +561,7 @@ const s = StyleSheet.create({
   sectionOverviewName: { fontSize: 15, fontWeight: '800', color: COLORS.textPrimary },
   sectionOverviewPossible: { fontSize: 12, color: COLORS.textMuted },
   sectionOverviewDesc: { fontSize: 12, color: COLORS.textSecondary, marginBottom: 8 },
+  sectionOverviewImage: { width: '100%', height: 130, borderRadius: 10, marginBottom: 8 },
   drillOverviewRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -609,6 +636,7 @@ const s = StyleSheet.create({
   drillName: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
   drillScore: { fontSize: 14, fontWeight: '700', color: COLORS.textSecondary },
   drillScoreActive: { color: COLORS.success },
+  drillImage: { width: '100%', height: 120, borderRadius: 10, marginBottom: 12 },
 
   holesRow: { flexDirection: 'row', gap: 12 },
   holeCol: { alignItems: 'center', minWidth: 48 },
