@@ -99,6 +99,7 @@ export default function DrillRunner({ navigation, route }: Props) {
       <ModuleComponent
         manifest={manifest}
         hostContext={{ navigation, user, shotProfiles }}
+        moduleSlug={slug}
         onComplete={() => navigation.goBack()}
       />
     </TrainingHostContextProvider>

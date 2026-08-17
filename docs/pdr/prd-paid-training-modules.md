@@ -17,9 +17,9 @@ Add a **Training Modules** feature accessible from a new hamburger menu entry. A
 
 **Content delivery (simplified):**
 
-- **React UI (the IP)** ships as **private npm/git dependencies**, imported at **build time** in a proprietary app build. The open-source repo contains only the training framework (registry, config client, drill shell) — not the paid module components.
-- **Module content (data)** is delivered as a **full manifest** (metadata + drill definition + asset URLs) over a **Supabase Edge Function** REST API, gated by JWT entitlements.
-- At runtime, the app resolves `slug → React component` from the build-time registry, fetches the manifest from the API, and passes config into the component.
+- **React UI** for training modules now lives in this unified frontend repo and is resolved through the in-app module registry.
+- **Paid content/data** is delivered as a **full manifest** (metadata + drill definition + asset URLs) over a **tokenized Supabase Edge Function** REST API, gated by JWT entitlements.
+- At runtime, the app resolves `slug → React component` from the local registry, fetches the manifest from the API, and passes config into the component.
 
 Purchases are processed via **Stripe one-time payments**. A Supabase Edge Function handles Stripe webhooks and writes to a `user_entitlements` table. A Supabase Auth Hook injects entitlements into the JWT at token issue time.
 
@@ -43,11 +43,11 @@ Purchases are processed via **Stripe one-time payments**. A Supabase Edge Functi
 16. As a buyer, I want to pay via Stripe Checkout with a one-time payment per module, so that I can buy individual modules as needed.
 17. As a buyer, I want my entitlements granted automatically after successful payment, so that I can access content immediately after session refresh.
 18. As a returning user, I want my JWT to include all my entitlements, so that the app can gate content without extra round trips.
-19. As a content maintainer, I want module React components in a private package repo, so that UI IP stays out of the open-source codebase.
+19. As a content maintainer, I want module React components managed in the unified frontend repo, so that delivery and integration stay in one codebase.
 20. As a content maintainer, I want to publish module manifests via the backend API, so that drill copy, steps, and parameters can be updated without an app store release when possible.
 21. As a content maintainer, I want manifest asset URLs for images/video hosted on CDN or Storage, so that media can update independently of the app binary.
 22. As an admin, I want to manage module metadata, manifests, and Stripe Price IDs in Supabase and Stripe dashboards, so that I can operate without in-app admin UI.
-23. As a developer, I want a stable module component contract (props/context for config + host APIs), so that private packages integrate predictably with the open-source host.
+23. As a developer, I want a stable module component contract (props/context for config + host APIs), so that in-repo modules integrate predictably with the host.
 24. As a developer, I want a flexible drill manifest schema, so that future module types can be added without rewriting the host app.
 25. As a v1 adopter, I want a seeded test module in the framework build, so that the purchase and config pipeline can be validated before real content ships.
 26. As a user without network access, I want a cached manifest to load if previously fetched, so that I can continue a drill I already started (within cache TTL).
@@ -55,8 +55,8 @@ Purchases are processed via **Stripe one-time payments**. A Supabase Edge Functi
 28. As a cloud user, I want Training Modules gated consistently across web and native, so that behavior is predictable on every platform.
 29. As a security-conscious operator, I want Stripe webhooks verified and idempotent, so that duplicate events do not double-grant entitlements.
 30. As a security-conscious operator, I want the config API to reject requests without the correct module entitlement, so that manifests are not leaked to unpaid users.
-31. As an open-source contributor, I want to build and run the app without private module packages, so that the public repo remains fully functional with stub/test content only.
-32. As a release engineer, I want proprietary builds to install private packages via CI secrets, so that paid modules are included in store builds but not in the public repo.
+31. As an open-source contributor, I want to build and run the app with local/test-safe module config stubs, so that the public repo remains fully functional for development.
+32. As a release engineer, I want paid module data access to remain token-gated server-side, so that code can be unified while paid content is still protected.
 
 ## Implementation Decisions
 
@@ -88,11 +88,11 @@ Purchases are processed via **Stripe one-time payments**. A Supabase Edge Functi
 
 ### Content delivery (build-time components + REST config)
 
-#### Build-time module packages (IP)
+#### In-repo module implementations
 
-- Each training module (or module family) is a **private npm/git package** exporting a React component (e.g. `@foresight/training-putting-gate`).
-- **Proprietary builds** add these as dependencies and register them in **TrainingModuleRegistry** (`slug → Component`).
-- **Open-source builds** register only a **stub/test module**; no private packages required to compile or run.
+- Each training module (or module family) is implemented directly in this repository and registered in **TrainingModuleRegistry** (`slug/component_key → Component`).
+- `TrainingModule.tsx` renders `TrainingModuleDetails.tsx` for module overview UX, and `DrillRunner.tsx` executes the registry component for the selected module.
+- Open-source/local installs continue to include test-safe module config stubs for development and validation.
 - Module components receive:
   - **manifest** — full config from API (drill steps, copy, parameters, asset URLs)
   - **host context** — typed access to host APIs (shot profiles, recording, navigation) via React context provided by the open-source framework
@@ -136,21 +136,22 @@ Note: `component_key` maps to an entry in TrainingModuleRegistry (allows multipl
 2. **TrainingAccessGate** (deep) — platform-aware routing for menu entry
 3. **TrainingCatalogService** — fetch published module list from Supabase
 4. **TrainingConfigService** (deep) — fetch + cache entitlement-gated manifests from Edge Function
-5. **TrainingModuleRegistry** (deep) — build-time registration map `slug → React component`; stub in OSS build
+5. **TrainingModuleRegistry** (deep) — in-repo registration map `slug/component_key → React component`; includes putting assessment + test module
 6. **TrainingHostContext** — React context exposing host APIs to module components
 7. **DrillRunner** — orchestrates registry lookup + config fetch + render
 8. **StripeWebhookHandler** (Edge Function) — idempotent entitlement grants
 9. **TrainingModuleConfigHandler** (Edge Function) — JWT + entitlement check, return manifest
 10. **EntitlementMetadataSync** — trigger-driven sync from `user_entitlements` into `auth.users.raw_app_meta_data`
-11. UI: TrainingHome (View/Buy cards), TrainingModule, DrillRunner screen, PurchasePage, PurchasePromptModal
-12. HamburgerMenu + stack navigator registration
-13. Supabase migrations: tables (including `type` column on `user_entitlements`), Auth Hook config
+11. **TrainingModuleDetails** — module overview UI loaded by `TrainingModule`
+12. **PuttingAssessmentModule** — in-repo training module frontend + Supabase persistence
+13. UI: TrainingHome (View/Buy cards), TrainingModule, DrillRunner screen, PurchasePage, PurchasePromptModal
+14. HamburgerMenu + stack navigator registration
+15. Supabase migrations: tables (including `type` column on `user_entitlements` and `training_module_assessments`), Auth Hook config
 
-### Build pipeline (proprietary)
+### Build pipeline
 
-- CI (e.g. EAS Build) with access to private registry token installs paid packages.
-- Registry file (e.g. `trainingModuleRegistry.proprietary.ts`) imported only in proprietary build via env flag or file swap; gitignored in public repo.
-- Open-source CI builds without private deps; uses `trainingModuleRegistry.stub.ts`.
+- CI (e.g. EAS Build) ships unified training UI in the main app build.
+- Access to paid module content remains controlled at runtime by Supabase entitlement checks and tokenized config endpoints.
 
 ## Testing Decisions
 
@@ -158,7 +159,7 @@ Note: `component_key` maps to an entry in TrainingModuleRegistry (allows multipl
 - **Modules tested in v1:**
   - **TrainingAccessGate** — navigation gating with mocked EntitlementService (`hasAnyEntitlementOfType`), cloud mode, and Platform.
 - **Prior art:** Mirror existing app test patterns where available.
-- **Deferred (manual QA in v1):** Stripe webhook, Auth Hook, Edge Function config endpoint, proprietary package integration.
+- **Deferred (manual QA in v1):** Stripe webhook, Auth Hook, Edge Function config endpoint.
 
 ## Out of Scope
 
@@ -169,7 +170,7 @@ Note: `component_key` maps to an entry in TrainingModuleRegistry (allows multipl
 - Cross-device drill progress sync to cloud
 - Purchase analytics dashboard
 - In-app admin UI (Supabase + Stripe dashboards only)
-- Real training content in v1 (framework + stub module + seeded test manifest only)
+- Additional paid modules beyond initial in-repo putting assessment and seeded test module
 - Offline-first sync beyond simple post-fetch manifest cache
 - App store updates triggered automatically when manifest changes (manifest updates are server-side; app update only needed when new module *components* are added)
 
@@ -182,21 +183,21 @@ Note: `component_key` maps to an entry in TrainingModuleRegistry (allows multipl
 | Remote JS bundles from Storage | React components bundled at build time |
 | WebView + HostBridge on native | Native React screens everywhere |
 | Signed URLs + Storage RLS for code | Edge Function returns JSON manifest |
-| Private repo CI uploads bundles | Private npm packages in proprietary CI build |
+| Private repo CI uploads bundles | Unified repo modules + entitlement-gated config responses |
 | ModuleLoader runtime complexity | TrainingModuleRegistry + TrainingConfigService |
 | Separate paid-content-user base gate | Per-module entitlements only; no base gate |
 
 ### When an app release is required
 
 - **Not required:** manifest copy, drill steps, parameters, asset URL changes (update DB/config).
-- **Required:** new module slug with a new React component (add private package + registry entry + store build).
+- **Required:** new module slug with a new React component (add component + registry entry + store build).
 
 ### Environment variables (new)
 
 - `EXPO_PUBLIC_WEB_APP_URL`
 - Stripe keys (publishable on web; secret + webhook secret in Edge Functions)
 - Supabase service role key (Edge Functions only)
-- `NPM_TOKEN` or private registry credentials (proprietary CI only, not in client)
+- No private package registry token required for module frontend code in this architecture
 
 ### v1 seeded test data
 

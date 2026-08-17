@@ -17,10 +17,12 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { COLORS } from '../styles/styles';
 import type { DrillManifest } from './trainingConfigService';
 import type { TrainingHostContextValue } from './trainingHostContext';
+import { PuttingAssessmentModule } from '../modules/training/PuttingAssessmentModule';
 
 export interface TrainingModuleProps {
   manifest: DrillManifest;
   hostContext: TrainingHostContextValue;
+  moduleSlug: string;
   onComplete: () => void;
 }
 
@@ -59,6 +61,7 @@ const testDrillStyles = StyleSheet.create({
 function TestDrillModule({ manifest, onComplete, hostContext }: TrainingModuleProps) {
   const startSession = (screen: string, shotName: string) => {
     const shot = hostContext.shotProfiles.find((p) => p.name === '7 Iron');
+    if (!shot) return;
     hostContext.navigation.navigate('Record', {user: hostContext.user, id: shot.id, shotName: shot.name, targetDistance: shot.distance, targetRadius: shot.targetRadius, missRadius: shot.missRadius, calledFrom: 'DrillRunner'});
   }
   return (
@@ -86,3 +89,4 @@ function TestDrillModule({ manifest, onComplete, hostContext }: TrainingModulePr
 }
 
 registerModule('test-drill', TestDrillModule);
+registerModule('putting-assessment', PuttingAssessmentModule);

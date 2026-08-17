@@ -6,6 +6,7 @@
  * and is used by TrainingHome and PurchasePage.
  */
 import { supabase } from './supabase';
+import { getLocalPublishedTrainingModules } from '../data/trainingModulesLocalConfig';
 
 export interface TrainingModuleMeta {
   id: string;
@@ -24,7 +25,16 @@ export interface TrainingModuleMeta {
  */
 export async function fetchPublishedModules(): Promise<TrainingModuleMeta[]> {
   if (!supabase) {
-    throw new Error('Supabase is not configured.');
+    return getLocalPublishedTrainingModules().map((module) => ({
+      id: module.id,
+      slug: module.slug,
+      title: module.title,
+      description: module.description,
+      thumbnail_url: module.thumbnail_url,
+      stripe_price_id: module.stripe_price_id,
+      component_key: module.component_key,
+      sort_order: module.sort_order,
+    }));
   }
   const { data, error } = await supabase
     .from('training_modules')

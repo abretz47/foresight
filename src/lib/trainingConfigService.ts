@@ -9,6 +9,7 @@
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
+import { getLocalTrainingModuleConfig } from '../data/trainingModulesLocalConfig';
 
 export interface DrillStep {
   id: string;
@@ -65,7 +66,11 @@ async function writeCache(slug: string, manifest: DrillManifest): Promise<void> 
  */
 export async function fetchManifest(slug: string): Promise<DrillManifest> {
   if (!supabase) {
-    throw new Error('Supabase is not configured.');
+    const localConfig = getLocalTrainingModuleConfig(slug);
+    if (!localConfig) {
+      throw new Error('Supabase is not configured.');
+    }
+    return localConfig.manifest;
   }
 
   // Retrieve the current session for the Authorization header.
