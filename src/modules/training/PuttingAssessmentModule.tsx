@@ -57,7 +57,8 @@ export function PuttingAssessmentModule({ manifest, moduleSlug, onComplete }: Tr
     return () => { cancelled = true; };
   }, [moduleSlug]);
 
-  const missing = questions.some((q) => !answers[q.id]);
+  const noQuestions = questions.length === 0;
+  const missing = noQuestions || questions.some((q) => !answers[q.id]);
 
   const submit = async () => {
     if (missing || saving) return;
@@ -108,6 +109,9 @@ export function PuttingAssessmentModule({ manifest, moduleSlug, onComplete }: Tr
           </View>
         </View>
       ))}
+      {noQuestions ? (
+        <Text style={s.errorText}>Assessment configuration is unavailable for this module.</Text>
+      ) : null}
       {error ? <Text style={s.errorText}>{error}</Text> : null}
       <TouchableOpacity
         style={[s.submitBtn, (missing || saving) && s.submitBtnDisabled]}
