@@ -19,7 +19,9 @@ import EmojiText from '../components/EmojiText';
 import { fetchPublishedModules, TrainingModuleMeta } from '../lib/trainingCatalogService';
 import { hasEntitlement } from '../lib/entitlementService';
 import TrainingModuleDetails from '../components/TrainingModuleDetails';
+import { resolveModuleDetails } from '../lib/trainingModuleRegistry';
 import type { RootStackParamList } from '../types/navigation';
+import '../lib/trainingModuleRegistry';
 
 interface Props {
   navigation: StackNavigationProp<RootStackParamList>;
@@ -70,11 +72,15 @@ export default function TrainingModule({ navigation, route }: Props) {
     );
   }
 
+  const ModuleDetailsComponent = resolveModuleDetails(module.component_key) ??
+    resolveModuleDetails(slug) ??
+    TrainingModuleDetails;
+
   return (
-    <TrainingModuleDetails
+    <ModuleDetailsComponent
       module={module}
       owned={owned}
-      onStart={() => navigation.navigate('DrillRunner', { user, slug, componentKey: module.component_key })}
+      onStart={() => navigation.navigate('DrillRunner', { user, slug, componentKey: module.component_key || slug })}
     />
   );
 }

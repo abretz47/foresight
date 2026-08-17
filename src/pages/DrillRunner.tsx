@@ -82,7 +82,7 @@ export default function DrillRunner({ navigation, route }: Props) {
     );
   }
 
-  const ModuleComponent = resolveModule(componentKey);
+  const ModuleComponent = resolveModule(componentKey) ?? resolveModule(slug);
   if (!ModuleComponent) {
     return (
       <View style={s.centered}>

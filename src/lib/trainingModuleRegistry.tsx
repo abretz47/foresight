@@ -17,6 +17,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { COLORS } from '../styles/styles';
 import type { DrillManifest } from './trainingConfigService';
 import type { TrainingHostContextValue } from './trainingHostContext';
+import type { TrainingModuleMeta } from './trainingCatalogService';
 import { PuttingAssessmentModule } from '../modules/training/PuttingAssessmentModule';
 
 export interface TrainingModuleProps {
@@ -27,8 +28,15 @@ export interface TrainingModuleProps {
 }
 
 export type TrainingModuleComponent = React.ComponentType<TrainingModuleProps>;
+export interface TrainingModuleDetailsProps {
+  module: TrainingModuleMeta;
+  owned: boolean;
+  onStart: () => void;
+}
+export type TrainingModuleDetailsComponent = React.ComponentType<TrainingModuleDetailsProps>;
 
 const registry = new Map<string, TrainingModuleComponent>();
+const detailsRegistry = new Map<string, TrainingModuleDetailsComponent>();
 
 /** Register a module component for a given slug/component_key. */
 export function registerModule(key: string, component: TrainingModuleComponent): void {
@@ -38,6 +46,16 @@ export function registerModule(key: string, component: TrainingModuleComponent):
 /** Resolve a component by key; returns undefined when not registered. */
 export function resolveModule(key: string): TrainingModuleComponent | undefined {
   return registry.get(key);
+}
+
+/** Register a module details component for a given slug/component_key. */
+export function registerModuleDetails(key: string, component: TrainingModuleDetailsComponent): void {
+  detailsRegistry.set(key, component);
+}
+
+/** Resolve a details component by key; returns undefined when not registered. */
+export function resolveModuleDetails(key: string): TrainingModuleDetailsComponent | undefined {
+  return detailsRegistry.get(key);
 }
 
 // ── Stub / test module ────────────────────────────────────────────────────────

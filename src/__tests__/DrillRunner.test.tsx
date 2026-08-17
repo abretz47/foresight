@@ -103,4 +103,23 @@ describe('DrillRunner', () => {
     expect(mockFetchManifest).toHaveBeenCalledWith('test-drill');
     expect(mockGetShotProfileAsync).toHaveBeenCalledWith('user-1');
   });
+
+  it('falls back to slug resolution when component key is not registered', async () => {
+    mockResolveModule
+      .mockReturnValueOnce(undefined)
+      .mockReturnValueOnce(MockModule);
+    const navigation = { goBack: jest.fn() } as any;
+    const route = {
+      params: { user: 'user-1', slug: 'putting-assessment', componentKey: 'academy-putting-v2' },
+    } as any;
+
+    let tree: any;
+    await TestRenderer.act(async () => {
+      tree = TestRenderer.create(<DrillRunner navigation={navigation} route={route} />);
+    });
+
+    expect(tree.root.findAllByType('Text').some((node: any) => node.props.children === 'Test Drill')).toBe(true);
+    expect(mockResolveModule).toHaveBeenNthCalledWith(1, 'academy-putting-v2');
+    expect(mockResolveModule).toHaveBeenNthCalledWith(2, 'putting-assessment');
+  });
 });
