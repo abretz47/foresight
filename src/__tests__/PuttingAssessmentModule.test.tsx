@@ -91,7 +91,7 @@ const CHIPPING_MANIFEST: PuttingManifest = {
       description: 'SKILL – CHIPPING (Short) | 2 holes × 5 chips per hole at each distance',
       image: 'short',
       drills: [
-        { name: '5 Yards', holes: 2, puttsPerHole: 5 },
+        { name: '5 Yards', holes: 2, puttsPerHole: 5, image: 'short' },
         { name: '10 Yards', holes: 2, puttsPerHole: 5 },
       ],
     },
@@ -499,7 +499,7 @@ describe('PuttingAssessmentModule — Session screen', () => {
     const { tree } = await openSession();
     const images = tree.root.findAllByType('Image');
     const uris = images.map((img: any) => img.props?.source?.uri).filter(Boolean);
-    expect(uris).toContain('https://example.com/long.png');
+    expect(uris).toContain('https://example.com/short.png');
   });
 
   it('returns to overview when Cancel is pressed', async () => {

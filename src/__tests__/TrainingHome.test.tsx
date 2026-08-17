@@ -38,7 +38,10 @@ jest.mock('../components/EmojiText', () => {
 
 jest.mock('../components/PurchasePromptModal', () => ({
   __esModule: true,
-  default: ({ visible }: { visible: boolean }) => (visible ? React.createElement('Text', null, 'modal') : null),
+  default: ({ visible }: { visible: boolean }) => {
+    const R = require('react');
+    return visible ? R.createElement('Text', null, 'modal') : null;
+  },
 }));
 
 jest.mock('../lib/trainingCatalogService', () => ({
