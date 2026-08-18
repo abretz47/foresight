@@ -204,3 +204,4 @@ Note: `component_key` maps to an entry in TrainingModuleRegistry (allows multipl
 - Test manifest in `training_module_configs` for `test-drill`
 - Stripe test mode Price IDs for test module
 - QA entitlements grantable via webhook or admin SQL
+
