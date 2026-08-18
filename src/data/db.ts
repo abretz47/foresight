@@ -616,16 +616,37 @@ export async function migrateLocalToCloud(
 // ── User Profile ────────────────────────────────────────────────────────────
 
 export async function getUserProfile(user: string): Promise<UserProfile | null> {
+  if (isCloudMode()) {
+    try {
+      return await SupabaseDB.getUserProfile();
+    } catch (e) {
+      console.warn('[Foresight] Cloud getUserProfile failed, using local:', e);
+    }
+  }
   const raw = await AsyncStorage.getItem(userProfileKey(user));
   return raw ? (JSON.parse(raw) as UserProfile) : null;
 }
 
 export async function saveUserProfile(user: string, profile: UserProfile): Promise<void> {
+  if (isCloudMode()) {
+    try {
+      return await SupabaseDB.saveUserProfile(profile);
+    } catch (e) {
+      console.warn('[Foresight] Cloud saveUserProfile failed, using local:', e);
+    }
+  }
   await AsyncStorage.setItem(userProfileKey(user), JSON.stringify(profile));
 }
 
 /** Returns true when the user has completed the first-run profile setup. */
 export async function hasUserProfile(user: string): Promise<boolean> {
+  if (isCloudMode()) {
+    try {
+      return await SupabaseDB.hasUserProfile();
+    } catch (e) {
+      console.warn('[Foresight] Cloud hasUserProfile failed, using local:', e);
+    }
+  }
   const raw = await AsyncStorage.getItem(userProfileKey(user));
   return raw !== null;
 }
