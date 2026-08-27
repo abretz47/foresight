@@ -58,10 +58,23 @@ const testDrillStyles = StyleSheet.create({
 });
 
 function TestDrillModule({ manifest, onComplete, hostContext }: TrainingModuleProps) {
-  const startSession = (screen: string, shotName: string) => {
-    const shot = hostContext.shotProfiles.find((p) => p.name === '7 Iron');
-    hostContext.navigation.navigate('Record', {user: hostContext.user, id: shot.id, shotName: shot.name, targetDistance: shot.distance, targetRadius: shot.targetRadius, missRadius: shot.missRadius, calledFrom: 'DrillRunner'});
-  }
+  const startSession = (shotName: string) => {
+    const shot =
+      hostContext.shotProfiles.find((p) => p.name === shotName) ??
+      hostContext.shotProfiles[0];
+
+    if (!shot) return;
+
+    hostContext.navigation.navigate('Record', {
+      user: hostContext.user,
+      id: shot.id,
+      shotName: shot.name,
+      targetDistance: shot.distance,
+      targetRadius: shot.targetRadius,
+      missRadius: shot.missRadius,
+      calledFrom: 'DrillRunner',
+    });
+  };
   return (
     <View style={testDrillStyles.container}>
       <Text style={testDrillStyles.title}>{manifest.title}</Text>
@@ -70,12 +83,11 @@ function TestDrillModule({ manifest, onComplete, hostContext }: TrainingModulePr
         {manifest.steps.map((step, i) => (
           <React.Fragment key={step.id}>
             <Text style={testDrillStyles.step}>{i + 1}. {step.instruction}</Text>
-            { step.screen != null ?
-              (<TouchableOpacity style={testDrillStyles.btn} onPress={() => startSession(step.screen, step.club)}>
+            {typeof step['screen'] === 'string' && typeof step['club'] === 'string' ? (
+              <TouchableOpacity style={testDrillStyles.btn} onPress={() => startSession(step['club'])}>
                 <Text style={testDrillStyles.btnLabel}>Start Session</Text>
-              </TouchableOpacity>)
-            : null
-          }
+              </TouchableOpacity>
+            ) : null}
           </React.Fragment>
         ))}
       </View>
