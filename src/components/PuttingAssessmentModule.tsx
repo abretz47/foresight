@@ -61,7 +61,6 @@ export default function PuttingAssessmentModule({ manifest, onComplete, hostCont
     const mod = manifest;
     const [holeScores, setHoleScores] = useState<Record<DrillKey, number[]>>(() => buildEmptyHoleScores(mod));
     const [activeSession, setActiveSession] = useState<TrainingSession | null>(null);
-    const [refreshToken, setRefreshToken] = useState(0);
     const [sessions, setSessions] = useState<TrainingSession[]>([]);
     const [activeSection, setActiveSection] = useState(0);
     const [submitting, setSubmitting] = useState(false);
@@ -80,7 +79,7 @@ export default function PuttingAssessmentModule({ manifest, onComplete, hostCont
         return () => {
             active = false;
         };
-    }, ['putting-assessment', refreshToken]);
+    }, []);
 
 
     if (!mod) {
@@ -156,7 +155,6 @@ export default function PuttingAssessmentModule({ manifest, onComplete, hostCont
         setSessions((prev) => upsertSessionInList(prev, completedSession));
         setActiveSession(null);
         setHoleScores(buildEmptyHoleScores(moduleData));
-        setRefreshToken((prev) => prev + 1);
         onComplete?.(completedSession);
         setSubmitting(false);
     }
@@ -172,7 +170,6 @@ export default function PuttingAssessmentModule({ manifest, onComplete, hostCont
         setSessions((prev) => upsertSessionInList(prev, savedSession));
         setActiveSession(null);
         setHoleScores(buildEmptyHoleScores(moduleData));
-        setRefreshToken((prev) => prev + 1);
         setSubmitting(false);
     }
 

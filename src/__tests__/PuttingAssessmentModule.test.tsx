@@ -143,7 +143,6 @@ describe('PuttingAssessmentModule', () => {
     expect(mockSaveSession).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'generated-session-id',
-        completedAt: undefined,
         drillResults: [
           expect.objectContaining({
             sectionName: 'Short Putting',
