@@ -27,9 +27,16 @@ jest.mock('../services/sessionService', () => ({
 const PuttingAssessmentModule = require('../components/PuttingAssessmentModule').default;
 
 describe('PuttingAssessmentModule', () => {
+  let consoleErrorSpy: jest.SpyInstance;
+
   beforeEach(() => {
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.clearAllMocks();
     mockGetSessionsForModule.mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore();
   });
 
   it('starts a local active session when Start Session is tapped', async () => {
@@ -77,7 +84,7 @@ describe('PuttingAssessmentModule', () => {
     });
 
     const startButton = tree.root.findAllByType('TouchableOpacity').find((node: any) =>
-      node.findAllByType('Text').some((textNode: any) => textNode.props.children === 'Start – Week 1')
+      node.findAllByType('Text').some((textNode: any) => textNode.children.join('').includes('Start – Week 1'))
     );
 
     expect(startButton).toBeTruthy();
@@ -95,7 +102,7 @@ describe('PuttingAssessmentModule', () => {
     );
     expect(
       tree.root.findAllByType('Text').some((node: any) =>
-        typeof node.props.children === 'string' && node.props.children.includes('Record your results below')
+        node.children.join('').includes('Record your results below')
       )
     ).toBe(true);
   });
