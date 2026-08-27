@@ -4,7 +4,7 @@ import type { TrainingModuleProps } from '../lib/trainingModuleRegistry';
 import type { DrillManifest } from '../lib/trainingConfigService';
 import { Drill, DrillResult, TrainingSession } from '../lib/trainingConfigService';
 import { getModuleProgress, getAggregateStats } from '../services/progressService';
-import { generateId, getSessionsForModule, saveSession } from '../services/sessionService';
+import { generateId, getSessionsForModule, saveSession, upsertSession } from '../services/sessionService';
 
 type DrillKey = `${string}||${string}`;
 
@@ -51,11 +51,6 @@ function buildDrillResults(mod: DrillManifest, holeScores: Record<DrillKey, numb
     }
     return drillResults;
 }
-
-function upsertSessionInList(sessions: TrainingSession[], session: TrainingSession): TrainingSession[] {
-    return [...sessions.filter((item) => item.id !== session.id), session];
-}
-
 
 export default function PuttingAssessmentModule({ manifest, onComplete, hostContext, onStartSession }: TrainingModuleProps) {
     const mod = manifest;
@@ -152,7 +147,7 @@ export default function PuttingAssessmentModule({ manifest, onComplete, hostCont
             drillResults: buildDrillResults(moduleData, holeScores),
         };
         await saveSession(completedSession);
-        setSessions((prev) => upsertSessionInList(prev, completedSession));
+        setSessions((prev) => upsertSession(prev, completedSession));
         setActiveSession(null);
         setHoleScores(buildEmptyHoleScores(moduleData));
         onComplete?.(completedSession);
@@ -167,7 +162,7 @@ export default function PuttingAssessmentModule({ manifest, onComplete, hostCont
             drillResults: buildDrillResults(moduleData, holeScores),
         };
         await saveSession(savedSession);
-        setSessions((prev) => upsertSessionInList(prev, savedSession));
+        setSessions((prev) => upsertSession(prev, savedSession));
         setActiveSession(null);
         setHoleScores(buildEmptyHoleScores(moduleData));
         setSubmitting(false);
@@ -177,14 +172,12 @@ export default function PuttingAssessmentModule({ manifest, onComplete, hostCont
     const grandPct = grand.total > 0 ? Math.round((grand.holed / grand.total) * 100) : 0;
     const currentSection = moduleData.steps[activeSection];
 
-
     if (activeSession) {
-        const session = activeSession;
         return (
             <ScrollView style={styles.container} contentContainerStyle={styles.content}>
                 <View style={styles.hero}>
                 <Text style={styles.heroTitle}>{moduleData.name}</Text>
-                <Text style={styles.heroSub}>Week {session.weekNumber} — Record your results below</Text>
+                <Text style={styles.heroSub}>Week {activeSession.weekNumber} — Record your results below</Text>
                 </View>
 
                 <View style={styles.runningTotal}>

@@ -194,7 +194,7 @@ async function syncRemoteSessions(
   return syncedSessions;
 }
 
-function upsertSession(sessions: TrainingSession[], session: TrainingSession): TrainingSession[] {
+export function upsertSession(sessions: TrainingSession[], session: TrainingSession): TrainingSession[] {
   return [...sessions.filter((item) => item.id !== session.id), session];
 }
 

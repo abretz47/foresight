@@ -22,6 +22,10 @@ jest.mock('../services/sessionService', () => ({
   getSessionsForModule: (...args: unknown[]) => mockGetSessionsForModule(...args),
   saveSession: (...args: unknown[]) => mockSaveSession(...args),
   generateId: (...args: unknown[]) => mockGenerateId(...args),
+  upsertSession: (sessions: Array<{ id: string }>, session: { id: string }) => [
+    ...sessions.filter((item) => item.id !== session.id),
+    session,
+  ],
 }));
 
 const PuttingAssessmentModule = require('../components/PuttingAssessmentModule').default;
