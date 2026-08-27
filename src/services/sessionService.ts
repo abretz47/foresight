@@ -182,11 +182,16 @@ async function flushPendingMutations(scope: string, userId: string): Promise<voi
   }
 }
 
-async function syncRemoteSessions(scope: string, userId: string): Promise<TrainingSession[]> {
+async function syncRemoteSessions(
+  scope: string,
+  userId: string,
+  transform?: (sessions: TrainingSession[]) => TrainingSession[]
+): Promise<TrainingSession[]> {
   await flushPendingMutations(scope, userId);
   const remoteSessions = await fetchRemoteSessions(userId);
-  await saveCachedSessions(scope, remoteSessions);
-  return remoteSessions;
+  const syncedSessions = transform ? transform(remoteSessions) : remoteSessions;
+  await saveCachedSessions(scope, syncedSessions);
+  return syncedSessions;
 }
 
 function upsertSession(sessions: TrainingSession[], session: TrainingSession): TrainingSession[] {
@@ -226,8 +231,7 @@ export async function saveSession(session: TrainingSession): Promise<void> {
   await queueMutation(scope, { type: 'upsert', session });
 
   try {
-    const syncedSessions = await syncRemoteSessions(scope, userId);
-    await saveCachedSessions(scope, upsertSession(syncedSessions, session));
+    await syncRemoteSessions(scope, userId, (sessions) => upsertSession(sessions, session));
   } catch (e) {
     console.warn('[SessionService] Failed to save training session to Supabase:', e);
   }
@@ -245,8 +249,9 @@ export async function deleteSession(sessionId: string): Promise<void> {
   await queueMutation(scope, { type: 'delete', sessionId });
 
   try {
-    const syncedSessions = await syncRemoteSessions(scope, userId);
-    await saveCachedSessions(scope, syncedSessions.filter((session) => session.id !== sessionId));
+    await syncRemoteSessions(scope, userId, (sessions) =>
+      sessions.filter((session) => session.id !== sessionId)
+    );
   } catch (e) {
     console.warn('[SessionService] Failed to delete training session from Supabase:', e);
   }
