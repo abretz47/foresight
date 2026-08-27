@@ -16,8 +16,15 @@ function decodeJwtPayload(token: string): Record<string, unknown> {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return {};
-    // atob is available in React Native (Hermes) and modern browsers.
-    const json = atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'));
+
+    // Base64url → base64 (+ padding) before decoding.
+    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
+
+    const atobFn = (globalThis as unknown as { atob?: (s: string) => string }).atob
+      ?? ((s: string) => Buffer.from(s, 'base64').toString('binary'));
+
+    const json = atobFn(padded);
     return JSON.parse(json) as Record<string, unknown>;
   } catch {
     return {};
