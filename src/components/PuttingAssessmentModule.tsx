@@ -1,6 +1,7 @@
 import {useState, useEffect} from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { TrainingModuleProps } from '../lib/trainingModuleRegistry';
+import type { DrillManifest } from '../lib/trainingConfigService';
 import { Drill, DrillResult, TrainingSession } from '../lib/trainingConfigService';
 import { getModuleProgress, getAggregateStats } from '../services/progressService';
 import { generateId, getSessionsForModule, saveSession } from '../services/sessionService';
@@ -11,20 +12,54 @@ function makeDrillKey(sectionName: string, drillName: string): DrillKey {
   return `${sectionName}||${drillName}`;
 }
 
-
-export default function PuttingAssessmentModule({ manifest, onComplete, hostContext, onStartSession }: TrainingModuleProps) {
-    const mod = manifest;
-    const [holeScores, setHoleScores] = useState<Record<DrillKey, number[]>>(() => {
+function buildEmptyHoleScores(mod: DrillManifest): Record<DrillKey, number[]> {
     const initial: Record<string, number[]> = {};
-        if (mod) {
-            for (const section of mod.steps) {
+    if (mod) {
+        for (const section of mod.steps) {
             for (const drill of section.drills) {
                 initial[makeDrillKey(section.name, drill.name)] = Array(drill.holes).fill(0);
             }
-            }
         }
-        return initial as Record<DrillKey, number[]>;
-    });
+    }
+    return initial as Record<DrillKey, number[]>;
+}
+
+function buildHoleScoresFromSession(mod: DrillManifest, session: TrainingSession): Record<DrillKey, number[]> {
+    const initial = buildEmptyHoleScores(mod);
+    for (const result of session.drillResults) {
+        const key = makeDrillKey(result.sectionName, result.drillName);
+        if (initial[key]) {
+            initial[key] = [...result.holeScores];
+        }
+    }
+    return initial;
+}
+
+function buildDrillResults(mod: DrillManifest, holeScores: Record<DrillKey, number[]>): DrillResult[] {
+    const drillResults: DrillResult[] = [];
+    for (const section of mod.steps) {
+        for (const drill of section.drills) {
+            const key = makeDrillKey(section.name, drill.name);
+            const scores = holeScores[key] ?? Array(drill.holes).fill(0);
+            drillResults.push({
+                sectionName: section.name,
+                drillName: drill.name,
+                holeScores: scores,
+                totalPotential: drill.holes * drill.puttsPerHole,
+            });
+        }
+    }
+    return drillResults;
+}
+
+function upsertSessionInList(sessions: TrainingSession[], session: TrainingSession): TrainingSession[] {
+    return [...sessions.filter((item) => item.id !== session.id), session];
+}
+
+
+export default function PuttingAssessmentModule({ manifest, onComplete, hostContext, onStartSession }: TrainingModuleProps) {
+    const mod = manifest;
+    const [holeScores, setHoleScores] = useState<Record<DrillKey, number[]>>(() => buildEmptyHoleScores(mod));
     const [activeSession, setActiveSession] = useState<TrainingSession | null>(null);
     const [refreshToken, setRefreshToken] = useState(0);
     const [sessions, setSessions] = useState<TrainingSession[]>([]);
@@ -32,6 +67,10 @@ export default function PuttingAssessmentModule({ manifest, onComplete, hostCont
     const [submitting, setSubmitting] = useState(false);
     const { completedCount, totalSessions, nextDueWeek, isComplete, completedWeekNumbers } = getModuleProgress(mod, sessions);
     const stats = getAggregateStats(sessions);
+    const draftSessions = sessions
+        .filter((s) => !s.completedAt)
+        .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
+    const resumableSession = draftSessions[0] ?? null;
     const completedSessions = sessions.filter((s) => s.completedAt).sort((a, b) => new Date(b.completedAt!).getTime() - new Date(a.completedAt!).getTime());
     useEffect(() => {
         let active = true;
@@ -58,6 +97,12 @@ export default function PuttingAssessmentModule({ manifest, onComplete, hostCont
     }
 
     const moduleData = mod;
+
+    function openSession(session: TrainingSession) {
+        setHoleScores(buildHoleScoresFromSession(moduleData, session));
+        setActiveSection(0);
+        setActiveSession(session);
+    }
 
     function setHoleScore(sectionName: string, drill: Drill, holeIndex: number, value: number) {
     const key = makeDrillKey(sectionName, drill.name);
@@ -99,32 +144,35 @@ export default function PuttingAssessmentModule({ manifest, onComplete, hostCont
     async function handleFinish() {
         if (!activeSession) return;
         setSubmitting(true);
-        const drillResults: DrillResult[] = [];
-        for (const section of moduleData.steps) {
-            for (const drill of section.drills) {
-                const key = makeDrillKey(section.name, drill.name);
-                const scores = holeScores[key] ?? Array(drill.holes).fill(0);
-                drillResults.push({
-                    sectionName: section.name,
-                    drillName: drill.name,
-                    holeScores: scores,
-                    totalPotential: drill.holes * drill.puttsPerHole,
-                });
-            }
-        }
         const completedSession: TrainingSession = {
             id: activeSession.id,
             moduleId: activeSession.moduleId,
             startedAt: activeSession.startedAt,
             weekNumber: activeSession.weekNumber,
-            completedAt: new Date().toISOString(),
-            drillResults,
+            completedAt: activeSession.completedAt ?? new Date().toISOString(),
+            drillResults: buildDrillResults(moduleData, holeScores),
         };
         await saveSession(completedSession);
-        setSessions((prev) => [...prev.filter((s) => s.id !== completedSession.id), completedSession]);
+        setSessions((prev) => upsertSessionInList(prev, completedSession));
         setActiveSession(null);
+        setHoleScores(buildEmptyHoleScores(moduleData));
         setRefreshToken((prev) => prev + 1);
         onComplete?.(completedSession);
+        setSubmitting(false);
+    }
+
+    async function handleSaveForLater() {
+        if (!activeSession) return;
+        setSubmitting(true);
+        const savedSession: TrainingSession = {
+            ...activeSession,
+            drillResults: buildDrillResults(moduleData, holeScores),
+        };
+        await saveSession(savedSession);
+        setSessions((prev) => upsertSessionInList(prev, savedSession));
+        setActiveSession(null);
+        setHoleScores(buildEmptyHoleScores(moduleData));
+        setRefreshToken((prev) => prev + 1);
         setSubmitting(false);
     }
 
@@ -153,6 +201,18 @@ export default function PuttingAssessmentModule({ manifest, onComplete, hostCont
                     <Text style={styles.runningPct}>{grandPct}%</Text>
                     <Text style={styles.runningPctLabel}>Make Rate</Text>
                 </View>
+                </View>
+
+                <View style={styles.sessionActions}>
+                    <TouchableOpacity
+                        style={[styles.secondaryBtn, submitting && styles.btnDisabled]}
+                        onPress={() => void handleSaveForLater()}
+                        disabled={submitting}
+                    >
+                        <Text style={styles.secondaryBtnText}>
+                            {activeSession.completedAt ? 'Save Changes' : 'Save & Resume Later'}
+                        </Text>
+                    </TouchableOpacity>
                 </View>
 
                 <ScrollView
@@ -301,6 +361,10 @@ export default function PuttingAssessmentModule({ manifest, onComplete, hostCont
 
 
     function handleStartSession() {
+        if (resumableSession) {
+            openSession(resumableSession);
+            return;
+        }
         if (nextDueWeek === null) return;
         const session: TrainingSession = {
             id: generateId(),
@@ -309,8 +373,7 @@ export default function PuttingAssessmentModule({ manifest, onComplete, hostCont
             weekNumber: nextDueWeek,
             drillResults: [],
         };
-        setActiveSession(session);
-        setActiveSection(0);
+        openSession(session);
         onStartSession?.(session);
     }
 
@@ -337,7 +400,21 @@ export default function PuttingAssessmentModule({ manifest, onComplete, hostCont
         </View>
       </View>
 
-      {!isComplete && nextDueWeek !== null && (
+      {resumableSession && (
+        <View style={detailsStyles.resumeBanner}>
+          <View style={detailsStyles.dueInfo}>
+            <Text style={detailsStyles.resumeTitle}>⏯ Resume Saved Session</Text>
+            <Text style={detailsStyles.resumeSub}>
+              Week {resumableSession.weekNumber} has a saved session ready to resume.
+            </Text>
+          </View>
+          <TouchableOpacity style={detailsStyles.resumeBtn} onPress={handleStartSession}>
+            <Text style={detailsStyles.resumeBtnText}>Resume Week {resumableSession.weekNumber}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {!resumableSession && !isComplete && nextDueWeek !== null && (
         <View style={detailsStyles.dueBanner}>
           <View style={detailsStyles.dueInfo}>
             <Text style={detailsStyles.dueTitle}>📅 Session Due</Text>
@@ -429,6 +506,9 @@ export default function PuttingAssessmentModule({ manifest, onComplete, hostCont
                   <Text style={detailsStyles.historyPutts}>
                     {holed} / {total} putts
                   </Text>
+                  <TouchableOpacity style={detailsStyles.historyEditBtn} onPress={() => openSession(session)}>
+                    <Text style={detailsStyles.historyEditBtnText}>Edit Session</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             );
@@ -568,6 +648,29 @@ const detailsStyles = StyleSheet.create({
   dueInfo: { flex: 1 },
   dueTitle: { fontSize: 14, fontWeight: '700', color: '#92400e' },
   dueSub: { fontSize: 13, color: '#b45309', marginTop: 2 },
+  resumeBanner: {
+    backgroundColor: '#ecfdf5',
+    borderWidth: 1,
+    borderColor: '#86efac',
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    flexWrap: 'wrap',
+  },
+  resumeTitle: { fontSize: 14, fontWeight: '700', color: '#166534' },
+  resumeSub: { fontSize: 13, color: '#15803d', marginTop: 2 },
+  resumeBtn: {
+    backgroundColor: '#15803d',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  resumeBtnText: { color: '#ffffff', fontWeight: '700', fontSize: 13 },
   startBtn: {
     backgroundColor: '#15803d',
     paddingHorizontal: 16,
@@ -668,6 +771,16 @@ const detailsStyles = StyleSheet.create({
   historyRight: { alignItems: 'flex-end' },
   historyPct: { fontSize: 18, fontWeight: '700', color: '#15803d' },
   historyPutts: { fontSize: 11, color: '#9ca3af' },
+  historyEditBtn: {
+    marginTop: 8,
+    backgroundColor: '#ecfdf5',
+    borderWidth: 1,
+    borderColor: '#86efac',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  historyEditBtnText: { fontSize: 11, fontWeight: '700', color: '#15803d' },
   overviewDesc: { fontSize: 13, color: '#6b7280', lineHeight: 19, marginBottom: 12 },
   overviewSection: {
     backgroundColor: '#f3f4f6',
@@ -761,6 +874,16 @@ const styles = StyleSheet.create({
   runningRight: { alignItems: 'flex-end' },
   runningPct: { fontSize: 28, fontWeight: '800', color: '#15803d' },
   runningPctLabel: { fontSize: 11, color: '#9ca3af' },
+  sessionActions: { marginHorizontal: 16, marginBottom: 12, alignItems: 'flex-end' },
+  secondaryBtn: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#86efac',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  secondaryBtnText: { color: '#15803d', fontWeight: '700', fontSize: 13 },
   tabsScroll: { marginBottom: 12 },
   tabsContent: { paddingHorizontal: 16, gap: 8, flexDirection: 'row' },
   tab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999 },
