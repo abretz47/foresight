@@ -94,12 +94,15 @@ export default function DrillRunner({ navigation, route }: Props) {
     );
   }
 
+  const handleBack = () => navigation.goBack();
+  const handleComplete = () => navigation.goBack();
+
   return (
-    <TrainingHostContextProvider value={{ navigation, user, shotProfiles }}>
+    <TrainingHostContextProvider value={{ navigation, user, shotProfiles, onBack: handleBack, onComplete: handleComplete }}>
       <ModuleComponent
         manifest={manifest}
-        hostContext={{ navigation, user, shotProfiles }}
-        onComplete={() => navigation.goBack()}
+        hostContext={{ navigation, user, shotProfiles, onBack: handleBack, onComplete: handleComplete }}
+        onComplete={handleComplete}
       />
     </TrainingHostContextProvider>
   );

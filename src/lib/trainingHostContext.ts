@@ -20,6 +20,9 @@ export interface TrainingHostContextValue {
   user: string;
   /** All shot profiles available for the current user. */
   shotProfiles: ShotProfile[];
+  onBack: () => void;
+  onComplete: () => void;
+
 }
 
 const TrainingHostContext = createContext<TrainingHostContextValue | null>(null);
