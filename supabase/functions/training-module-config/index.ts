@@ -81,17 +81,26 @@ serve(async (req: Request) => {
     });
   }
 
-  // 3. Fetch the active manifest.
+  // 3. Fetch the active manifest (only for published modules).
   const { data: config, error: configError } = await adminClient
     .from('training_module_configs')
-    .select('manifest')
+    .select('manifest, training_modules!inner(is_published)')
     .eq('module_slug', slug)
     .eq('is_active', true)
+    .eq('training_modules.is_published', true)
     .order('version', { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  if (configError || !config) {
+  if (configError) {
+    console.error('[training-module-config] Failed to fetch module config:', configError);
+    return new Response(JSON.stringify({ error: 'Internal server error.' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  if (!config) {
     return new Response(JSON.stringify({ error: 'Module not found or not published.' }), {
       status: 404,
       headers: { 'Content-Type': 'application/json' },
