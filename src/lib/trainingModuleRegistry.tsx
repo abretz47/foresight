@@ -24,7 +24,7 @@ export interface TrainingModuleProps {
   manifest: DrillManifest;
   hostContext: TrainingHostContextValue;
   onComplete: () => void;
-  onStartSession: (session: Session) => void;
+  onStartSession?: (session: Session) => void;
 }
 
 export type TrainingModuleComponent = React.ComponentType<TrainingModuleProps>;

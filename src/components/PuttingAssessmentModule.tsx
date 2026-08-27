@@ -97,6 +97,7 @@ export default function PuttingAssessmentModule({ manifest, onComplete, hostCont
     }
 
     async function handleFinish() {
+        if (!activeSession) return;
         setSubmitting(true);
         const drillResults: DrillResult[] = [];
         for (const section of moduleData.steps) {
@@ -112,14 +113,17 @@ export default function PuttingAssessmentModule({ manifest, onComplete, hostCont
             }
         }
         const completedSession: TrainingSession = {
-            id: session.id,
-            moduleId: session.moduleId,
-            startedAt: session.startedAt,
-            weekNumber: session.weekNumber,
+            id: activeSession.id,
+            moduleId: activeSession.moduleId,
+            startedAt: activeSession.startedAt,
+            weekNumber: activeSession.weekNumber,
             completedAt: new Date().toISOString(),
             drillResults,
         };
         await saveSession(completedSession);
+        setSessions((prev) => [...prev.filter((s) => s.id !== completedSession.id), completedSession]);
+        setActiveSession(null);
+        setRefreshToken((prev) => prev + 1);
         onComplete?.(completedSession);
         setSubmitting(false);
     }
@@ -134,7 +138,7 @@ export default function PuttingAssessmentModule({ manifest, onComplete, hostCont
             <ScrollView style={styles.container} contentContainerStyle={styles.content}>
                 <View style={styles.hero}>
                 <Text style={styles.heroTitle}>{moduleData.name}</Text>
-                <Text style={styles.heroSub}>Week {session.weekNumber} — Record your results below</Text>
+                <Text style={styles.heroSub}>Week {activeSession.weekNumber} — Record your results below</Text>
                 </View>
 
                 <View style={styles.runningTotal}>
@@ -241,14 +245,14 @@ export default function PuttingAssessmentModule({ manifest, onComplete, hostCont
                     <TouchableOpacity onPress={() => setActiveSection((p) => p - 1)}>
                         <Text style={styles.navPrev}>← Previous</Text>
                     </TouchableOpacity>
-                    ) : onBack ? (
-                    <TouchableOpacity onPress={onBack}>
+                    ) : hostContext?.onBack ? (
+                    <TouchableOpacity onPress={hostContext.onBack}>
                         <Text style={styles.navPrev}>← Back</Text>
                     </TouchableOpacity>
                     ) : (
                     <View />
                     )}
-                    {activeSection < moduleData.sections.length - 1 ? (
+                    {activeSection < moduleData.steps.length - 1 ? (
                     <TouchableOpacity
                         style={styles.navNextBtn}
                         onPress={() => setActiveSection((p) => p + 1)}
@@ -285,8 +289,8 @@ export default function PuttingAssessmentModule({ manifest, onComplete, hostCont
         return (
             <View style={detailsStyles.notFound}>
             <Text style={detailsStyles.notFoundText}>Module not found.</Text>
-            {onBack ? (
-                <TouchableOpacity onPress={onBack} style={detailsStyles.backBtn}>
+            {hostContext?.onBack ? (
+                <TouchableOpacity onPress={hostContext.onBack} style={detailsStyles.backBtn}>
                 <Text style={detailsStyles.backBtnText}>← Back</Text>
                 </TouchableOpacity>
             ) : null}
@@ -296,14 +300,17 @@ export default function PuttingAssessmentModule({ manifest, onComplete, hostCont
 
 
     function handleStartSession() {
-        if (!nextDueWeek) return;
-        onStartSession?.({
+        if (nextDueWeek === null) return;
+        const session: TrainingSession = {
             id: generateId(),
             moduleId: moduleData.id,
             startedAt: new Date().toISOString(),
             weekNumber: nextDueWeek,
             drillResults: [],
-        });
+        };
+        setActiveSession(session);
+        setActiveSection(0);
+        onStartSession?.(session);
     }
 
   function getSectionStats(sectionName: string) {
