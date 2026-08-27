@@ -17,12 +17,14 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { COLORS } from '../styles/styles';
 import type { DrillManifest } from './trainingConfigService';
 import type { TrainingHostContextValue } from './trainingHostContext';
+import type { TrainingSession as Session } from './trainingConfigService';
 import PuttingAssessmentModule from '../components/PuttingAssessmentModule';
 
 export interface TrainingModuleProps {
   manifest: DrillManifest;
   hostContext: TrainingHostContextValue;
   onComplete: () => void;
+  onStartSession: (session: Session) => void;
 }
 
 export type TrainingModuleComponent = React.ComponentType<TrainingModuleProps>;

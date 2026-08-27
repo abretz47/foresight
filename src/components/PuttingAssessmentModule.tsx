@@ -12,7 +12,7 @@ function makeDrillKey(sectionName: string, drillName: string): DrillKey {
 }
 
 
-export default function PuttingAssessmentModule({ manifest, onComplete, hostContext }: TrainingModuleProps) {
+export default function PuttingAssessmentModule({ manifest, onComplete, hostContext, onStartSession }: TrainingModuleProps) {
     const mod = manifest;
     const [holeScores, setHoleScores] = useState<Record<DrillKey, number[]>>(() => {
     const initial: Record<string, number[]> = {};
