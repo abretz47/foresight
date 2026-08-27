@@ -134,11 +134,12 @@ export default function PuttingAssessmentModule({ manifest, onComplete, hostCont
 
 
     if (activeSession) {
+        const session = activeSession;
         return (
             <ScrollView style={styles.container} contentContainerStyle={styles.content}>
                 <View style={styles.hero}>
                 <Text style={styles.heroTitle}>{moduleData.name}</Text>
-                <Text style={styles.heroSub}>Week {activeSession.weekNumber} — Record your results below</Text>
+                <Text style={styles.heroSub}>Week {session.weekNumber} — Record your results below</Text>
                 </View>
 
                 <View style={styles.runningTotal}>
