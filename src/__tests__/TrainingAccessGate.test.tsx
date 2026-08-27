@@ -48,7 +48,7 @@ const mockHasAnyEntitlementOfType = EntitlementService.hasAnyEntitlementOfType a
 async function trainingAccessDecision(
   isCloud: boolean,
   hasTrainingAccess: boolean,
-  platform: typeof Platform.OS,
+  platform: 'ios' | 'android' | 'web',
   navigate: (screen: string, params: unknown) => void,
   onClose: () => void,
   showPurchaseModal: (v: boolean) => void,
