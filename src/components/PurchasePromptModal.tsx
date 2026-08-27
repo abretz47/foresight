@@ -1,8 +1,7 @@
 /**
  * PurchasePromptModal  (native)
- *
- * Shown to native users who have a cloud session but lack the
- * `paid-content-user` entitlement.  Displays an informational message and a
+ * Shown to native users who have a cloud session but lack any
+ * `training:*` entitlement. Displays an informational message and a
  * link that opens the web Purchase Page in the device browser.
  */
 import React from 'react';
