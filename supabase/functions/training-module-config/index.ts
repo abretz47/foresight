@@ -18,6 +18,13 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 
 serve(async (req: Request) => {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !SUPABASE_ANON_KEY) {
+    return new Response(JSON.stringify({ error: 'Server misconfiguration.' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   // Extract slug from path: /training-module-config/{slug}/config
   const url = new URL(req.url);
   const segments = url.pathname.split('/').filter(Boolean);
