@@ -1,4 +1,4 @@
-const storage = new Map<string, string>();
+const mockStorage = new Map<string, string>();
 
 let sessionUserId: string | null = null;
 let remoteRows: Array<Record<string, unknown>> = [];
@@ -80,12 +80,12 @@ const mockFrom = jest.fn(() => ({
 jest.mock('@react-native-async-storage/async-storage', () => ({
   __esModule: true,
   default: {
-    getItem: jest.fn(async (key: string) => (storage.has(key) ? storage.get(key)! : null)),
+  getItem: jest.fn(async (key: string) => (mockStorage.has(key) ? mockStorage.get(key)! : null)),
     setItem: jest.fn(async (key: string, value: string) => {
-      storage.set(key, value);
+    mockStorage.set(key, value);
     }),
     removeItem: jest.fn(async (key: string) => {
-      storage.delete(key);
+    mockStorage.delete(key);
     }),
   },
 }));
@@ -129,7 +129,7 @@ describe('sessionService', () => {
   };
 
   beforeEach(() => {
-    storage.clear();
+    mockStorage.clear();
     remoteRows = [];
     selectedUserId = null;
     pendingDeleteId = null;
@@ -145,7 +145,7 @@ describe('sessionService', () => {
 
     expect(await getAllSessions()).toEqual([sampleSession]);
     expect(await getSessionsForModule('putting-assessment')).toEqual([sampleSession]);
-    expect(storage.get(localCacheKey)).toContain('"session-1"');
+    expect(mockStorage.get(localCacheKey)).toContain('"session-1"');
   });
 
   it('syncs saved sessions to Supabase and refreshes the cache', async () => {
@@ -164,7 +164,7 @@ describe('sessionService', () => {
       { onConflict: 'id' }
     );
     expect(await getAllSessions()).toEqual([sampleSession]);
-    expect(storage.get(cloudCacheKey)).toContain('"putting-assessment"');
+    expect(mockStorage.get(cloudCacheKey)).toContain('"putting-assessment"');
   });
 
   it('keeps cached sessions available when Supabase save fails', async () => {
@@ -174,7 +174,7 @@ describe('sessionService', () => {
     await saveSession(sampleSession);
 
     expect(await getAllSessions()).toEqual([sampleSession]);
-    expect(storage.get(pendingKey)).toContain('"type":"upsert"');
+    expect(mockStorage.get(pendingKey)).toContain('"type":"upsert"');
   });
 
   it('removes sessions from cache and Supabase on delete', async () => {
@@ -190,7 +190,7 @@ describe('sessionService', () => {
         drill_results: sampleSession.drillResults,
       },
     ];
-    storage.set(cloudCacheKey, JSON.stringify([sampleSession]));
+    mockStorage.set(cloudCacheKey, JSON.stringify([sampleSession]));
 
     await deleteSession('session-1');
 
@@ -199,12 +199,12 @@ describe('sessionService', () => {
   });
 
   it('migrates the legacy cache key into the scoped cache', async () => {
-    storage.set('foresight_academy_sessions', JSON.stringify([sampleSession]));
+    mockStorage.set('foresight_academy_sessions', JSON.stringify([sampleSession]));
 
     const sessions = await getAllSessions();
 
     expect(sessions).toEqual([sampleSession]);
-    expect(storage.get(localCacheKey)).toContain('"session-1"');
+    expect(mockStorage.get(localCacheKey)).toContain('"session-1"');
     expect(await AsyncStorage.getItem('foresight_academy_sessions')).toBeNull();
   });
 });
