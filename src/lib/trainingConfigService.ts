@@ -71,8 +71,14 @@ async function readCached(slug: string): Promise<DrillManifest | null> {
     const keys = await AsyncStorage.getAllKeys();
     const matchingKeys = keys.filter((k) => k.startsWith(`${CACHE_PREFIX}${slug}_v`));
     if (matchingKeys.length === 0) return null;
-    matchingKeys.sort();
-    const raw = await AsyncStorage.getItem(matchingKeys[matchingKeys.length - 1]);
+
+    const latestKey = matchingKeys.reduce((best, k) => {
+      const v = Number(k.split('_v').pop());
+      const bestV = Number(best.split('_v').pop());
+      return v > bestV ? k : best;
+    }, matchingKeys[0]);
+
+    const raw = await AsyncStorage.getItem(latestKey);
     if (!raw) return null;
     return JSON.parse(raw) as DrillManifest;
   } catch {
