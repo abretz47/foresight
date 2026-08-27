@@ -17,6 +17,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { COLORS } from '../styles/styles';
 import type { DrillManifest } from './trainingConfigService';
 import type { TrainingHostContextValue } from './trainingHostContext';
+import PuttingAssessmentModule from '../components/PuttingAssessmentModule';
 
 export interface TrainingModuleProps {
   manifest: DrillManifest;
@@ -86,3 +87,4 @@ function TestDrillModule({ manifest, onComplete, hostContext }: TrainingModulePr
 }
 
 registerModule('test-drill', TestDrillModule);
+registerModule('putting-assessment', PuttingAssessmentModule);

@@ -14,18 +14,50 @@ export interface DrillStep {
   id: string;
   instruction: string;
   completionCriteria: 'manual' | string;
+  name: string;
+  drills?: Drill[];
+  description?: string;
   [key: string]: unknown;
+}
+export interface Drill {
+  name: string;
+  description?: string;
+  holes: number;
+  puttsPerHole: number;
+  targetRadius?: string;
 }
 
 export interface DrillManifest {
-  title: string;
+  id: string;
+  name: string;
   description: string;
+  icon: string;
+  scheduledWeeks: number[]; // e.g. [1, 4, 8, 12]
+  practiceNotes?: string[];
+  title: string;
   version: number;
   estimatedDurationMinutes: number;
   steps: DrillStep[];
   parameters: Record<string, unknown>;
   assets: Record<string, string>;
   [key: string]: unknown;
+}
+
+
+export interface TrainingSession {
+  id: string;
+  moduleId: string;
+  startedAt: string; // ISO string
+  completedAt?: string; // ISO string
+  weekNumber: number; // which scheduled week (1, 4, 8, 12…)
+  drillResults: DrillResult[];
+}
+
+export interface DrillResult {
+  sectionName: string;
+  drillName: string;
+  holeScores: number[]; // putts holed per hole attempt
+  totalPotential: number; // total putts attempted
 }
 
 const CACHE_PREFIX = '@foresight/training_manifest_';
