@@ -69,4 +69,34 @@ describe('PurchasePage', () => {
     expect(collectText(tree)).toContain('$19.99');
     expect(collectText(tree)).toContain('Buy Module');
   });
+
+  it('does not render a price when display fields are missing', async () => {
+    mockFetchPublishedModules.mockResolvedValue([
+      {
+        id: 'module-1',
+        slug: 'putting-assessment',
+        title: 'Putting Assessment',
+        description: 'Sharpen distance control',
+        thumbnail_url: null,
+        stripe_price_id: 'price_123',
+        display_price_cents: null,
+        display_price_currency: null,
+        component_key: 'putting-assessment',
+        sort_order: 1,
+      },
+    ]);
+
+    let tree: any;
+    await TestRenderer.act(async () => {
+      tree = TestRenderer.create(
+        <PurchasePage
+          navigation={{ goBack: jest.fn() }}
+          route={{ key: 'PurchasePage', name: 'PurchasePage', params: undefined }}
+        />
+      );
+    });
+
+    expect(collectText(tree)).not.toContain('$19.99');
+    expect(collectText(tree)).toContain('Buy Module');
+  });
 });
