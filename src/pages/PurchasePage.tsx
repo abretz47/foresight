@@ -62,6 +62,20 @@ export default function PurchasePage({ navigation }: Props) {
     );
   }
 
+  const formatModulePrice = (module: TrainingModuleMeta): string | null => {
+    if (module.display_price_cents == null || !module.display_price_currency) {
+      return null;
+    }
+    try {
+      return new Intl.NumberFormat(undefined, {
+        style: 'currency',
+        currency: module.display_price_currency,
+      }).format(module.display_price_cents / 100);
+    } catch {
+      return null;
+    }
+  };
+
   return (
     <ScrollView style={s.scroll} contentContainerStyle={s.content}>
       <Text style={s.pageTitle}>Training Modules</Text>
@@ -70,28 +84,32 @@ export default function PurchasePage({ navigation }: Props) {
       </Text>
 
       {/* Individual modules */}
-      {modules.map((m) => (
-        <View key={m.slug} style={s.productCard}>
-          <View style={s.productTop}>
-            <EmojiText style={s.productIcon}>🏌️</EmojiText>
-            <Text style={s.productTitle}>{m.title}</Text>
-          </View>
-          <Text style={s.productDesc}>{m.description}</Text>
-          {m.stripe_price_id ? (
-            <TouchableOpacity
-              style={s.buyBtn}
-              onPress={() => openCheckout(m.stripe_price_id!)}
-              activeOpacity={0.85}
-            >
-              <Text style={s.buyBtnLabel}>Buy Module</Text>
-            </TouchableOpacity>
-          ) : (
-            <View style={s.comingSoon}>
-              <Text style={s.comingSoonText}>Coming soon</Text>
+      {modules.map((m) => {
+        const displayPrice = formatModulePrice(m);
+        return (
+          <View key={m.slug} style={s.productCard}>
+            <View style={s.productTop}>
+              <EmojiText style={s.productIcon}>🏌️</EmojiText>
+              <Text style={s.productTitle}>{m.title}</Text>
             </View>
-          )}
-        </View>
-      ))}
+            {displayPrice ? <Text style={s.productPrice}>{displayPrice}</Text> : null}
+            <Text style={s.productDesc}>{m.description}</Text>
+            {m.stripe_price_id ? (
+              <TouchableOpacity
+                style={s.buyBtn}
+                onPress={() => openCheckout(m.stripe_price_id!)}
+                activeOpacity={0.85}
+              >
+                <Text style={s.buyBtnLabel}>Buy Module</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={s.comingSoon}>
+                <Text style={s.comingSoonText}>Coming soon</Text>
+              </View>
+            )}
+          </View>
+        );
+      })}
 
       <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
         <Text style={s.backBtnLabel}>← Back</Text>
@@ -115,6 +133,7 @@ const s = StyleSheet.create({
   productTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 10 },
   productIcon: { fontSize: 28 },
   productTitle: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },
+  productPrice: { fontSize: 18, fontWeight: '800', color: COLORS.textLight, marginBottom: 10 },
   productDesc: { fontSize: 14, color: COLORS.textSecondary, lineHeight: 20, marginBottom: 16 },
   buyBtn: {
     backgroundColor: COLORS.accent,
