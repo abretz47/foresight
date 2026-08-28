@@ -67,7 +67,7 @@ export default function PurchasePage({ navigation }: Props) {
       return null;
     }
     try {
-      return new Intl.NumberFormat('en-US', {
+      return new Intl.NumberFormat(undefined, {
         style: 'currency',
         currency: module.display_price_currency.toUpperCase(),
       }).format(module.display_price_cents / 100);

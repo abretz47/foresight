@@ -66,7 +66,8 @@ describe('PurchasePage', () => {
       );
     });
 
-    expect(collectText(tree)).toContain('$19.99');
+    const expectedPrice = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(19.99);
+    expect(collectText(tree)).toContain(expectedPrice);
     expect(collectText(tree)).toContain('Buy Module');
   });
 
@@ -96,7 +97,7 @@ describe('PurchasePage', () => {
       );
     });
 
-    expect(collectText(tree)).not.toContain('$19.99');
+    expect(collectText(tree).some((t: string) => /\p{Sc}\s?\d/u.test(t))).toBe(false);
     expect(collectText(tree)).toContain('Buy Module');
   });
 });
