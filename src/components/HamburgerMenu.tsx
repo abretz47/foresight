@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as DB from '../data/db';
-import { signOut, isSupabaseConfigured } from '../lib/supabase';
+import { signOut, isSupabaseConfigured, supabase } from '../lib/supabase';
 import { COLORS } from '../styles/styles';
 import EmojiText from './EmojiText';
 import MigrateModal from './MigrateModal';
@@ -42,6 +42,13 @@ export default function HamburgerMenu({ navigation, user }: Props) {
       DB.getUsers().then(setLocalUsers).catch(() => setLocalUsers([]));
     }
   }, [menuVisible]);
+
+  const clearLocalSupabaseSession = async () => {
+    if (!supabase) return;
+    try {
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch {}
+  };
 
   const navigateToRecord = (calledFrom: 'Record' | 'Analyze') => {
     if (!user) return;
@@ -113,8 +120,12 @@ export default function HamburgerMenu({ navigation, user }: Props) {
         if (isSupabaseConfigured()) {
           // Race the sign-out against a 3-second timeout so the app never
           // hangs on the spinner if the network is slow or unavailable.
-          const timeout = new Promise<void>((resolve) => setTimeout(resolve, 3000));
-          void Promise.race([signOut().catch(() => {}), timeout]).then(() => {
+          const timeout = new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 3000));
+          const logout = signOut().catch(() => {}).then(() => 'signed-out' as const);
+          void Promise.race([logout, timeout]).then(async (result) => {
+            if (result === 'timeout') {
+              await clearLocalSupabaseSession();
+            }
             navigate('Login');
           });
         } else {
