@@ -53,10 +53,18 @@ const headerTitleStyle = {
   letterSpacing: 0.3,
 };
 
+const linking = {
+  config: {
+    screens: {
+      PurchasePage: 'purchase',
+    },
+  },
+};
+
 export default function App() {
   return (
     <Provider store={store}>
-      <NavigationContainer theme={NavTheme}>
+      <NavigationContainer theme={NavTheme} linking={linking}>
         <Stack.Navigator
           initialRouteName="Login"
           screenOptions={({ navigation, route }) => ({
