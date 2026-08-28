@@ -68,13 +68,13 @@ export default function PuttingAssessmentModule({ manifest, onComplete, hostCont
     const completedSessions = sessions.filter((s) => s.completedAt).sort((a, b) => new Date(b.completedAt!).getTime() - new Date(a.completedAt!).getTime());
     useEffect(() => {
         let active = true;
-        void getSessionsForModule('putting-assessment').then((s) => {
+        void getSessionsForModule(mod.id).then((s) => {
             if (active) setSessions(s);
         });
         return () => {
             active = false;
         };
-    }, []);
+    }, [mod.id]);
 
 
     if (!mod) {
