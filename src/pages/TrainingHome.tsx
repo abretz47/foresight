@@ -3,7 +3,7 @@
  *
  * Card-grid screen showing all published training modules.
  *
- * - Owned modules: "View" button → TrainingModule overview
+ * - Owned modules: "View" button → TrainingModule content
  * - Unowned modules: "Buy" button →
  *     native: PurchasePromptModal (redirects to web)
  *     web:    Stripe Checkout
@@ -86,7 +86,7 @@ export default function TrainingHome({ navigation, route }: Props) {
       {item.owned ? (
         <TouchableOpacity
           style={s.viewBtn}
-          onPress={() => navigation.navigate('TrainingModule', { user, slug: item.slug })}
+          onPress={() => navigation.navigate('TrainingModule', { user, slug: item.slug, componentKey: item.component_key })}
           activeOpacity={0.85}
         >
           <Text style={s.viewBtnLabel}>View</Text>

@@ -33,7 +33,7 @@ export type RootStackParamList = {
     clubName: string;
   };
   TrainingHome: { user: string };
-  TrainingModule: { user: string; slug: string };
+  TrainingModule: { user: string; slug: string; componentKey?: string };
   DrillRunner: { user: string; slug: string; componentKey: string };
   PurchasePage: Record<string, never>;
 };

@@ -5,7 +5,7 @@
  * (private packages).  Keeps the module component contract stable so that
  * private packages can be updated independently of the host.
  *
- * The context is provided by DrillRunner and consumed by module components
+ * The context is provided by hosted training module screens and consumed by module components
  * via `useTrainingHostContext()`.
  */
 import React, { createContext, useContext } from 'react';
@@ -29,11 +29,11 @@ const TrainingHostContext = createContext<TrainingHostContextValue | null>(null)
 
 export const TrainingHostContextProvider = TrainingHostContext.Provider;
 
-/** Returns the host context; throws if called outside of a DrillRunner. */
+/** Returns the host context; throws if called outside of a hosted training module screen. */
 export function useTrainingHostContext(): TrainingHostContextValue {
   const ctx = useContext(TrainingHostContext);
   if (!ctx) {
-    throw new Error('useTrainingHostContext must be used inside a DrillRunner screen.');
+    throw new Error('useTrainingHostContext must be used inside a hosted training module screen.');
   }
   return ctx;
 }

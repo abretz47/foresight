@@ -129,7 +129,7 @@ export default function App() {
           <Stack.Screen name="Default" component={Default} />
           <Stack.Screen name="ShotDetails" component={ShotDetails} options={{ title: 'Shot Details' }} />
           <Stack.Screen name="TrainingHome" component={TrainingHome} options={{ title: 'Training Modules' }} />
-          <Stack.Screen name="TrainingModule" component={TrainingModule} options={{ title: 'Module Overview' }} />
+          <Stack.Screen name="TrainingModule" component={TrainingModule} options={{ title: 'Training Module' }} />
           <Stack.Screen name="DrillRunner" component={DrillRunner} options={{ title: 'Drill' }} />
           <Stack.Screen name="PurchasePage" component={PurchasePage} options={{ title: 'Purchase' }} />
         </Stack.Navigator>
