@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { COLORS } from '../styles/styles';
@@ -26,6 +26,7 @@ export default function TrainingModuleHost({
   slug,
   componentKey,
 }: TrainingModuleHostProps) {
+  const loadRequestRef = useRef(0);
   const [manifest, setManifest] = useState<DrillManifest | null>(null);
   const [shotProfiles, setShotProfiles] = useState<ShotProfile[]>([]);
   const [resolvedComponentKey, setResolvedComponentKey] = useState<string | null>(componentKey ?? null);
@@ -33,6 +34,8 @@ export default function TrainingModuleHost({
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(() => {
+    const requestId = loadRequestRef.current + 1;
+    loadRequestRef.current = requestId;
     setLoading(true);
     setError(null);
 
@@ -50,21 +53,42 @@ export default function TrainingModuleHost({
           }),
     ])
       .then(([nextManifest, nextShotProfiles, nextComponentKey]) => {
+        if (loadRequestRef.current !== requestId) {
+          return;
+        }
         setManifest(nextManifest);
         setShotProfiles(nextShotProfiles);
         setResolvedComponentKey(nextComponentKey);
         navigation.setOptions({ title: nextManifest.title });
       })
       .catch((e: unknown) => {
+        if (loadRequestRef.current !== requestId) {
+          return;
+        }
         const msg = e instanceof Error ? e.message : 'Failed to load drill content.';
         setError(msg);
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (loadRequestRef.current !== requestId) {
+          return;
+        }
+        setLoading(false);
+      });
   }, [componentKey, navigation, slug, user]);
 
   useEffect(() => {
     void load();
+    return () => {
+      loadRequestRef.current += 1;
+    };
   }, [load]);
+
+  const handleBack = useCallback(() => navigation.goBack(), [navigation]);
+  const handleComplete = useCallback(() => navigation.goBack(), [navigation]);
+  const hostContext = useMemo(
+    () => ({ navigation, user, shotProfiles, onBack: handleBack, onComplete: handleComplete }),
+    [handleBack, handleComplete, navigation, shotProfiles, user]
+  );
 
   if (loading) {
     return (
@@ -75,7 +99,7 @@ export default function TrainingModuleHost({
     );
   }
 
-  if (error || !manifest || !resolvedComponentKey) {
+  if (error || !manifest) {
     const isConnectivity =
       error?.toLowerCase().includes('network') ||
       error?.toLowerCase().includes('failed to fetch');
@@ -95,6 +119,17 @@ export default function TrainingModuleHost({
     );
   }
 
+  if (!resolvedComponentKey) {
+    return (
+      <View style={s.centered}>
+        <EmojiText style={s.errorIcon}>⚠️</EmojiText>
+        <Text style={s.errorText}>
+          This module requires an app update. Please update Foresight to access this drill.
+        </Text>
+      </View>
+    );
+  }
+
   const ModuleComponent = resolveModule(resolvedComponentKey);
   if (!ModuleComponent) {
     return (
@@ -106,10 +141,6 @@ export default function TrainingModuleHost({
       </View>
     );
   }
-
-  const handleBack = () => navigation.goBack();
-  const handleComplete = () => navigation.goBack();
-  const hostContext = { navigation, user, shotProfiles, onBack: handleBack, onComplete: handleComplete };
 
   return (
     <TrainingHostContextProvider value={hostContext}>
