@@ -8,7 +8,7 @@
  *     native: PurchasePromptModal (redirects to web)
  *     web:    Stripe Checkout
  */
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -19,14 +19,16 @@ import {
   ActivityIndicator,
   ListRenderItemInfo,
   Platform,
+  AppState,
+  AppStateStatus,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RouteProp } from '@react-navigation/native';
+import { RouteProp, useFocusEffect } from '@react-navigation/native';
 import { COLORS } from '../styles/styles';
 import EmojiText from '../components/EmojiText';
 import PurchasePromptModal from '../components/PurchasePromptModal';
 import { fetchPublishedModules, TrainingModuleMeta } from '../lib/trainingCatalogService';
-import { hasEntitlement } from '../lib/entitlementService';
+import { hasEntitlement, refreshSession } from '../lib/entitlementService';
 import { openCheckout } from '../lib/checkoutService';
 import type { RootStackParamList } from '../types/navigation';
 
@@ -39,12 +41,22 @@ interface ModuleCardData extends TrainingModuleMeta {
   owned: boolean;
 }
 
+export function shouldRefreshOwnershipOnAppState(state: AppStateStatus): boolean {
+  return state === 'active';
+}
+
+export async function refreshOwnership(load: () => Promise<void>): Promise<void> {
+  await refreshSession();
+  await load();
+}
+
 export default function TrainingHome({ navigation, route }: Props) {
   const user = route.params.user;
   const [modules, setModules] = useState<ModuleCardData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [purchaseModalVisible, setPurchaseModalVisible] = useState(false);
+  const refreshAndLoadInFlightRef = useRef<Promise<void> | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -65,7 +77,33 @@ export default function TrainingHome({ navigation, route }: Props) {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  const refreshAndLoad = useCallback(async () => {
+    await refreshOwnership(load);
+  }, [load]);
+
+  const triggerRefreshAndLoad = useCallback(() => {
+    if (!refreshAndLoadInFlightRef.current) {
+      refreshAndLoadInFlightRef.current = refreshAndLoad().finally(() => {
+        refreshAndLoadInFlightRef.current = null;
+      });
+    }
+    return refreshAndLoadInFlightRef.current;
+  }, [refreshAndLoad]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void triggerRefreshAndLoad();
+      const subscription = AppState.addEventListener('change', (state: AppStateStatus) => {
+        if (shouldRefreshOwnershipOnAppState(state)) {
+          void triggerRefreshAndLoad();
+        }
+      });
+
+      return () => {
+        subscription.remove();
+      };
+    }, [triggerRefreshAndLoad]),
+  );
 
   const handleBuy = (item: ModuleCardData) => {
     if (Platform.OS === 'web') {
