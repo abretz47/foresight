@@ -79,11 +79,15 @@ serve(async (req: Request) => {
       entitlementKey = 'paid-content-user';
     } else {
       // Look up module by stripe_price_id.
-      const { data: moduleRow } = await adminClient
+      const { data: moduleRow, error: moduleError } = await adminClient
         .from('training_modules')
         .select('slug')
         .eq('stripe_price_id', priceId)
         .maybeSingle();
+      if (moduleError) {
+        console.error('[stripe-webhook] Failed to resolve module price:', moduleError);
+        return new Response(JSON.stringify({ error: 'Failed to resolve entitlement.' }), { status: 500 });
+      }
       if (moduleRow) {
         entitlementKey = 'training:' + moduleRow.slug;
       }
