@@ -56,7 +56,6 @@ describe('trainingConfigService fetchManifest cache safety', () => {
   beforeEach(() => {
     mockStorage.clear();
     sessionUserId = 'user-1';
-    jest.clearAllMocks();
     mockFetch.mockReset();
     global.fetch = mockFetch as unknown as typeof fetch;
   });
