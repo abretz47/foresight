@@ -108,12 +108,18 @@ export default function HamburgerMenu({ navigation, user }: Props) {
     {
       icon: '🚪',
       label: 'Log Out',
-      onPress: async () => {
+      onPress: () => {
         setMenuVisible(false);
         if (isSupabaseConfigured()) {
-          try { await signOut(); } catch (_) {}
+          // Race the sign-out against a 3-second timeout so the app never
+          // hangs on the spinner if the network is slow or unavailable.
+          const timeout = new Promise<void>((resolve) => setTimeout(resolve, 3000));
+          void Promise.race([signOut().catch(() => {}), timeout]).then(() => {
+            navigate('Login');
+          });
+        } else {
+          navigate('Login');
         }
-        navigate('Login');
       },
     },
   ].filter(Boolean) as { icon: string; label: string; onPress: () => void }[];

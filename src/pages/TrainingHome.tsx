@@ -12,6 +12,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
+  Image,
   FlatList,
   TouchableOpacity,
   StyleSheet,
@@ -77,7 +78,11 @@ export default function TrainingHome({ navigation, route }: Props) {
   const renderItem = ({ item }: ListRenderItemInfo<ModuleCardData>) => (
     <View style={[s.card, item.owned ? s.cardOwned : s.cardLocked]}>
       <View style={s.cardTop}>
-        <EmojiText style={s.cardIcon}>{item.owned ? '🏌️' : '🔒'}</EmojiText>
+        {item.thumbnail_url ? (
+          <Image source={{ uri: item.thumbnail_url }} style={s.cardThumbnail} resizeMode="cover" />
+        ) : (
+          <EmojiText style={s.cardIcon}>{item.owned ? '🏌️' : '🔒'}</EmojiText>
+        )}
       </View>
       <Text style={[s.cardTitle, !item.owned && s.cardTitleLocked]} numberOfLines={2}>
         {item.title}
@@ -159,8 +164,9 @@ const s = StyleSheet.create({
   },
   cardOwned: { backgroundColor: COLORS.surface },
   cardLocked: { backgroundColor: COLORS.surfaceAlt, opacity: 0.85 },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  cardTop: { marginBottom: 10 },
   cardIcon: { fontSize: 28 },
+  cardThumbnail: { width: '100%', height: 80, borderRadius: 8 },
   cardTitle: { fontSize: 15, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 6 },
   cardTitleLocked: { color: COLORS.textSecondary },
   cardDesc: { fontSize: 12, color: COLORS.textSecondary, lineHeight: 17, marginBottom: 12 },

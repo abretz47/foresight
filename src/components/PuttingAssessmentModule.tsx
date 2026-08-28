@@ -174,7 +174,8 @@ export default function PuttingAssessmentModule({ manifest, onComplete, hostCont
 
     if (activeSession) {
         return (
-            <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+            <View style={styles.sessionWrapper}>
+                <ScrollView style={styles.container} contentContainerStyle={styles.sessionContent}>
                 <View style={styles.hero}>
                 <Text style={styles.heroTitle}>{moduleData.name}</Text>
                 <Text style={styles.heroSub}>Week {activeSession.weekNumber} — Record your results below</Text>
@@ -191,18 +192,6 @@ export default function PuttingAssessmentModule({ manifest, onComplete, hostCont
                     <Text style={styles.runningPct}>{grandPct}%</Text>
                     <Text style={styles.runningPctLabel}>Make Rate</Text>
                 </View>
-                </View>
-
-                <View style={styles.sessionActions}>
-                    <TouchableOpacity
-                        style={[styles.secondaryBtn, submitting && styles.btnDisabled]}
-                        onPress={() => void handleSaveForLater()}
-                        disabled={submitting}
-                    >
-                        <Text style={styles.secondaryBtnText}>
-                            {activeSession.completedAt ? 'Save Changes' : 'Save & Resume Later'}
-                        </Text>
-                    </TouchableOpacity>
                 </View>
 
                 <ScrollView
@@ -332,7 +321,21 @@ export default function PuttingAssessmentModule({ manifest, onComplete, hostCont
                     ))}
                 </View>
                 )}
-            </ScrollView>
+                </ScrollView>
+
+                {/* Fixed save button at the bottom */}
+                <View style={styles.sessionFooter}>
+                    <TouchableOpacity
+                        style={[styles.secondaryBtn, submitting && styles.btnDisabled]}
+                        onPress={() => void handleSaveForLater()}
+                        disabled={submitting}
+                    >
+                        <Text style={styles.secondaryBtnText}>
+                            {activeSession.completedAt ? 'Save Changes' : 'Save & Resume Later'}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
         );
     }
 
@@ -874,13 +877,23 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   secondaryBtnText: { color: '#15803d', fontWeight: '700', fontSize: 13 },
-  tabsScroll: { marginBottom: 12 },
-  tabsContent: { paddingHorizontal: 16, gap: 8, flexDirection: 'row' },
-  tab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999 },
-  tabActive: { backgroundColor: '#15803d' },
-  tabInactive: { backgroundColor: '#e5e7eb' },
-  tabText: { fontSize: 13, fontWeight: '600', color: '#4b5563' },
-  tabTextActive: { color: '#ffffff' },
+  sessionWrapper: { flex: 1, backgroundColor: '#ffffff' },
+  sessionContent: { paddingBottom: 16 },
+  sessionFooter: {
+    backgroundColor: '#ffffff',
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingBottom: 24,
+  },
+  tabsScroll: { marginBottom: 0, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
+  tabsContent: { paddingHorizontal: 16, flexDirection: 'row' },
+  tab: { paddingHorizontal: 16, paddingVertical: 10, marginBottom: -1 },
+  tabActive: { borderBottomWidth: 2, borderBottomColor: '#15803d' },
+  tabInactive: { borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  tabText: { fontSize: 13, fontWeight: '600', color: '#6b7280' },
+  tabTextActive: { color: '#15803d' },
   sectionContainer: { marginHorizontal: 16 },
   sectionName: { fontSize: 16, fontWeight: '700', color: '#1f2937', marginBottom: 4 },
   sectionDesc: { fontSize: 11, color: '#6b7280', marginBottom: 12 },
