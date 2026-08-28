@@ -884,7 +884,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 12,
     paddingBottom: 24,
   },
   tabsScroll: { marginBottom: 0, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
