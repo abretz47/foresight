@@ -88,11 +88,11 @@ export default function PurchasePage({ navigation }: Props) {
         const displayPrice = formatModulePrice(m);
         return (
           <View key={m.slug} style={s.productCard}>
-            {displayPrice ? <Text style={s.productPrice}>{displayPrice}</Text> : null}
             <View style={s.productTop}>
               <EmojiText style={s.productIcon}>🏌️</EmojiText>
               <Text style={s.productTitle}>{m.title}</Text>
             </View>
+            {displayPrice ? <Text style={s.productPrice}>{displayPrice}</Text> : null}
             <Text style={s.productDesc}>{m.description}</Text>
             {m.stripe_price_id ? (
               <TouchableOpacity
