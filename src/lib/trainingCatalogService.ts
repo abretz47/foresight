@@ -14,6 +14,8 @@ export interface TrainingModuleMeta {
   description: string;
   thumbnail_url: string | null;
   stripe_price_id: string | null;
+  display_price_cents: number | null;
+  display_price_currency: string | null;
   component_key: string;
   sort_order: number;
 }
@@ -28,7 +30,7 @@ export async function fetchPublishedModules(): Promise<TrainingModuleMeta[]> {
   }
   const { data, error } = await supabase
     .from('training_modules')
-    .select('id, slug, title, description, thumbnail_url, stripe_price_id, component_key, sort_order')
+    .select('id, slug, title, description, thumbnail_url, stripe_price_id, display_price_cents, display_price_currency, component_key, sort_order')
     .eq('is_published', true)
     .order('sort_order', { ascending: true });
 
