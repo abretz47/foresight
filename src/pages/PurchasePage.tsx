@@ -69,7 +69,7 @@ export default function PurchasePage({ navigation }: Props) {
     try {
       return new Intl.NumberFormat(undefined, {
         style: 'currency',
-        currency: module.display_price_currency.toUpperCase(),
+        currency: module.display_price_currency,
       }).format(module.display_price_cents / 100);
     } catch {
       return null;
