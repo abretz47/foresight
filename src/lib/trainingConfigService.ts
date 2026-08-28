@@ -3,7 +3,7 @@
  *
  * Fetches the entitlement-gated drill manifest for a module slug from the
  * `training-module-config` Supabase Edge Function and caches it locally
- * in AsyncStorage, keyed by `slug + version`.
+ * in AsyncStorage, keyed by `user + slug + version`.
  *
  * Cache is invalidated whenever the server returns a higher version number.
  */
@@ -62,14 +62,14 @@ export interface DrillResult {
 
 const CACHE_PREFIX = '@foresight/training_manifest_';
 
-function cacheKey(slug: string, version: number): string {
-  return `${CACHE_PREFIX}${slug}_v${version}`;
+function cacheKey(userId: string, slug: string, version: number): string {
+  return `${CACHE_PREFIX}${userId}_${slug}_v${version}`;
 }
 
-async function readCached(slug: string): Promise<DrillManifest | null> {
+async function readCached(userId: string, slug: string): Promise<DrillManifest | null> {
   try {
     const keys = await AsyncStorage.getAllKeys();
-    const matchingKeys = keys.filter((k) => k.startsWith(`${CACHE_PREFIX}${slug}_v`));
+    const matchingKeys = keys.filter((k) => k.startsWith(`${CACHE_PREFIX}${userId}_${slug}_v`));
     if (matchingKeys.length === 0) return null;
 
     const latestKey = matchingKeys.reduce((best, k) => {
@@ -86,9 +86,9 @@ async function readCached(slug: string): Promise<DrillManifest | null> {
   }
 }
 
-async function writeCache(slug: string, manifest: DrillManifest): Promise<void> {
+async function writeCache(userId: string, slug: string, manifest: DrillManifest): Promise<void> {
   try {
-    await AsyncStorage.setItem(cacheKey(slug, manifest.version), JSON.stringify(manifest));
+    await AsyncStorage.setItem(cacheKey(userId, slug, manifest.version), JSON.stringify(manifest));
   } catch (e) {
     console.warn('[TrainingConfigService] Cache write failed:', e);
   }
@@ -111,38 +111,42 @@ export async function fetchManifest(slug: string): Promise<DrillManifest> {
   if (!session) {
     throw new Error('No active session. Please sign in.');
   }
+  const userId = session.user?.id;
+  if (!userId) {
+    throw new Error('No active user. Please sign in again.');
+  }
 
   const supabaseUrl = (supabase as unknown as { supabaseUrl?: string }).supabaseUrl
     ?? process.env.EXPO_PUBLIC_SUPABASE_URL
     ?? '';
   const edgeFunctionUrl = `${supabaseUrl}/functions/v1/training-module-config/${slug}/config`;
 
+  const authHeader = 'Bearer ' + session.access_token;
+  let response: Response;
   try {
-    const authHeader = 'Bearer ' + session.access_token;
-    const response = await fetch(edgeFunctionUrl, {
+    response = await fetch(edgeFunctionUrl, {
       headers: {
         Authorization: authHeader,
         'Content-Type': 'application/json',
       },
     });
-
-    if (response.status === 403) {
-      throw new Error('You do not have access to this module.');
-    }
-    if (response.status === 404) {
-      throw new Error('Module not found or not published.');
-    }
-    if (!response.ok) {
-      throw new Error(`Unexpected response: ${response.status}`);
-    }
-
-    const manifest = (await response.json()) as DrillManifest;
-    await writeCache(slug, manifest);
-    return manifest;
   } catch (networkError) {
-    // Fall back to any previously cached version for this slug.
-    const cached = await readCached(slug);
+    const cached = await readCached(userId, slug);
     if (cached) return cached;
     throw networkError;
   }
+
+  if (response.status === 403) {
+    throw new Error('You do not have access to this module.');
+  }
+  if (response.status === 404) {
+    throw new Error('Module not found or not published.');
+  }
+  if (!response.ok) {
+    throw new Error(`Unexpected response: ${response.status}`);
+  }
+
+  const manifest = (await response.json()) as DrillManifest;
+  await writeCache(userId, slug, manifest);
+  return manifest;
 }
