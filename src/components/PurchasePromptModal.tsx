@@ -19,18 +19,19 @@ import EmojiText from './EmojiText';
 interface Props {
   visible: boolean;
   onClose: () => void;
+  onOpenPurchase: () => void;
 }
 
 const WEB_APP_URL = process.env.EXPO_PUBLIC_WEB_APP_URL ?? '';
 
-export default function PurchasePromptModal({ visible, onClose }: Props) {
+export default function PurchasePromptModal({ visible, onClose, onOpenPurchase }: Props) {
   const purchaseUrl = WEB_APP_URL ? WEB_APP_URL + '/purchase' : '';
 
   const handleOpenBrowser = () => {
     if (purchaseUrl) {
       void Linking.openURL(purchaseUrl);
     }
-    onClose();
+    onOpenPurchase();
   };
 
   return (
