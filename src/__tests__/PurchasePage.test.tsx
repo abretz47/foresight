@@ -1,5 +1,5 @@
-const React = require('react');
-const TestRenderer = require('react-test-renderer');
+import React from 'react';
+import TestRenderer from 'react-test-renderer';
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 const mockFetchPublishedModules = jest.fn();
@@ -27,7 +27,7 @@ jest.mock('../lib/checkoutService', () => ({
   openCheckout: jest.fn(),
 }));
 
-const PurchasePage = require('../pages/PurchasePage').default;
+import PurchasePage from '../pages/PurchasePage';
 
 function collectText(node: any): string[] {
   return node.root
