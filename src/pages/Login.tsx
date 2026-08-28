@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component, createRef } from 'react';
 import { Text, View, TextInput, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { connect } from 'react-redux';
 import { getUser } from '../../reducer';
@@ -47,6 +47,7 @@ interface State {
 class Login extends Component<Props, State> {
   /** Unsubscribe function returned by navigation.addListener('focus', ...) */
   private _focusUnsubscribe: (() => void) | null = null;
+  private _passwordRef = createRef<TextInput>();
 
   constructor(props: Props) {
     super(props);
@@ -278,6 +279,8 @@ class Login extends Component<Props, State> {
                   placeholder="Enter your name"
                   placeholderTextColor={COLORS.textMuted}
                   autoCapitalize="none"
+                  returnKeyType="go"
+                  onSubmitEditing={this.handleLogin}
                 />
                 {suggestions.length > 0 && (
                   <View style={[comboStyles.dropdown, { top: this.state.inputHeight }]}>
@@ -347,10 +350,13 @@ class Login extends Component<Props, State> {
                 autoCapitalize="none"
                 keyboardType="email-address"
                 autoCorrect={false}
+                returnKeyType="next"
+                onSubmitEditing={() => this._passwordRef.current?.focus()}
               />
 
               <Text style={styles.label}>Password</Text>
               <TextInput
+                ref={this._passwordRef}
                 style={[styles.textInput, loginStyles.cloudInput]}
                 value={cloudPassword}
                 onChangeText={(text) => this.setState({ cloudPassword: text, cloudError: '' })}
@@ -358,6 +364,8 @@ class Login extends Component<Props, State> {
                 placeholderTextColor={COLORS.textMuted}
                 secureTextEntry
                 autoCapitalize="none"
+                returnKeyType="go"
+                onSubmitEditing={this.handleCloudAuth}
               />
 
               {cloudError !== '' && (
