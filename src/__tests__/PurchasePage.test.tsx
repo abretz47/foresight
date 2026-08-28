@@ -1,6 +1,5 @@
 import React from 'react';
 import TestRenderer from 'react-test-renderer';
-globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 const mockFetchPublishedModules = jest.fn();
 
@@ -36,6 +35,10 @@ function collectText(node: any): string[] {
 }
 
 describe('PurchasePage', () => {
+  beforeAll(() => {
+    globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
