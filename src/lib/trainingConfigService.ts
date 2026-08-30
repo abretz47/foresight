@@ -66,6 +66,13 @@ function cacheKey(userId: string, slug: string, version: number): string {
   return `${CACHE_PREFIX}${userId}_${slug}_v${version}`;
 }
 
+function isConnectivityError(error: unknown): boolean {
+  if (error instanceof TypeError) return true;
+  if (!(error instanceof Error)) return false;
+
+  return /network request failed|network error|failed to fetch|load failed/i.test(error.message);
+}
+
 async function readCached(userId: string, slug: string): Promise<DrillManifest | null> {
   try {
     const keys = await AsyncStorage.getAllKeys();
@@ -131,6 +138,9 @@ export async function fetchManifest(slug: string): Promise<DrillManifest> {
       },
     });
   } catch (networkError) {
+    if (!isConnectivityError(networkError)) {
+      throw networkError;
+    }
     const cached = await readCached(userId, slug);
     if (cached) return cached;
     throw networkError;

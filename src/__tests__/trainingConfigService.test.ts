@@ -94,4 +94,14 @@ describe('trainingConfigService fetchManifest cache safety', () => {
 
     await expect(fetchManifest('putting-assessment')).rejects.toThrow('Network request failed');
   });
+
+  it('does not use cache for non-connectivity fetch failures', async () => {
+    mockStorage.set(
+      cacheKey('user-1', 'putting-assessment', 2),
+      JSON.stringify(sampleManifest)
+    );
+    mockFetch.mockRejectedValue(new Error('Request aborted by caller'));
+
+    await expect(fetchManifest('putting-assessment')).rejects.toThrow('Request aborted by caller');
+  });
 });

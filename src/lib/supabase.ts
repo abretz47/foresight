@@ -41,12 +41,14 @@ export const supabase: SupabaseClient | null = _supabase;
 export async function signOut(): Promise<void> {
   if (!supabase) return;
   try {
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
   } catch (e) {
     console.warn('[Foresight] Global signOut failed, clearing local session:', e);
     try {
       // scope: 'local' clears AsyncStorage without making an API call.
-      await supabase.auth.signOut({ scope: 'local' });
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
+      if (error) throw error;
     } catch (e2) {
       console.warn(
         '[Foresight] Local signOut also failed – the persisted auth token may still be present in device storage. ' +
