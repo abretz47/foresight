@@ -100,14 +100,22 @@ serve(async (req: Request) => {
     });
   }
 
-  const session = await stripe.checkout.sessions.create({
-    ui_mode: 'embedded',
-    mode: 'payment',
-    client_reference_id: userId,
-    line_items: [{ price: priceId, quantity: 1 }],
-    return_url: `${WEB_APP_URL}/purchase?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
-    metadata: { module_slug: moduleRow.slug },
-  });
+  let session: Stripe.Checkout.Session;
+  try {
+    session = await stripe.checkout.sessions.create({
+      ui_mode: 'embedded',
+      mode: 'payment',
+      client_reference_id: userId,
+      line_items: [{ price: priceId, quantity: 1 }],
+      return_url: `${WEB_APP_URL}/purchase?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+      metadata: { module_slug: moduleRow.slug },
+    });
+  } catch {
+    return new Response(JSON.stringify({ error: 'Failed to create checkout session.' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
 
   if (!session.client_secret) {
     return new Response(JSON.stringify({ error: 'Failed to create checkout session.' }), {
