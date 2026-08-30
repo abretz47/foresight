@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-// import { modules } from '../data/modules';
 import { saveSession } from '../services/sessionService';
-import type { Drill, DrillResult, Session } from '../types';
+import type { Drill, DrillResult } from '../lib/trainingConfigService.ts';
+import type { TrainingSession as Session } from '../lib/trainingConfigService.ts';
 
 type DrillKey = `${string}||${string}`;
 
