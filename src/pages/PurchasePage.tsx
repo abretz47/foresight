@@ -133,7 +133,7 @@ const s = StyleSheet.create({
   productTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 10 },
   productIcon: { fontSize: 28 },
   productTitle: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },
-  productPrice: { fontSize: 18, fontWeight: '800', color: COLORS.textLight, marginBottom: 10 },
+  productPrice: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 10 },
   productDesc: { fontSize: 14, color: COLORS.textSecondary, lineHeight: 20, marginBottom: 16 },
   buyBtn: {
     backgroundColor: COLORS.accent,

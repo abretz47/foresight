@@ -57,6 +57,7 @@ export default function TrainingHome({ navigation, route }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [purchaseModalVisible, setPurchaseModalVisible] = useState(false);
   const refreshAndLoadInFlightRef = useRef<Promise<void> | null>(null);
+  const purchasePendingRef = useRef(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -112,6 +113,11 @@ export default function TrainingHome({ navigation, route }: Props) {
       setPurchaseModalVisible(true);
     }
   };
+  
+  const handlePurchaseOpen = useCallback(() => {
+      purchasePendingRef.current = true;
+      setPurchaseModalVisible(false);
+  }, []);
 
   const renderItem = ({ item }: ListRenderItemInfo<ModuleCardData>) => (
     <View style={[s.card, item.owned ? s.cardOwned : s.cardLocked]}>
@@ -184,6 +190,7 @@ export default function TrainingHome({ navigation, route }: Props) {
       <PurchasePromptModal
         visible={purchaseModalVisible}
         onClose={() => setPurchaseModalVisible(false)}
+        onOpenPurchase={handlePurchaseOpen}
       />
     </>
   );
