@@ -1,0 +1,39 @@
+/**
+ * TrainingHostContext
+ *
+ * React context that exposes host app APIs to training module components
+ * (private packages).  Keeps the module component contract stable so that
+ * private packages can be updated independently of the host.
+ *
+ * The context is provided by hosted training module screens and consumed by module components
+ * via `useTrainingHostContext()`.
+ */
+import React, { createContext, useContext } from 'react';
+import { StackNavigationProp } from '@react-navigation/stack';
+import type { RootStackParamList } from '../types/navigation';
+import type { ShotProfile } from '../data/db';
+
+export interface TrainingHostContextValue {
+  /** The React Navigation stack prop for navigating out of a drill. */
+  navigation: StackNavigationProp<RootStackParamList>;
+  /** The username of the current user. */
+  user: string;
+  /** All shot profiles available for the current user. */
+  shotProfiles: ShotProfile[];
+  onBack: () => void;
+  onComplete: () => void;
+
+}
+
+const TrainingHostContext = createContext<TrainingHostContextValue | null>(null);
+
+export const TrainingHostContextProvider = TrainingHostContext.Provider;
+
+/** Returns the host context; throws if called outside of a hosted training module screen. */
+export function useTrainingHostContext(): TrainingHostContextValue {
+  const ctx = useContext(TrainingHostContext);
+  if (!ctx) {
+    throw new Error('useTrainingHostContext must be used inside a hosted training module screen.');
+  }
+  return ctx;
+}

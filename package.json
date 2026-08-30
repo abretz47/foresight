@@ -3,7 +3,8 @@
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
-    "ios": "expo start --ios"
+    "ios": "expo start --ios",
+    "test": "jest"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -30,11 +31,37 @@
     "redux": "^5.0.1"
   },
   "devDependencies": {
+    "@react-native/jest-preset": "^0.87.0",
+    "@testing-library/jest-native": "^5.4.3",
+    "@testing-library/react-native": "^14.0.1",
     "@types/react": "~19.2.0",
     "babel-preset-expo": "~55.0.0",
+    "jest": "^30.4.2",
+    "jest-environment-node": "^30",
+    "jest-expo": "^57.0.4",
+    "react-test-renderer": "^19.2.8",
     "typescript": "^6.0.2"
   },
   "private": true,
   "name": "foresight",
-  "version": "2.0.0"
+  "version": "2.0.0",
+  "jest": {
+    "transformIgnorePatterns": [
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg)"
+    ],
+    "testEnvironment": "<rootDir>/jest.environment.js",
+    "moduleNameMapper": {
+      "^react-native/setup-env$": "<rootDir>/jest.setup-env-stub.js",
+      "^test-renderer$": "<rootDir>/node_modules/react-test-renderer"
+    },
+    "setupFiles": [],
+    "transform": {
+      "\\.[jt]sx?$": [
+        "babel-jest",
+        {
+          "configFile": "./babel.config.js"
+        }
+      ]
+    }
+  }
 }

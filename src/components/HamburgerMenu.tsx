@@ -16,10 +16,11 @@ import {
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as DB from '../data/db';
-import { signOut, isSupabaseConfigured } from '../lib/supabase';
+import { signOut, isSupabaseConfigured, supabase } from '../lib/supabase';
 import { COLORS } from '../styles/styles';
 import EmojiText from './EmojiText';
 import MigrateModal from './MigrateModal';
+import TrainingAccessGate from './TrainingAccessGate';
 import type { RootStackParamList } from '../types/navigation';
 
 interface Props {
@@ -30,6 +31,7 @@ interface Props {
 export default function HamburgerMenu({ navigation, user }: Props) {
   const [menuVisible, setMenuVisible] = useState(false);
   const [migrateVisible, setMigrateVisible] = useState(false);
+  const [trainingGateVisible, setTrainingGateVisible] = useState(false);
   const [localUsers, setLocalUsers] = useState<string[]>([]);
   const { navigate } = navigation;
 
@@ -40,6 +42,13 @@ export default function HamburgerMenu({ navigation, user }: Props) {
       DB.getUsers().then(setLocalUsers).catch(() => setLocalUsers([]));
     }
   }, [menuVisible]);
+
+  const clearLocalSupabaseSession = async () => {
+    if (!supabase) return;
+    try {
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch {}
+  };
 
   const navigateToRecord = (calledFrom: 'Record' | 'Analyze') => {
     if (!user) return;
@@ -93,6 +102,11 @@ export default function HamburgerMenu({ navigation, user }: Props) {
       label: 'How To Use',
       onPress: () => { setMenuVisible(false); navigate('HowToUse'); },
     },
+    {
+      icon: '🏆',
+      label: 'Training Modules',
+      onPress: () => { setMenuVisible(false); setTrainingGateVisible(true); },
+    },
     DB.isCloudMode() && localUsers.length > 0 && {
       icon: '☁️',
       label: 'Migrate to Cloud',
@@ -101,12 +115,22 @@ export default function HamburgerMenu({ navigation, user }: Props) {
     {
       icon: '🚪',
       label: 'Log Out',
-      onPress: async () => {
+      onPress: () => {
         setMenuVisible(false);
         if (isSupabaseConfigured()) {
-          try { await signOut(); } catch (_) {}
+          // Race the sign-out against a 3-second timeout so the app never
+          // hangs on the spinner if the network is slow or unavailable.
+          const timeout = new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 3000));
+          const logout = signOut().catch(() => {}).then(() => 'signed-out' as const);
+          void Promise.race([logout, timeout]).then(async (result) => {
+            if (result === 'timeout') {
+              await clearLocalSupabaseSession();
+            }
+            navigate('Login');
+          });
+        } else {
+          navigate('Login');
         }
-        navigate('Login');
       },
     },
   ].filter(Boolean) as { icon: string; label: string; onPress: () => void }[];
@@ -156,6 +180,14 @@ export default function HamburgerMenu({ navigation, user }: Props) {
         localUsers={localUsers}
         onClose={() => setMigrateVisible(false)}
       />
+
+      {trainingGateVisible && (
+        <TrainingAccessGate
+          navigation={navigation}
+          user={user}
+          onClose={() => setTrainingGateVisible(false)}
+        />
+      )}
     </>
   );
 }

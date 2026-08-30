@@ -14,6 +14,10 @@ import Default from './src/pages/Default';
 import HowToUse from './src/pages/HowToUse';
 import ShotDetails from './src/pages/ShotDetails';
 import UserSetup from './src/pages/UserSetup';
+import TrainingHome from './src/pages/TrainingHome';
+import TrainingModule from './src/pages/TrainingModule';
+import DrillRunner from './src/pages/DrillRunner';
+import PurchasePage from './src/pages/PurchasePage';
 import HamburgerMenu from './src/components/HamburgerMenu';
 import { COLORS } from './src/styles/styles';
 import type { RootStackParamList } from './src/types/navigation';
@@ -49,10 +53,18 @@ const headerTitleStyle = {
   letterSpacing: 0.3,
 };
 
+const linking = {
+  config: {
+    screens: {
+      PurchasePage: 'purchase',
+    },
+  },
+};
+
 export default function App() {
   return (
     <Provider store={store}>
-      <NavigationContainer theme={NavTheme}>
+      <NavigationContainer theme={NavTheme} linking={linking}>
         <Stack.Navigator
           initialRouteName="Login"
           screenOptions={({ navigation, route }) => ({
@@ -124,6 +136,10 @@ export default function App() {
           <Stack.Screen name="HowToUse" component={HowToUse} options={{ title: 'How To Use' }} />
           <Stack.Screen name="Default" component={Default} />
           <Stack.Screen name="ShotDetails" component={ShotDetails} options={{ title: 'Shot Details' }} />
+          <Stack.Screen name="TrainingHome" component={TrainingHome} options={{ title: 'Training Modules' }} />
+          <Stack.Screen name="TrainingModule" component={TrainingModule} options={{ title: 'Training Module' }} />
+          <Stack.Screen name="DrillRunner" component={DrillRunner} options={{ title: 'Drill' }} />
+          <Stack.Screen name="PurchasePage" component={PurchasePage} options={{ title: 'Purchase' }} />
         </Stack.Navigator>
       </NavigationContainer>
     </Provider>
