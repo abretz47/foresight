@@ -103,4 +103,39 @@ describe('PurchasePage', () => {
     expect(collectText(tree).some((t: string) => /\p{Sc}\s?\d/u.test(t))).toBe(false);
     expect(collectText(tree)).toContain('Buy Module');
   });
+
+  it('expands checkout area per item when buy button is pressed', async () => {
+    mockFetchPublishedModules.mockResolvedValue([
+      {
+        id: 'module-1',
+        slug: 'putting-assessment',
+        title: 'Putting Assessment',
+        description: 'Sharpen distance control',
+        thumbnail_url: null,
+        stripe_price_id: 'price_123',
+        display_price_cents: 1999,
+        display_price_currency: 'USD',
+        component_key: 'putting-assessment',
+        sort_order: 1,
+      },
+    ]);
+
+    let tree: any;
+    await TestRenderer.act(async () => {
+      tree = TestRenderer.create(
+        <PurchasePage
+          navigation={{ goBack: jest.fn(), navigate: jest.fn() }}
+          route={{ key: 'PurchasePage', name: 'PurchasePage', params: undefined }}
+        />
+      );
+    });
+
+    const buyButton = tree.root.findByProps({ children: 'Buy Module' }).parent;
+    await TestRenderer.act(async () => {
+      buyButton.props.onPress();
+    });
+
+    expect(collectText(tree)).toContain('Sign in to start checkout.');
+    expect(collectText(tree)).toContain('Go to Login');
+  });
 });

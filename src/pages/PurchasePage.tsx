@@ -2,10 +2,8 @@
  * PurchasePage  (web only)
  *
  * Lists Platform Access and all published modules with title, description,
- * and price.  Anonymous browse is allowed; login/signup is prompted at
- * checkout.  Each "Buy" button creates a Stripe Checkout Session via the
- * `stripe-webhook` infrastructure (separate checkout initiation endpoint
- * or direct Stripe Checkout link).
+ * and price. Anonymous browse is allowed; login/signup is prompted at
+ * checkout. Each module card can expand an embedded Stripe checkout form.
  *
  * On native the user is directed here from PurchasePromptModal via their
  * device browser; this component is registered in the navigator but is
@@ -19,13 +17,15 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { COLORS } from '../styles/styles';
 import EmojiText from '../components/EmojiText';
+import EmbeddedStripeCheckout from '../components/EmbeddedStripeCheckout';
 import { fetchPublishedModules, TrainingModuleMeta } from '../lib/trainingCatalogService';
-import { openCheckout } from '../lib/checkoutService';
+import { supabase } from '../lib/supabase';
 import type { RootStackParamList } from '../types/navigation';
 
 interface Props {
@@ -37,12 +37,19 @@ export default function PurchasePage({ navigation }: Props) {
   const [modules, setModules] = useState<TrainingModuleMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeCheckoutSlug, setActiveCheckoutSlug] = useState<string | null>(null);
+  const [isSignedIn, setIsSignedIn] = useState(false);
 
   useEffect(() => {
     fetchPublishedModules()
       .then(setModules)
       .catch(() => setError('Failed to load module catalog. Please try again.'))
       .finally(() => setLoading(false));
+
+    if (!supabase) return;
+    supabase.auth.getSession().then(({ data }) => {
+      setIsSignedIn(!!data.session?.user?.id);
+    });
   }, []);
 
   if (loading) {
@@ -95,13 +102,37 @@ export default function PurchasePage({ navigation }: Props) {
             {displayPrice ? <Text style={s.productPrice}>{displayPrice}</Text> : null}
             <Text style={s.productDesc}>{m.description}</Text>
             {m.stripe_price_id ? (
-              <TouchableOpacity
-                style={s.buyBtn}
-                onPress={() => openCheckout(m.stripe_price_id!)}
-                activeOpacity={0.85}
-              >
-                <Text style={s.buyBtnLabel}>Buy Module</Text>
-              </TouchableOpacity>
+              <>
+                <TouchableOpacity
+                  style={s.buyBtn}
+                  onPress={() => setActiveCheckoutSlug((prev) => (prev === m.slug ? null : m.slug))}
+                  activeOpacity={0.85}
+                >
+                  <Text style={s.buyBtnLabel}>
+                    {activeCheckoutSlug === m.slug ? 'Hide Checkout' : 'Buy Module'}
+                  </Text>
+                </TouchableOpacity>
+                {activeCheckoutSlug === m.slug ? (
+                  <View style={s.checkoutContainer}>
+                    {!isSignedIn ? (
+                      <View style={s.signInPrompt}>
+                        <Text style={s.signInText}>Sign in to start checkout.</Text>
+                        <TouchableOpacity
+                          style={s.signInBtn}
+                          onPress={() => navigation.navigate('Login')}
+                          activeOpacity={0.85}
+                        >
+                          <Text style={s.signInBtnLabel}>Go to Login</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : Platform.OS === 'web' ? (
+                      <EmbeddedStripeCheckout priceId={m.stripe_price_id} />
+                    ) : (
+                      <Text style={s.signInText}>Checkout is available on the web purchase page.</Text>
+                    )}
+                  </View>
+                ) : null}
+              </>
             ) : (
               <View style={s.comingSoon}>
                 <Text style={s.comingSoonText}>Coming soon</Text>
@@ -142,6 +173,32 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   buyBtnLabel: { fontWeight: '700', color: COLORS.textPrimary, fontSize: 15 },
+  checkoutContainer: { marginTop: 12 },
+  signInPrompt: {
+    borderRadius: 12,
+    backgroundColor: COLORS.surfaceAlt,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 12,
+    gap: 10,
+    alignItems: 'center',
+  },
+  signInText: {
+    color: COLORS.textSecondary,
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  signInBtn: {
+    backgroundColor: COLORS.accent,
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  signInBtnLabel: {
+    color: COLORS.textPrimary,
+    fontWeight: '700',
+    fontSize: 13,
+  },
   comingSoon: {
     backgroundColor: COLORS.surfaceAlt,
     borderRadius: 12,
