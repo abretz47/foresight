@@ -4,9 +4,7 @@
  * Card-grid screen showing all published training modules.
  *
  * - Owned modules: "View" button → TrainingModule content
- * - Unowned modules: "Buy" button →
- *     native: PurchasePromptModal (redirects to web)
- *     web:    Stripe Checkout
+ * - Unowned modules: "Buy" button → PurchasePage
  */
 import React, { useState, useCallback, useRef } from 'react';
 import {
@@ -18,7 +16,6 @@ import {
   StyleSheet,
   ActivityIndicator,
   ListRenderItemInfo,
-  Platform,
   AppState,
   AppStateStatus,
 } from 'react-native';
@@ -26,10 +23,8 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp, useFocusEffect } from '@react-navigation/native';
 import { COLORS } from '../styles/styles';
 import EmojiText from '../components/EmojiText';
-import PurchasePromptModal from '../components/PurchasePromptModal';
 import { fetchPublishedModules, TrainingModuleMeta } from '../lib/trainingCatalogService';
 import { hasEntitlement, refreshSession } from '../lib/entitlementService';
-import { openCheckout } from '../lib/checkoutService';
 import type { RootStackParamList } from '../types/navigation';
 
 interface Props {
@@ -55,9 +50,7 @@ export default function TrainingHome({ navigation, route }: Props) {
   const [modules, setModules] = useState<ModuleCardData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [purchaseModalVisible, setPurchaseModalVisible] = useState(false);
   const refreshAndLoadInFlightRef = useRef<Promise<void> | null>(null);
-  const purchasePendingRef = useRef(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -106,18 +99,9 @@ export default function TrainingHome({ navigation, route }: Props) {
     }, [triggerRefreshAndLoad]),
   );
 
-  const handleBuy = (item: ModuleCardData) => {
-    if (Platform.OS === 'web') {
-      openCheckout(item.stripe_price_id ?? '');
-    } else {
-      setPurchaseModalVisible(true);
-    }
+  const handleBuy = () => {
+   navigation.navigate('PurchasePage', {});
   };
-  
-  const handlePurchaseOpen = useCallback(() => {
-      purchasePendingRef.current = true;
-      setPurchaseModalVisible(false);
-  }, []);
 
   const renderItem = ({ item }: ListRenderItemInfo<ModuleCardData>) => (
     <View style={[s.card, item.owned ? s.cardOwned : s.cardLocked]}>
@@ -143,7 +127,7 @@ export default function TrainingHome({ navigation, route }: Props) {
       ) : (
         <TouchableOpacity
           style={s.buyBtn}
-          onPress={() => handleBuy(item)}
+          onPress={handleBuy}
           activeOpacity={0.85}
         >
           <Text style={s.buyBtnLabel}>Buy</Text>
@@ -173,26 +157,19 @@ export default function TrainingHome({ navigation, route }: Props) {
   }
 
   return (
-    <>
-      <FlatList
-        style={s.list}
-        contentContainerStyle={s.listContent}
-        data={modules}
-        keyExtractor={(item) => item.slug}
-        numColumns={2}
-        renderItem={renderItem}
-        ListEmptyComponent={
-          <View style={s.centered}>
-            <Text style={s.emptyText}>No training modules available yet.</Text>
-          </View>
-        }
-      />
-      <PurchasePromptModal
-        visible={purchaseModalVisible}
-        onClose={() => setPurchaseModalVisible(false)}
-        onOpenPurchase={handlePurchaseOpen}
-      />
-    </>
+    <FlatList
+      style={s.list}
+      contentContainerStyle={s.listContent}
+      data={modules}
+      keyExtractor={(item) => item.slug}
+      numColumns={2}
+      renderItem={renderItem}
+      ListEmptyComponent={
+        <View style={s.centered}>
+          <Text style={s.emptyText}>No training modules available yet.</Text>
+        </View>
+      }
+    />
   );
 }
 
