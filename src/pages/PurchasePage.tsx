@@ -175,7 +175,7 @@ export default function PurchasePage({ navigation, route }: Props) {
       {modules.map((m) => {
         const displayPrice = formatModulePrice(m);
         return (
-          <View key={m.slug} style={s.productCard}>
+          <View key={m.slug} style={[s.productCard, m.owned && s.productCardOwned]}>
             <View style={s.productTop}>
               <EmojiText style={s.productIcon}>🏌️</EmojiText>
               <Text style={s.productTitle}>{m.title}</Text>
@@ -208,7 +208,7 @@ export default function PurchasePage({ navigation, route }: Props) {
                         <Text style={s.signInText}>Sign in to start checkout.</Text>
                         <TouchableOpacity
                           style={s.signInBtn}
-                          onPress={() => navigation.navigate('Login')}
+                          onPress={() => navigation.navigate('Login', { redirectTo: 'PurchasePage', user: currentUser || undefined })}
                           activeOpacity={0.85}
                         >
                           <Text style={s.signInBtnLabel}>Go to Login</Text>
@@ -249,6 +249,9 @@ const s = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
+  },
+  productCardOwned: {
+    backgroundColor: '#E5E5E5',
   },
   productTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 10 },
   productIcon: { fontSize: 28 },

@@ -145,6 +145,46 @@ describe('PurchasePage', () => {
     expect(collectText(tree)).toContain('Go to Login');
   });
 
+  it('routes login CTA back to PurchasePage after login intent', async () => {
+    mockFetchPublishedModules.mockResolvedValue([
+      {
+        id: 'module-1',
+        slug: 'putting-assessment',
+        title: 'Putting Assessment',
+        description: 'Sharpen distance control',
+        thumbnail_url: null,
+        stripe_price_id: 'price_123',
+        display_price_cents: 1999,
+        display_price_currency: 'USD',
+        component_key: 'putting-assessment',
+        sort_order: 1,
+      },
+    ]);
+
+    const navigate = jest.fn();
+    let tree: any;
+    await TestRenderer.act(async () => {
+      tree = TestRenderer.create(
+        <PurchasePage
+          navigation={{ goBack: jest.fn(), navigate }}
+          route={{ key: 'PurchasePage', name: 'PurchasePage', params: undefined }}
+        />
+      );
+    });
+
+    const buyButton = tree.root.findByProps({ children: 'Buy Module' }).parent;
+    await TestRenderer.act(async () => {
+      buyButton.props.onPress();
+    });
+
+    const loginButton = tree.root.findByProps({ children: 'Go to Login' }).parent;
+    await TestRenderer.act(async () => {
+      loginButton.props.onPress();
+    });
+
+    expect(navigate).toHaveBeenCalledWith('Login', { redirectTo: 'PurchasePage', user: undefined });
+  });
+
   it('redirects to TrainingHome after successful checkout return', async () => {
     const originalWindow = (global as any).window;
     (global as any).window = { location: { search: '?checkout=success&session_id=cs_test' } };

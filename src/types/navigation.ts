@@ -2,7 +2,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 
 export type RootStackParamList = {
-  Login: undefined;
+  Login: { redirectTo?: 'PurchasePage'; user?: string } | undefined;
   Home: { user: string };
   UserSetup: { user: string; fistOnly?: boolean };
   ShotProfile: { user: string; selectedClubId?: string };
