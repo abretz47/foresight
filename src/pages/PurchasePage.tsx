@@ -25,6 +25,7 @@ import { COLORS } from '../styles/styles';
 import EmojiText from '../components/EmojiText';
 import EmbeddedStripeCheckout from '../components/EmbeddedStripeCheckout';
 import { fetchPublishedModules, TrainingModuleMeta } from '../lib/trainingCatalogService';
+import { hasEntitlement } from '../lib/entitlementService';
 import { supabase } from '../lib/supabase';
 import type { RootStackParamList } from '../types/navigation';
 
@@ -33,13 +34,18 @@ interface Props {
   route: RouteProp<RootStackParamList, 'PurchasePage'>;
 }
 
+interface PurchaseModuleCardData extends TrainingModuleMeta {
+  owned: boolean;
+}
+
 export default function PurchasePage({ navigation, route }: Props) {
-  const [modules, setModules] = useState<TrainingModuleMeta[]>([]);
+  const [modules, setModules] = useState<PurchaseModuleCardData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeCheckoutSlug, setActiveCheckoutSlug] = useState<string | null>(null);
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [isCheckoutRedirectPending, setIsCheckoutRedirectPending] = useState(false);
+  const [currentUser, setCurrentUser] = useState(route.params?.user ?? '');
 
   useEffect(() => {
     let isMounted = true;
@@ -52,18 +58,7 @@ export default function PurchasePage({ navigation, route }: Props) {
       setIsCheckoutRedirectPending(checkoutSuccess);
     }
 
-    fetchPublishedModules()
-      .then((catalog) => {
-        if (isMounted) setModules(catalog);
-      })
-      .catch(() => {
-        if (isMounted) setError('Failed to load module catalog. Please try again.');
-      })
-      .finally(() => {
-        if (isMounted) setLoading(false);
-      });
-
-    const initializeSession = async () => {
+    const initializePage = async () => {
       let sessionUser:
         | {
             id?: string;
@@ -82,23 +77,48 @@ export default function PurchasePage({ navigation, route }: Props) {
         setIsSignedIn(false);
       }
 
-      if (checkoutStatus !== 'success') return;
       const userFromSession =
         route.params?.user ??
         sessionUser?.user_metadata?.display_name ??
         sessionUser?.user_metadata?.name ??
         sessionUser?.email ??
         '';
-      if (userFromSession) {
-        if (isMounted) {
-          navigation.replace('TrainingHome', { user: userFromSession });
-        }
-        return;
+      if (isMounted && userFromSession) {
+        setCurrentUser(userFromSession);
       }
 
-      if (isMounted) setIsCheckoutRedirectPending(false);
+      if (checkoutStatus === 'success') {
+        if (userFromSession) {
+          if (isMounted) {
+            navigation.replace('TrainingHome', { user: userFromSession });
+          }
+          return;
+        }
+        if (isMounted) setIsCheckoutRedirectPending(false);
+      }
+
+      try {
+        const catalog = await fetchPublishedModules();
+        const withOwnership = await Promise.all(
+          catalog.map(async (m) => ({
+            ...m,
+            owned: await hasEntitlement('training:' + m.slug),
+          })),
+        );
+        if (isMounted) {
+          setModules(withOwnership);
+        }
+      } catch {
+        if (isMounted) {
+          setError('Failed to load module catalog. Please try again.');
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
     };
-    void initializeSession();
+    void initializePage();
 
     return () => {
       isMounted = false;
@@ -130,7 +150,7 @@ export default function PurchasePage({ navigation, route }: Props) {
     );
   }
 
-  const formatModulePrice = (module: TrainingModuleMeta): string | null => {
+  const formatModulePrice = (module: PurchaseModuleCardData): string | null => {
     if (module.display_price_cents == null || !module.display_price_currency) {
       return null;
     }
@@ -162,7 +182,15 @@ export default function PurchasePage({ navigation, route }: Props) {
             </View>
             {displayPrice ? <Text style={s.productPrice}>{displayPrice}</Text> : null}
             <Text style={s.productDesc}>{m.description}</Text>
-            {m.stripe_price_id ? (
+            {m.owned ? (
+              <TouchableOpacity
+                style={s.buyBtn}
+                onPress={() => navigation.navigate('TrainingModule', { user: currentUser, slug: m.slug, componentKey: m.component_key })}
+                activeOpacity={0.85}
+              >
+                <Text style={s.buyBtnLabel}>View Module</Text>
+              </TouchableOpacity>
+            ) : m.stripe_price_id ? (
               <>
                 <TouchableOpacity
                   style={s.buyBtn}

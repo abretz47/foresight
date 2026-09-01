@@ -2,6 +2,7 @@ import React from 'react';
 import TestRenderer from 'react-test-renderer';
 
 const mockFetchPublishedModules = jest.fn();
+const mockHasEntitlement = jest.fn();
 
 jest.mock('react-native', () => {
   const React = require('react');
@@ -26,6 +27,10 @@ jest.mock('../lib/checkoutService', () => ({
   openCheckout: jest.fn(),
 }));
 
+jest.mock('../lib/entitlementService', () => ({
+  hasEntitlement: (...args: unknown[]) => mockHasEntitlement(...args),
+}));
+
 import PurchasePage from '../pages/PurchasePage';
 
 function collectText(node: any): string[] {
@@ -41,6 +46,7 @@ describe('PurchasePage', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockHasEntitlement.mockResolvedValue(false);
   });
 
   it('renders each module display price when provided', async () => {
@@ -172,5 +178,46 @@ describe('PurchasePage', () => {
     } finally {
       (global as any).window = originalWindow;
     }
+  });
+
+  it('shows View Module for owned modules and navigates directly to the module', async () => {
+    mockFetchPublishedModules.mockResolvedValue([
+      {
+        id: 'module-1',
+        slug: 'putting-assessment',
+        title: 'Putting Assessment',
+        description: 'Sharpen distance control',
+        thumbnail_url: null,
+        stripe_price_id: 'price_123',
+        display_price_cents: 1999,
+        display_price_currency: 'USD',
+        component_key: 'putting-assessment',
+        sort_order: 1,
+      },
+    ]);
+    mockHasEntitlement.mockResolvedValue(true);
+
+    const navigate = jest.fn();
+    let tree: any;
+    await TestRenderer.act(async () => {
+      tree = TestRenderer.create(
+        <PurchasePage
+          navigation={{ goBack: jest.fn(), navigate }}
+          route={{ key: 'PurchasePage', name: 'PurchasePage', params: { user: 'alice' } }}
+        />
+      );
+    });
+
+    expect(collectText(tree)).toContain('View Module');
+    const viewButton = tree.root.findByProps({ children: 'View Module' }).parent;
+    await TestRenderer.act(async () => {
+      viewButton.props.onPress();
+    });
+
+    expect(navigate).toHaveBeenCalledWith('TrainingModule', {
+      user: 'alice',
+      slug: 'putting-assessment',
+      componentKey: 'putting-assessment',
+    });
   });
 });
