@@ -33,7 +33,7 @@ interface Props {
   route: RouteProp<RootStackParamList, 'PurchasePage'>;
 }
 
-export default function PurchasePage({ navigation }: Props) {
+export default function PurchasePage({ navigation, route }: Props) {
   const [modules, setModules] = useState<TrainingModuleMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,9 +48,39 @@ export default function PurchasePage({ navigation }: Props) {
 
     if (!supabase) return;
     supabase.auth.getSession().then(({ data }) => {
-      setIsSignedIn(!!data.session?.user?.id);
+      const session = data.session;
+      const sessionUser = session?.user;
+      setIsSignedIn(!!sessionUser?.id);
+
+      if (Platform.OS !== 'web') return;
+      const search = typeof window !== 'undefined' ? window.location.search : '';
+      const params = new URLSearchParams(search);
+      const checkoutStatus = params.get('checkout');
+      if (checkoutStatus !== 'success') return;
+
+      const userFromMetadata =
+        route.params?.user
+        ?? (sessionUser?.user_metadata?.display_name as string | undefined)
+        ?? (sessionUser?.user_metadata?.name as string | undefined)
+        ?? sessionUser?.email
+        ?? '';
+      navigation.replace('TrainingHome', { user: userFromMetadata });
     });
-  }, []);
+  }, [navigation, route.params?.user]);
+
+  useEffect(() => {
+    if (isSignedIn) return;
+    if (Platform.OS !== 'web') return;
+    const search = typeof window !== 'undefined' ? window.location.search : '';
+    const params = new URLSearchParams(search);
+    const checkoutStatus = params.get('checkout');
+    if (checkoutStatus !== 'success') return;
+    const userFromRoute =
+      route.params?.user
+      ?? '';
+    if (!userFromRoute) return;
+    navigation.replace('TrainingHome', { user: userFromRoute });
+  }, [isSignedIn, navigation, route.params?.user]);
 
   if (loading) {
     return (

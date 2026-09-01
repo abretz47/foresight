@@ -13,7 +13,7 @@ jest.mock('react-native', () => {
     ScrollView: createPrimitive('ScrollView'),
     TouchableOpacity: createPrimitive('TouchableOpacity'),
     ActivityIndicator: createPrimitive('ActivityIndicator'),
-    Platform: { select: (options: Record<string, unknown>) => options.web ?? options.default },
+    Platform: { OS: 'web', select: (options: Record<string, unknown>) => options.web ?? options.default },
     StyleSheet: { create: (styles: unknown) => styles },
   };
 });
@@ -137,5 +137,40 @@ describe('PurchasePage', () => {
 
     expect(collectText(tree)).toContain('Sign in to start checkout.');
     expect(collectText(tree)).toContain('Go to Login');
+  });
+
+  it('redirects to TrainingHome after successful checkout return', async () => {
+    const originalWindow = (global as any).window;
+    (global as any).window = { location: { search: '?checkout=success&session_id=cs_test' } };
+    try {
+      mockFetchPublishedModules.mockResolvedValue([
+        {
+          id: 'module-1',
+          slug: 'putting-assessment',
+          title: 'Putting Assessment',
+          description: 'Sharpen distance control',
+          thumbnail_url: null,
+          stripe_price_id: 'price_123',
+          display_price_cents: 1999,
+          display_price_currency: 'USD',
+          component_key: 'putting-assessment',
+          sort_order: 1,
+        },
+      ]);
+
+      const replace = jest.fn();
+      await TestRenderer.act(async () => {
+        TestRenderer.create(
+          <PurchasePage
+            navigation={{ goBack: jest.fn(), navigate: jest.fn(), replace }}
+            route={{ key: 'PurchasePage', name: 'PurchasePage', params: { user: 'alice' } }}
+          />
+        );
+      });
+
+      expect(replace).toHaveBeenCalledWith('TrainingHome', { user: 'alice' });
+    } finally {
+      (global as any).window = originalWindow;
+    }
   });
 });

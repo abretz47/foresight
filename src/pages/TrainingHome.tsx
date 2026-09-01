@@ -100,7 +100,7 @@ export default function TrainingHome({ navigation, route }: Props) {
   );
 
   const handleBuy = () => {
-   navigation.navigate('PurchasePage', {});
+   navigation.navigate('PurchasePage', { user });
   };
 
   const renderItem = ({ item }: ListRenderItemInfo<ModuleCardData>) => (
