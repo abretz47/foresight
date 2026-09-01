@@ -6,8 +6,7 @@ interface Props {
   priceId: string;
 }
 
-export default function EmbeddedStripeCheckout({ priceId }: Props) {
-  void priceId;
+export default function EmbeddedStripeCheckout({ priceId: _priceId }: Props) {
   return (
     <View style={s.fallback}>
       <Text style={s.fallbackText}>Embedded checkout is available on web only.</Text>

@@ -39,48 +39,79 @@ export default function PurchasePage({ navigation, route }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [activeCheckoutSlug, setActiveCheckoutSlug] = useState<string | null>(null);
   const [isSignedIn, setIsSignedIn] = useState(false);
+  const [isCheckoutRedirectPending, setIsCheckoutRedirectPending] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
+    const checkoutStatus =
+      Platform.OS === 'web' && typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('checkout')
+        : null;
+    const checkoutSuccess = checkoutStatus === 'success';
+    if (isMounted) {
+      setIsCheckoutRedirectPending(checkoutSuccess);
+    }
+
     fetchPublishedModules()
-      .then(setModules)
-      .catch(() => setError('Failed to load module catalog. Please try again.'))
-      .finally(() => setLoading(false));
+      .then((catalog) => {
+        if (isMounted) setModules(catalog);
+      })
+      .catch(() => {
+        if (isMounted) setError('Failed to load module catalog. Please try again.');
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
 
-    if (!supabase) return;
-    supabase.auth.getSession().then(({ data }) => {
-      const session = data.session;
-      const sessionUser = session?.user;
-      setIsSignedIn(!!sessionUser?.id);
+    const initializeSession = async () => {
+      let sessionUser:
+        | {
+            id?: string;
+            email?: string;
+            user_metadata?: { display_name?: string; name?: string };
+          }
+        | undefined;
 
-      if (Platform.OS !== 'web') return;
-      const search = typeof window !== 'undefined' ? window.location.search : '';
-      const params = new URLSearchParams(search);
-      const checkoutStatus = params.get('checkout');
+      if (supabase) {
+        const { data } = await supabase.auth.getSession();
+        sessionUser = data.session?.user as typeof sessionUser;
+        if (isMounted) {
+          setIsSignedIn(!!sessionUser?.id);
+        }
+      } else if (isMounted) {
+        setIsSignedIn(false);
+      }
+
       if (checkoutStatus !== 'success') return;
+      const userFromSession =
+        route.params?.user ??
+        sessionUser?.user_metadata?.display_name ??
+        sessionUser?.user_metadata?.name ??
+        sessionUser?.email ??
+        '';
+      if (userFromSession) {
+        if (isMounted) {
+          navigation.replace('TrainingHome', { user: userFromSession });
+        }
+        return;
+      }
 
-      const userFromMetadata =
-        route.params?.user
-        ?? (sessionUser?.user_metadata?.display_name as string | undefined)
-        ?? (sessionUser?.user_metadata?.name as string | undefined)
-        ?? sessionUser?.email
-        ?? '';
-      navigation.replace('TrainingHome', { user: userFromMetadata });
-    });
+      if (isMounted) setIsCheckoutRedirectPending(false);
+    };
+    void initializeSession();
+
+    return () => {
+      isMounted = false;
+    };
   }, [navigation, route.params?.user]);
 
-  useEffect(() => {
-    if (isSignedIn) return;
-    if (Platform.OS !== 'web') return;
-    const search = typeof window !== 'undefined' ? window.location.search : '';
-    const params = new URLSearchParams(search);
-    const checkoutStatus = params.get('checkout');
-    if (checkoutStatus !== 'success') return;
-    const userFromRoute =
-      route.params?.user
-      ?? '';
-    if (!userFromRoute) return;
-    navigation.replace('TrainingHome', { user: userFromRoute });
-  }, [isSignedIn, navigation, route.params?.user]);
+  if (isCheckoutRedirectPending) {
+    return (
+      <View style={s.centered}>
+        <ActivityIndicator color={COLORS.accent} size="large" />
+      </View>
+    );
+  }
 
   if (loading) {
     return (
