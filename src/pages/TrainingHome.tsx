@@ -5,8 +5,8 @@
  *
  * - Owned modules: "View" button → TrainingModule content
  * - Unowned modules: "Buy" button →
- *     native: PurchasePromptModal (redirects to web)
- *     web:    Stripe Checkout
+ *     native: PurchasePromptModal (opens web purchase page)
+ *     web:    PurchasePage
  */
 import React, { useState, useCallback, useRef } from 'react';
 import {
@@ -29,7 +29,6 @@ import EmojiText from '../components/EmojiText';
 import PurchasePromptModal from '../components/PurchasePromptModal';
 import { fetchPublishedModules, TrainingModuleMeta } from '../lib/trainingCatalogService';
 import { hasEntitlement, refreshSession } from '../lib/entitlementService';
-import { openCheckout } from '../lib/checkoutService';
 import type { RootStackParamList } from '../types/navigation';
 
 interface Props {
@@ -57,7 +56,6 @@ export default function TrainingHome({ navigation, route }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [purchaseModalVisible, setPurchaseModalVisible] = useState(false);
   const refreshAndLoadInFlightRef = useRef<Promise<void> | null>(null);
-  const purchasePendingRef = useRef(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -106,17 +104,16 @@ export default function TrainingHome({ navigation, route }: Props) {
     }, [triggerRefreshAndLoad]),
   );
 
-  const handleBuy = (item: ModuleCardData) => {
+  const handleBuy = () => {
     if (Platform.OS === 'web') {
-      openCheckout(item.stripe_price_id ?? '');
-    } else {
-      setPurchaseModalVisible(true);
+      navigation.navigate('PurchasePage', { user });
+      return;
     }
+    setPurchaseModalVisible(true);
   };
-  
+
   const handlePurchaseOpen = useCallback(() => {
-      purchasePendingRef.current = true;
-      setPurchaseModalVisible(false);
+    setPurchaseModalVisible(false);
   }, []);
 
   const renderItem = ({ item }: ListRenderItemInfo<ModuleCardData>) => (
@@ -143,7 +140,7 @@ export default function TrainingHome({ navigation, route }: Props) {
       ) : (
         <TouchableOpacity
           style={s.buyBtn}
-          onPress={() => handleBuy(item)}
+          onPress={handleBuy}
           activeOpacity={0.85}
         >
           <Text style={s.buyBtnLabel}>Buy</Text>

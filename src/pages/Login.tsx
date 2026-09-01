@@ -3,7 +3,7 @@ import { Text, View, TextInput, FlatList, TouchableOpacity, StyleSheet, Activity
 import { connect } from 'react-redux';
 import { getUser } from '../../reducer';
 import { styles, COLORS } from '../styles/styles';
-import { LoginNavigationProp } from '../types/navigation';
+import { LoginNavigationProp, LoginRouteProp } from '../types/navigation';
 import { getUsers } from '../data/db';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import * as DB from '../data/db';
@@ -17,6 +17,7 @@ interface User {
 
 interface Props {
   navigation: LoginNavigationProp;
+  route: LoginRouteProp;
   user: User;
   getUser: () => void;
 }
@@ -98,7 +99,7 @@ class Login extends Component<Props, State> {
           if (!hasProfile) {
             this.props.navigation.navigate('UserSetup', { user: name });
           } else {
-            this.props.navigation.navigate('Home', { user: name });
+            this.navigateAfterLogin(name);
           }
           return;
         }
@@ -131,8 +132,17 @@ class Login extends Component<Props, State> {
     }
     // Returning user: continue/start session and go straight to Home.
     await SessionService.continueOrStartSession(username);
-    this.props.navigation.navigate('Home', { user: username });
+    this.navigateAfterLogin(username);
   };
+
+  private navigateAfterLogin(username: string) {
+    const redirectTo = this.props.route.params?.redirectTo;
+    if (redirectTo === 'PurchasePage') {
+      this.props.navigation.navigate('PurchasePage', { user: username });
+      return;
+    }
+    this.props.navigation.navigate('Home', { user: username });
+  }
 
   handleChangeText = (text: string) => {
     this.setState({ username: text, showSuggestions: true });
@@ -186,7 +196,7 @@ class Login extends Component<Props, State> {
         if (!hasProfile) {
           this.props.navigation.navigate('UserSetup', { user: name });
         } else {
-          this.props.navigation.navigate('Home', { user: name });
+          this.navigateAfterLogin(name);
         }
       }
     } catch (err) {

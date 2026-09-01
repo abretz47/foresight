@@ -2,10 +2,8 @@
  * PurchasePage  (web only)
  *
  * Lists Platform Access and all published modules with title, description,
- * and price.  Anonymous browse is allowed; login/signup is prompted at
- * checkout.  Each "Buy" button creates a Stripe Checkout Session via the
- * `stripe-webhook` infrastructure (separate checkout initiation endpoint
- * or direct Stripe Checkout link).
+ * and price. Anonymous browse is allowed; login/signup is prompted at
+ * checkout. Each module card can expand an embedded Stripe checkout form.
  *
  * On native the user is directed here from PurchasePromptModal via their
  * device browser; this component is registered in the navigator but is
@@ -19,13 +17,16 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { COLORS } from '../styles/styles';
 import EmojiText from '../components/EmojiText';
+import EmbeddedStripeCheckout from '../components/EmbeddedStripeCheckout';
 import { fetchPublishedModules, TrainingModuleMeta } from '../lib/trainingCatalogService';
-import { openCheckout } from '../lib/checkoutService';
+import { hasEntitlement } from '../lib/entitlementService';
+import { supabase } from '../lib/supabase';
 import type { RootStackParamList } from '../types/navigation';
 
 interface Props {
@@ -33,17 +34,104 @@ interface Props {
   route: RouteProp<RootStackParamList, 'PurchasePage'>;
 }
 
-export default function PurchasePage({ navigation }: Props) {
-  const [modules, setModules] = useState<TrainingModuleMeta[]>([]);
+interface PurchaseModuleCardData extends TrainingModuleMeta {
+  owned: boolean;
+}
+
+export default function PurchasePage({ navigation, route }: Props) {
+  const [modules, setModules] = useState<PurchaseModuleCardData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeCheckoutSlug, setActiveCheckoutSlug] = useState<string | null>(null);
+  const [isSignedIn, setIsSignedIn] = useState(false);
+  const [isCheckoutRedirectPending, setIsCheckoutRedirectPending] = useState(false);
+  const [currentUser, setCurrentUser] = useState(route.params?.user ?? '');
 
   useEffect(() => {
-    fetchPublishedModules()
-      .then(setModules)
-      .catch(() => setError('Failed to load module catalog. Please try again.'))
-      .finally(() => setLoading(false));
-  }, []);
+    let isMounted = true;
+    const checkoutStatus =
+      Platform.OS === 'web' && typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('checkout')
+        : null;
+    const checkoutSuccess = checkoutStatus === 'success';
+    if (isMounted) {
+      setIsCheckoutRedirectPending(checkoutSuccess);
+    }
+
+    const initializePage = async () => {
+      let sessionUser:
+        | {
+            id?: string;
+            email?: string;
+            user_metadata?: { display_name?: string; name?: string };
+          }
+        | undefined;
+
+      if (supabase) {
+        const { data } = await supabase.auth.getSession();
+        sessionUser = data.session?.user as typeof sessionUser;
+        if (isMounted) {
+          setIsSignedIn(!!sessionUser?.id);
+        }
+      } else if (isMounted) {
+        setIsSignedIn(false);
+      }
+
+      const userFromSession =
+        route.params?.user ??
+        sessionUser?.user_metadata?.display_name ??
+        sessionUser?.user_metadata?.name ??
+        sessionUser?.email ??
+        '';
+      if (isMounted && userFromSession) {
+        setCurrentUser(userFromSession);
+      }
+
+      if (checkoutStatus === 'success') {
+        if (userFromSession) {
+          if (isMounted) {
+            navigation.replace('TrainingHome', { user: userFromSession });
+          }
+          return;
+        }
+        if (isMounted) setIsCheckoutRedirectPending(false);
+      }
+
+      try {
+        const catalog = await fetchPublishedModules();
+        const withOwnership = await Promise.all(
+          catalog.map(async (m) => ({
+            ...m,
+            owned: await hasEntitlement('training:' + m.slug),
+          })),
+        );
+        if (isMounted) {
+          setModules(withOwnership);
+        }
+      } catch {
+        if (isMounted) {
+          setError('Failed to load module catalog. Please try again.');
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+    void initializePage();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [navigation, route.params?.user]);
+
+  if (isCheckoutRedirectPending) {
+    return (
+      <View style={s.centered}>
+        <ActivityIndicator color={COLORS.accent} size="large" />
+      </View>
+    );
+  }
 
   if (loading) {
     return (
@@ -62,7 +150,7 @@ export default function PurchasePage({ navigation }: Props) {
     );
   }
 
-  const formatModulePrice = (module: TrainingModuleMeta): string | null => {
+  const formatModulePrice = (module: PurchaseModuleCardData): string | null => {
     if (module.display_price_cents == null || !module.display_price_currency) {
       return null;
     }
@@ -87,21 +175,53 @@ export default function PurchasePage({ navigation }: Props) {
       {modules.map((m) => {
         const displayPrice = formatModulePrice(m);
         return (
-          <View key={m.slug} style={s.productCard}>
+          <View key={m.slug} style={[s.productCard, m.owned && s.productCardOwned]}>
             <View style={s.productTop}>
               <EmojiText style={s.productIcon}>🏌️</EmojiText>
               <Text style={s.productTitle}>{m.title}</Text>
             </View>
             {displayPrice ? <Text style={s.productPrice}>{displayPrice}</Text> : null}
             <Text style={s.productDesc}>{m.description}</Text>
-            {m.stripe_price_id ? (
+            {m.owned ? (
               <TouchableOpacity
                 style={s.buyBtn}
-                onPress={() => openCheckout(m.stripe_price_id!)}
+                onPress={() => navigation.navigate('TrainingModule', { user: currentUser, slug: m.slug, componentKey: m.component_key })}
                 activeOpacity={0.85}
               >
-                <Text style={s.buyBtnLabel}>Buy Module</Text>
+                <Text style={s.buyBtnLabel}>View Module</Text>
               </TouchableOpacity>
+            ) : m.stripe_price_id ? (
+              <>
+                <TouchableOpacity
+                  style={s.buyBtn}
+                  onPress={() => setActiveCheckoutSlug((prev) => (prev === m.slug ? null : m.slug))}
+                  activeOpacity={0.85}
+                >
+                  <Text style={s.buyBtnLabel}>
+                    {activeCheckoutSlug === m.slug ? 'Hide Checkout' : 'Buy Module'}
+                  </Text>
+                </TouchableOpacity>
+                {activeCheckoutSlug === m.slug ? (
+                  <View style={s.checkoutContainer}>
+                    {!isSignedIn ? (
+                      <View style={s.signInPrompt}>
+                        <Text style={s.signInText}>Sign in to start checkout.</Text>
+                        <TouchableOpacity
+                          style={s.signInBtn}
+                          onPress={() => navigation.navigate('Login', { redirectTo: 'PurchasePage', user: currentUser || undefined })}
+                          activeOpacity={0.85}
+                        >
+                          <Text style={s.signInBtnLabel}>Go to Login</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : Platform.OS === 'web' ? (
+                      <EmbeddedStripeCheckout priceId={m.stripe_price_id} />
+                    ) : (
+                      <Text style={s.signInText}>Checkout is available on the web purchase page.</Text>
+                    )}
+                  </View>
+                ) : null}
+              </>
             ) : (
               <View style={s.comingSoon}>
                 <Text style={s.comingSoonText}>Coming soon</Text>
@@ -130,6 +250,9 @@ const s = StyleSheet.create({
     padding: 20,
     marginBottom: 16,
   },
+  productCardOwned: {
+    backgroundColor: '#E5E5E5',
+  },
   productTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 10 },
   productIcon: { fontSize: 28 },
   productTitle: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },
@@ -142,6 +265,32 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   buyBtnLabel: { fontWeight: '700', color: COLORS.textPrimary, fontSize: 15 },
+  checkoutContainer: { marginTop: 12 },
+  signInPrompt: {
+    borderRadius: 12,
+    backgroundColor: COLORS.surfaceAlt,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 12,
+    gap: 10,
+    alignItems: 'center',
+  },
+  signInText: {
+    color: COLORS.textSecondary,
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  signInBtn: {
+    backgroundColor: COLORS.accent,
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  signInBtnLabel: {
+    color: COLORS.textPrimary,
+    fontWeight: '700',
+    fontSize: 13,
+  },
   comingSoon: {
     backgroundColor: COLORS.surfaceAlt,
     borderRadius: 12,

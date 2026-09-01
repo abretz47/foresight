@@ -2,7 +2,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 
 export type RootStackParamList = {
-  Login: undefined;
+  Login: { redirectTo?: 'PurchasePage'; user?: string } | undefined;
   Home: { user: string };
   UserSetup: { user: string; fistOnly?: boolean };
   ShotProfile: { user: string; selectedClubId?: string };
@@ -35,7 +35,7 @@ export type RootStackParamList = {
   TrainingHome: { user: string };
   TrainingModule: { user: string; slug: string; componentKey?: string };
   DrillRunner: { user: string; slug: string; componentKey: string };
-  PurchasePage: Record<string, never>;
+  PurchasePage: { user?: string } | undefined;
 };
 
 export type LoginNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
