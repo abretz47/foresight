@@ -100,5 +100,8 @@ function TestDrillModule({ manifest, onComplete, hostContext }: TrainingModulePr
   );
 }
 
-registerModule('test-drill', TestDrillModule);
 registerModule('putting-assessment', PuttingAssessmentModule);
+registerModule('chipping-pitching-assessment', PuttingAssessmentModule);
+registerModule('greenside-trouble-assessment', PuttingAssessmentModule);
+registerModule('approach-wedge-shot-assessment', PuttingAssessmentModule);
+registerModule('long-game-assessment', PuttingAssessmentModule);
