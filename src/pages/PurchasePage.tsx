@@ -184,11 +184,11 @@ export default function PurchasePage({ navigation, route }: Props) {
             <Text style={s.productDesc}>{m.description}</Text>
             {m.owned ? (
               <TouchableOpacity
-                style={s.buyBtn}
+                style={s.viewBtn}
                 onPress={() => navigation.navigate('TrainingModule', { user: currentUser, slug: m.slug, componentKey: m.component_key })}
                 activeOpacity={0.85}
               >
-                <Text style={s.buyBtnLabel}>View Module</Text>
+                <Text style={s.viewBtnLabel}>View Module</Text>
               </TouchableOpacity>
             ) : m.stripe_price_id ? (
               <>
@@ -251,7 +251,7 @@ const s = StyleSheet.create({
     marginBottom: 16,
   },
   productCardOwned: {
-    backgroundColor: '#E5E5E5',
+    backgroundColor: '#c4c1c1',
   },
   productTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 10 },
   productIcon: { fontSize: 28 },
@@ -265,6 +265,13 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   buyBtnLabel: { fontWeight: '700', color: COLORS.textPrimary, fontSize: 15 },
+  viewBtn: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  viewBtnLabel: { fontWeight: '700', color: COLORS.accent, fontSize: 15 },
   checkoutContainer: { marginTop: 12 },
   signInPrompt: {
     borderRadius: 12,
